@@ -1,2 +1,3 @@
 # git-split
-Commit splitting tool for git
+
+Commit splitting tool for git.
