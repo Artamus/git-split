@@ -1,4 +1,17 @@
 (executable
  (public_name git_split)
  (name main)
- (libraries git_split))
+ (libraries git_split)
+ (ctypes
+  (external_library_name libgit2)
+  (build_flags_resolver pkg_config)
+  (headers (include "git2.h"))
+  (type_description
+   (instance Types)
+   (functor Type_description))
+  (function_description
+   (concurrency unlocked)
+   (instance Functions)
+   (functor Function_description))
+  (generated_types Types_generated)
+  (generated_entry_point C)))
