@@ -10,6 +10,50 @@ module Functions (F : Ctypes.FOREIGN) = struct
 
   let libgit2_init = foreign "git_libgit2_init" (void @-> returning int)
   let libgit2_shutdown = foreign "git_libgit2_shutdown" (void @-> returning int)
-  let libgit2_version = foreign "git_libgit2_version" (ptr int @-> ptr int @-> ptr int @-> returning int)
-  let git_repository_open = foreign "git_repository_open" (ptr (ptr Types.git_repository) @-> string @-> returning int)
+
+  let libgit2_version =
+    foreign "git_libgit2_version" (ptr int @-> ptr int @-> ptr int @-> returning int)
+
+  let git_repository_open =
+    foreign "git_repository_open" (ptr (ptr Types.git_repository) @-> string @-> returning int)
+
+  let git_revparse_single =
+    foreign "git_revparse_single"
+      (ptr (ptr Types.git_object) @-> ptr Types.git_repository @-> string @-> returning int)
+
+  let git_object_free = foreign "git_object_free" (ptr Types.git_object @-> returning void)
+
+  let git_object_id =
+    foreign "git_object_id" (ptr Types.git_object @-> returning (ptr Types.git_oid))
+
+  let git_oid_fmt = foreign "git_oid_fmt" (ptr char @-> ptr Types.git_oid @-> returning int)
+
+  let git_commit_lookup =
+    foreign "git_commit_lookup"
+      (ptr (ptr Types.git_commit)
+      @-> ptr Types.git_repository @-> ptr Types.git_oid @-> returning int)
+
+  let git_commit_parent =
+    foreign "git_commit_parent"
+      (ptr (ptr Types.git_commit) @-> ptr Types.git_commit @-> uint @-> returning int)
+
+  let git_commit_tree =
+    foreign "git_commit_tree" (ptr (ptr Types.git_tree) @-> ptr Types.git_commit @-> returning int)
+
+  let git_diff_tree_to_tree =
+    foreign "git_diff_tree_to_tree"
+      (ptr (ptr Types.git_diff)
+      @-> ptr Types.git_repository @-> ptr Types.git_tree @-> ptr Types.git_tree
+      @-> ptr Types.git_diff_options @-> returning int)
+
+  let git_diff_line_cb =
+    Foreign.funptr
+      Ctypes.(
+        ptr Types.git_diff_delta @-> ptr Types.git_diff_hunk @-> ptr Types.git_diff_line
+        @-> ptr void @-> returning int)
+
+  let git_diff_print =
+    foreign "git_diff_print"
+      (ptr Types.git_diff @-> Types.git_diff_format @-> git_diff_line_cb @-> ptr void
+     @-> returning int)
 end

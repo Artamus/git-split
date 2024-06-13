@@ -1,11 +1,12 @@
 (executable
  (public_name git_split)
  (name main)
- (libraries git_split)
+ (libraries git_split ctypes ctypes-foreign)
  (ctypes
   (external_library_name libgit2)
   (build_flags_resolver pkg_config)
-  (headers (include "git2.h"))
+  (headers
+   (include "git2.h"))
   (type_description
    (instance Types)
    (functor Type_description))
