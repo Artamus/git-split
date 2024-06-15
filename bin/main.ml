@@ -1,3 +1,8 @@
+external libgit_version: unit -> int * int * int = "ocaml_libgit2_version"
+
+let maj, min, rev = libgit_version () in
+  Printf.printf "Version: %d, %d, %d\n" maj min rev
+
 let () = print_endline "start" in
 let repo_path = "/home/artamus/repos/git-split" in
 let _open_res = C.Functions.libgit2_init () in

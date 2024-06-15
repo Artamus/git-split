@@ -2,6 +2,9 @@
  (public_name git_split)
  (name main)
  (libraries git_split ctypes ctypes-foreign)
+ (foreign_stubs
+  (language c)
+  (names stubs))
  (ctypes
   (external_library_name libgit2)
   (build_flags_resolver pkg_config)
