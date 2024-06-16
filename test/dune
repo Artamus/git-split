@@ -1,2 +1,4 @@
-(test
- (name test_git_split))
+(tests
+ (names test_diffParser)
+ (modules test_diffParser)
+ (libraries alcotest git_split))

@@ -1,2 +1,6 @@
 (library
- (name git_split))
+ (name git_split)
+ (public_name git_split)
+ (libraries re)
+ (preprocess
+  (pps ppx_deriving.show ppx_deriving.eq)))

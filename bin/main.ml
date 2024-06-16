@@ -1,10 +1,19 @@
-let () = print_endline "Hello, World!" in
-let git_diff_cmd = Feather.process "git" [ "diff"; "HEAD~1"; "HEAD" ] in
-let stdout = git_diff_cmd |> Feather.collect Feather.stdout in
-(* Now parse the diff. *)
-let regex = Re.str "diff --git " |> Re.compile in
-let splitted = Re.split regex stdout in
-let first = List.hd splitted in
-let second = List.hd (List.tl splitted) in
-let () = print_endline first in
-print_endline second
+let main () =
+  let git_diff_cmd = Feather.process "git" [ "diff"; "HEAD~1"; "HEAD" ] in
+  let stdout = git_diff_cmd |> Feather.collect Feather.stdout in
+  let _dummy_stdout =
+    "diff --git a/bin/dune b/bin/dune\n\
+     index 3e8a4cb..fc8e91d 100644\n\
+     --- a/bin/dune\n\
+     +++ b/bin/dune\n\
+     @@ -1,4 +1,4 @@\n\
+    \ (executable\n\
+    \  (public_name git_split)\n\
+    \  (name main)\n\
+     - (libraries git_split))\n\
+     + (libraries git_split feather re))"
+  in
+  let diff = Git_split.DiffParser.parse_diff stdout in
+  print_endline (Git_split.Model.show_diff diff)
+
+let () = main ()
