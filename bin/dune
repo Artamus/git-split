@@ -1,4 +1,4 @@
 (executable
  (public_name git_split)
  (name main)
- (libraries git_split))
+ (libraries git_split feather re))
