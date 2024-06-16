@@ -104,10 +104,62 @@ let test_diff_with_multiple_hunks () =
   in
   check diff_testable "same diffs" diff expected
 
+let test_diff_with_multiple_files () =
+  let raw_diff =
+    "diff --git a/src/test b/src/test\n\
+     index 25531f2..57f2dfb 100644\n\
+     --- a/src/test\n\
+     +++ b/src/test\n\
+     @@ -1,10 +1,19 @@\n\
+     -removed-line\n\
+     -removed-line\n\
+     +added-line\n\
+     +added-line\n\
+     diff --git a/src/file b/src/file\n\
+     new file mode 100644\n\
+     index 0000000..47d9444\n\
+     --- /dev/null\n\
+     +++ b/src/file\n\
+     @@ -0,0 +1,2 @@\n\
+     +added-line\n\
+     + added-line"
+  in
+
+  let diff = Git_split.DiffParser.parse_diff raw_diff in
+
+  let expected : diff =
+    {
+      files =
+        [
+          {
+            path = "src/test";
+            hunks =
+              [
+                {
+                  lines =
+                    [
+                      RemovedLine "removed-line";
+                      RemovedLine "removed-line";
+                      AddedLine "added-line";
+                      AddedLine "added-line";
+                    ];
+                };
+              ];
+          };
+          {
+            path = "src/file";
+            hunks = [ { lines = [ AddedLine "added-line"; AddedLine " added-line" ] } ];
+          };
+        ];
+    }
+  in
+  check diff_testable "same diffs" diff expected
+
 let suite =
   [
     ("parses a simple diff", `Quick, test_simple_diff);
     ("parses a diff with multiple hunks in file", `Quick, test_diff_with_multiple_hunks);
+    ("parses a diff with multiple files", `Quick, test_diff_with_multiple_files);
   ]
 
 let () = Alcotest.run "git-split" [ ("Diff parsing", suite) ]
