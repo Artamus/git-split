@@ -2,13 +2,7 @@ open Alcotest
 open Git_split.Model
 
 let diff_testable =
-  (* Can also use Fmt.Dump to create pretty prints. *)
-  let pp ppf data =
-    let diff_str = show_diff data in
-    Fmt.pf ppf "%s" diff_str
-  in
-  let equal a b = equal_diff a b in
-  testable pp equal
+  testable pp_diff equal_diff
 
 let test_simple_diff () =
   let raw_diff =
