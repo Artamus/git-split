@@ -129,13 +129,13 @@ let update event model =
       let last_file_idx = List.length model.files - 1 in
       let cursor =
         match model.cursor with
-        | FileCursor file_idx ->
+        | FileCursor file_idx when file_idx = last_file_idx -> FileCursor 0
+        | FileCursor file_idx -> FileCursor (file_idx + 1)
+        | HunkCursor (file_idx, hunk_idx)
+          when let last_hunk_idx = List.length (List.nth model.files file_idx).hunks - 1 in
+               hunk_idx = last_hunk_idx ->
             if file_idx = last_file_idx then FileCursor 0 else FileCursor (file_idx + 1)
-        | HunkCursor (file_idx, hunk_idx) ->
-            let last_hunk_idx = List.length (List.nth model.files file_idx).hunks - 1 in
-            if hunk_idx = last_hunk_idx then
-              if file_idx = last_file_idx then FileCursor 0 else FileCursor (file_idx + 1)
-            else HunkCursor (file_idx, hunk_idx + 1)
+        | HunkCursor (file_idx, hunk_idx) -> HunkCursor (file_idx, hunk_idx + 1)
       in
       ({ model with cursor }, Command.Noop)
   (* if we press right or `l`, we expand the current item and move to the first subitem. *)
