@@ -14,7 +14,7 @@ type line =
 
 type hunk = { lines : line list; included_in_diff : included_in_diff }
 type file = { path : string; hunks : hunk list; included_in_diff : included_in_diff }
-type cursor = FileCursor of int | HunkCursor of int * int
+type cursor = FileCursor of int | HunkCursor of int * int | LineCursor of int * int * int
 type model = { files : file list; cursor : cursor }
 
 let initial_model =
@@ -121,6 +121,8 @@ let update event model =
         | FileCursor file_idx -> FileCursor (file_idx - 1)
         | HunkCursor (file_idx, 0) -> FileCursor file_idx
         | HunkCursor (file_idx, hunk_idx) -> HunkCursor (file_idx, hunk_idx - 1)
+        | LineCursor (file_idx, hunk_idx, 0) -> HunkCursor (file_idx, hunk_idx)
+        | LineCursor (file_idx, hunk_idx, line_idx) -> LineCursor (file_idx, hunk_idx, line_idx - 1)
       in
 
       ({ model with cursor }, Command.Noop)
@@ -136,6 +138,14 @@ let update event model =
                hunk_idx = last_hunk_idx ->
             if file_idx = last_file_idx then FileCursor 0 else FileCursor (file_idx + 1)
         | HunkCursor (file_idx, hunk_idx) -> HunkCursor (file_idx, hunk_idx + 1)
+        | LineCursor (file_idx, hunk_idx, line_idx)
+          when let last_line_idx =
+                 List.length (List.nth (List.nth model.files file_idx).hunks hunk_idx).lines - 1
+               in
+               line_idx = last_line_idx ->
+            (* TODO: Check for hunk and file overflow. *)
+            HunkCursor (file_idx, hunk_idx + 1)
+        | LineCursor (file_idx, hunk_idx, line_idx) -> LineCursor (file_idx, hunk_idx, line_idx + 1)
       in
       ({ model with cursor }, Command.Noop)
   (* if we press right or `l`, we expand the current item and move to the first subitem. *)
@@ -143,7 +153,8 @@ let update event model =
       let cursor =
         match model.cursor with
         | FileCursor file_idx -> HunkCursor (file_idx, 0)
-        | HunkCursor (file_idx, hunk_idx) -> HunkCursor (file_idx, hunk_idx)
+        | HunkCursor (file_idx, hunk_idx) -> LineCursor (file_idx, hunk_idx, 0)
+        | LineCursor (file_idx, hunk_idx, line_idx) -> LineCursor (file_idx, hunk_idx, line_idx)
       in
       ({ model with cursor }, Command.Noop)
   (* if we press left or `h`, we move left in the list *)
@@ -152,6 +163,7 @@ let update event model =
         match model.cursor with
         | FileCursor file_idx -> FileCursor file_idx
         | HunkCursor (file_idx, _) -> FileCursor file_idx
+        | LineCursor (file_idx, hunk_idx, _) -> HunkCursor (file_idx, hunk_idx)
       in
       ({ model with cursor }, Command.Noop)
   (* when we press enter or space we toggle the item in the list
@@ -161,32 +173,59 @@ let update event model =
         match include_status with Included -> NotIncluded | NotIncluded -> Included
       in
       let files =
-        List.mapi
-          (fun file_idx { path; hunks; included_in_diff = file_included_in_diff } ->
-            let hunks =
-              List.mapi
-                (fun hunk_idx { lines; included_in_diff = hunk_included_in_diff } ->
-                  let included_in_diff =
-                    match model.cursor with
-                    | HunkCursor (file, hunk) ->
-                        if file = file_idx && hunk = hunk_idx then toggle hunk_included_in_diff
-                        else hunk_included_in_diff
-                    | FileCursor _file -> hunk_included_in_diff
-                  in
+        model.files
+        |> List.mapi (fun file_idx { path; hunks; included_in_diff = file_included_in_diff } ->
+               let included_in_diff =
+                 match model.cursor with
+                 | FileCursor c_file_idx ->
+                     if c_file_idx = file_idx then toggle file_included_in_diff
+                     else file_included_in_diff
+                 | HunkCursor _ | LineCursor _ -> file_included_in_diff
+               in
 
-                  { lines; included_in_diff })
-                hunks
-            in
+               let hunks =
+                 hunks
+                 |> List.mapi (fun hunk_idx { lines; included_in_diff = hunk_included_in_diff } ->
+                        let included_in_diff =
+                          match model.cursor with
+                          | HunkCursor (c_file_idx, c_hunk_idx) ->
+                              if c_file_idx = file_idx && c_hunk_idx = hunk_idx then
+                                toggle hunk_included_in_diff
+                              else hunk_included_in_diff
+                          | FileCursor _ | LineCursor _ -> hunk_included_in_diff
+                        in
 
-            let included_in_diff =
-              match model.cursor with
-              | FileCursor file ->
-                  if file = file_idx then toggle file_included_in_diff else file_included_in_diff
-              | HunkCursor (_, _) -> file_included_in_diff
-            in
+                        let lines : line list =
+                          lines
+                          |> List.mapi (fun line_idx line ->
+                                 match (line, model.cursor) with
+                                 | ( Removed (content, line_included_in_diff),
+                                     LineCursor (c_file_idx, c_hunk_idx, c_line_idx) ) ->
+                                     let included =
+                                       if
+                                         c_file_idx = file_idx && c_hunk_idx = hunk_idx
+                                         && c_line_idx = line_idx
+                                       then toggle line_included_in_diff
+                                       else line_included_in_diff
+                                     in
+                                     Removed (content, included)
+                                 | ( Added (content, line_included_in_diff),
+                                     LineCursor (c_file_idx, c_hunk_idx, c_line_idx) ) ->
+                                     let included =
+                                       if
+                                         c_file_idx = file_idx && c_hunk_idx = hunk_idx
+                                         && c_line_idx = line_idx
+                                       then toggle line_included_in_diff
+                                       else line_included_in_diff
+                                     in
+                                     Added (content, included)
+                                 | _, _ -> line)
+                        in
 
-            { path; hunks; included_in_diff })
-          model.files
+                        { lines; included_in_diff })
+               in
+
+               { path; hunks; included_in_diff })
       in
       ({ model with files }, Command.Noop)
   (* for all other events, we do nothing *)
@@ -198,42 +237,43 @@ let view model =
     |> List.mapi (fun file_idx { path; hunks; included_in_diff } ->
            (* Per file context. *)
            let hunks =
-             List.mapi
-               (fun hunk_idx { lines; included_in_diff } ->
-                 (* Per hunk context. *)
-                 let code_lines =
-                   List.map
-                     (fun line ->
-                       (* Per line context. *)
-                       let is_line_included_marker =
-                         match line with
-                         | Context _ -> "   "
-                         | Removed (_, included_in_diff) | Added (_, included_in_diff) ->
-                             let checkmark = if included_in_diff = Included then "x" else "" in
-                             Format.sprintf "[%s]" checkmark
-                       in
+             hunks
+             |> List.mapi (fun hunk_idx { lines; included_in_diff } ->
+                    (* Per hunk context. *)
+                    let code_lines =
+                      lines
+                      |> List.mapi (fun line_idx line ->
+                             (* Per line context. *)
+                             let line_content =
+                               match line with
+                               | Context content -> Format.sprintf "   %s" content
+                               | Removed (content, included_in_diff)
+                               | Added (content, included_in_diff) ->
+                                   let checkmark =
+                                     if included_in_diff = Included then "x" else ""
+                                   in
+                                   Format.sprintf "[%s] %s" checkmark content
+                             in
 
-                       let line_content =
-                         match line with
-                         | Context content -> content
-                         | Removed (content, _) | Added (content, _) -> content
-                       in
+                             let line =
+                               if model.cursor = LineCursor (file_idx, hunk_idx, line_idx) then
+                                 highlight "%s" line_content
+                               else line_content
+                             in
 
-                       "\t\t" ^ is_line_included_marker ^ Format.sprintf " %s" line_content)
-                     lines
-                 in
+                             Format.sprintf "\t\t%s" line)
+                    in
 
-                 let is_hunk_included_marker = if included_in_diff = Included then "x" else "" in
-                 let hunk_header_content =
-                   Format.sprintf "\t[%s] Hunk %d" is_hunk_included_marker (hunk_idx + 1)
-                 in
-                 let hunk_header =
-                   if model.cursor = HunkCursor (file_idx, hunk_idx) then
-                     highlight "%s" hunk_header_content
-                   else hunk_header_content
-                 in
-                 hunk_header :: code_lines)
-               hunks
+                    let is_hunk_included_marker = if included_in_diff = Included then "x" else "" in
+                    let hunk_header_content =
+                      Format.sprintf "\t[%s] Hunk %d" is_hunk_included_marker (hunk_idx + 1)
+                    in
+                    let hunk_header =
+                      if model.cursor = HunkCursor (file_idx, hunk_idx) then
+                        highlight "%s" hunk_header_content
+                      else hunk_header_content
+                    in
+                    hunk_header :: code_lines)
              |> List.flatten
            in
 
