@@ -13,7 +13,7 @@ let main () =
      - (libraries git_split))\n\
      + (libraries git_split feather re))"
   in
-  let diff = Git_split.DiffParser.parse_diff stdout in
-  print_endline (Git_split.Model.show_diff diff)
+  let _diff = Git_split.DiffParser.parse_diff stdout in
+  Minttea.start Git_split.Tui.app ~initial_model:Git_split.Tui.initial_model
 
 let () = main ()

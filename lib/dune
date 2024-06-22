@@ -1,6 +1,6 @@
 (library
  (name git_split)
  (public_name git_split)
- (libraries re)
+ (libraries re minttea spices)
  (preprocess
   (pps ppx_deriving.show ppx_deriving.eq)))
