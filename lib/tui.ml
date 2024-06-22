@@ -14,11 +14,12 @@ type line =
 
 type hunk = { lines : line list; included_in_diff : included_in_diff }
 type file = { path : string; hunks : hunk list; included_in_diff : included_in_diff }
-type model = { files : file list; cursor : int }
+type cursor = FileCursor of int
+type model = { files : file list; cursor : cursor }
 
 let initial_model =
   {
-    cursor = 0;
+    cursor = FileCursor 0;
     files =
       [
         {
@@ -75,6 +76,33 @@ let initial_model =
             ];
           included_in_diff = Included;
         };
+        {
+          path = "src/YetAnotherFile";
+          hunks =
+            [
+              {
+                lines =
+                  [
+                    Context "code";
+                    Removed ("code 2", Included);
+                    Added ("code 3", Included);
+                    Context "code 4";
+                  ];
+                included_in_diff = Included;
+              };
+              {
+                lines =
+                  [
+                    Context "code";
+                    Removed ("code 2", Included);
+                    Added ("code 3", Included);
+                    Context "code 4";
+                  ];
+                included_in_diff = Included;
+              };
+            ];
+          included_in_diff = Included;
+        };
       ];
   }
 
@@ -87,11 +115,15 @@ let update event model =
       (model, Command.Seq [ Command.Exit_alt_screen; Command.Quit ])
   (* if we press up or `k`, we move up in the list. *)
   | Event.KeyDown ((Up | Key "k"), _modifier) ->
-      let cursor = if model.cursor = 0 then List.length model.files - 1 else model.cursor - 1 in
+      let cursor_pos = match model.cursor with FileCursor index -> index in
+      let new_cursor_pos = if cursor_pos = 0 then List.length model.files - 1 else cursor_pos - 1 in
+      let cursor = FileCursor new_cursor_pos in
       ({ model with cursor }, Command.Noop)
   (* if we press down or `j`, we move down in the list. *)
   | Event.KeyDown ((Down | Key "j"), _modifier) ->
-      let cursor = if model.cursor = List.length model.files - 1 then 0 else model.cursor + 1 in
+      let cursor_pos = match model.cursor with FileCursor index -> index in
+      let new_cursor_pos = if cursor_pos = List.length model.files - 1 then 0 else cursor_pos + 1 in
+      let cursor = FileCursor new_cursor_pos in
       ({ model with cursor }, Command.Noop)
   (* if we press right or `l`, we expand the current item and move to the first subitem. *)
   | Event.KeyDown ((Right | Key "l"), _modifier) -> (model, Command.Noop)
@@ -106,7 +138,8 @@ let update event model =
       let files =
         List.mapi
           (fun idx { path; hunks; included_in_diff } ->
-            let status = if idx = model.cursor then toggle included_in_diff else included_in_diff in
+            let cursor_pos = match model.cursor with FileCursor index -> index in
+            let status = if idx = cursor_pos then toggle included_in_diff else included_in_diff in
             { path; hunks; included_in_diff = status })
           model.files
       in
@@ -147,7 +180,9 @@ let view model =
                  in
 
                  let is_hunk_included_marker = if included_in_diff = Included then "x" else "" in
-                 let hunk_header = Format.sprintf "\t[%s] Hunk %d" is_hunk_included_marker (idx + 1) in
+                 let hunk_header =
+                   Format.sprintf "\t[%s] Hunk %d" is_hunk_included_marker (idx + 1)
+                 in
                  hunk_header :: code_lines)
                hunks
              |> List.flatten
@@ -155,8 +190,9 @@ let view model =
 
            let is_file_included_marker = if included_in_diff = Included then "x" else "" in
            let file_line = Format.sprintf "[%s] %s" is_file_included_marker path in
+           let cursor_pos = match model.cursor with FileCursor index -> index in
            let maybe_highlighted_file_line =
-             if model.cursor = idx then highlight "%s" file_line else file_line
+             if cursor_pos = idx then highlight "%s" file_line else file_line
            in
            maybe_highlighted_file_line :: bla)
     |> List.flatten |> String.concat "\n"
