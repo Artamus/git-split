@@ -3,9 +3,8 @@ open Minttea
 let cursor = Spices.(default |> reverse true |> build)
 let header = Spices.(default |> reverse true |> build)
 
-type included_in_diff = Included | NotIncluded
-type line = Removed of string * included_in_diff | Added of string * included_in_diff
-type hunk = { pre_context : string list; diff_lines : line list; post_context : string list }
+type diff_line = string * [ `added | `removed ] * [ `included | `notincluded ]
+type hunk = { pre_context : string list; diff_lines : diff_line list; post_context : string list }
 type file = { path : string; hunks : hunk list }
 type cursor = FileCursor of int | HunkCursor of int * int | LineCursor of int * int * int
 type model = { files : file list; cursor : cursor }
@@ -14,23 +13,11 @@ type set_lines_inclusion = AllLines | SomeLines | NoLines
 let hunk_lines_inclusion hunk =
   let all_lines_included =
     hunk.diff_lines
-    |> List.for_all (fun line ->
-           let line_included =
-             match line with
-             | Removed (_, line_included) -> line_included
-             | Added (_, line_included) -> line_included
-           in
-           line_included = Included)
+    |> List.for_all (fun line -> match line with _, _, included -> included = `included)
   in
   let any_line_included =
     hunk.diff_lines
-    |> List.exists (fun line ->
-           let line_included =
-             match line with
-             | Removed (_, line_included) -> line_included
-             | Added (_, line_included) -> line_included
-           in
-           line_included = Included)
+    |> List.exists (fun line -> match line with _, _, included -> included = `included)
   in
   if all_lines_included then AllLines else if any_line_included then SomeLines else NoLines
 
@@ -59,12 +46,12 @@ let initial_model =
             [
               {
                 pre_context = [ "code" ];
-                diff_lines = [ Removed ("code 2", Included); Added ("code 3", Included) ];
+                diff_lines = [ ("code 2", `removed, `included); ("code 3", `added, `included) ];
                 post_context = [ "code 4" ];
               };
               {
                 pre_context = [ "code 5"; "code 6"; "code 7" ];
-                diff_lines = [ Removed ("code 7.5", Included); Added ("code 7.9", Included) ];
+                diff_lines = [ ("code 7.5", `removed, `included); ("code 7.9", `added, `included) ];
                 post_context = [ "code 8" ];
               };
             ];
@@ -75,12 +62,12 @@ let initial_model =
             [
               {
                 pre_context = [ "code" ];
-                diff_lines = [ Removed ("code 2", Included); Added ("code 3", Included) ];
+                diff_lines = [ ("code 2", `removed, `included); ("code 3", `added, `included) ];
                 post_context = [ "code 4" ];
               };
               {
                 pre_context = [ "code 5"; "code 6"; "code 7" ];
-                diff_lines = [ Removed ("code 7.5", Included); Added ("code 7.9", Included) ];
+                diff_lines = [ ("code 7.5", `removed, `included); ("code 7.9", `added, `included) ];
                 post_context = [ "code 8" ];
               };
             ];
@@ -93,17 +80,17 @@ let initial_model =
                 pre_context = [];
                 diff_lines =
                   [
-                    Added ("These", Included);
-                    Added ("Are", Included);
-                    Added ("All", Included);
-                    Added ("Added", Included);
-                    Added ("Lines", Included);
-                    Added ("Because", Included);
-                    Added ("This", Included);
-                    Added ("Is", Included);
-                    Added ("A", Included);
-                    Added ("New", Included);
-                    Added ("File", Included);
+                    ("These", `added, `included);
+                    ("Are", `added, `included);
+                    ("All", `added, `included);
+                    ("Added", `added, `included);
+                    ("Lines", `added, `included);
+                    ("Because", `added, `included);
+                    ("This", `added, `included);
+                    ("Is", `added, `included);
+                    ("A", `added, `included);
+                    ("New", `added, `included);
+                    ("File", `added, `included);
                   ];
                 post_context = [];
               };
@@ -179,14 +166,14 @@ let update event model =
   (* when we press enter or space we toggle the item in the list
      that the cursor points to *)
   | Event.KeyDown ((Enter | Space), _modifier) ->
-      let toggle include_status =
-        match include_status with Included -> NotIncluded | NotIncluded -> Included
+      let toggle_line include_status =
+        match include_status with `included -> `notincluded | `notincluded -> `included
       in
 
       let toggle_group = function
-        | NoLines -> Included
-        | SomeLines -> Included
-        | AllLines -> NotIncluded
+        | NoLines -> `included
+        | SomeLines -> `included
+        | AllLines -> `notincluded
       in
 
       let files =
@@ -205,9 +192,8 @@ let update event model =
                                 hunk.diff_lines
                                 |> List.map (fun line ->
                                        match line with
-                                       | Removed (contents, _) ->
-                                           Removed (contents, included_in_diff)
-                                       | Added (contents, _) -> Added (contents, included_in_diff))
+                                       | contents, diff_type, _ ->
+                                           (contents, diff_type, included_in_diff))
                               in
                               { hunk with diff_lines })
                    in
@@ -228,9 +214,8 @@ let update event model =
                                   hunk.diff_lines
                                   |> List.map (fun line ->
                                          match line with
-                                         | Removed (contents, _) ->
-                                             Removed (contents, included_in_diff)
-                                         | Added (contents, _) -> Added (contents, included_in_diff))
+                                         | contents, diff_type, _ ->
+                                             (contents, diff_type, included_in_diff))
                               in
                               { hunk with diff_lines })
                    in
@@ -251,10 +236,8 @@ let update event model =
                                          if line_idx <> c_line_idx then line
                                          else
                                            match line with
-                                           | Removed (contents, included_in_diff) ->
-                                               Removed (contents, toggle included_in_diff)
-                                           | Added (contents, included_in_diff) ->
-                                               Added (contents, toggle included_in_diff))
+                                           | contents, diff_type, included ->
+                                               (contents, diff_type, toggle_line included))
                               in
                               { hunk with diff_lines })
                    in
@@ -283,10 +266,9 @@ let view model =
                              (* Per line context. *)
                              let line_content =
                                match line with
-                               | Removed (content, included_in_diff)
-                               | Added (content, included_in_diff) ->
+                               | content, _, included_in_diff ->
                                    let checkmark =
-                                     if included_in_diff = Included then "x" else " "
+                                     if included_in_diff = `included then "x" else " "
                                    in
                                    Format.sprintf "[%s] %s" checkmark content
                              in
