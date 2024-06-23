@@ -260,35 +260,6 @@ let update event model =
                    in
                    { file with hunks })
       in
-
-      let _filess =
-        model.files
-        |> List.mapi (fun file_idx { path; hunks } ->
-               let hunks =
-                 hunks
-                 |> List.mapi (fun hunk_idx { pre_context; diff_lines; post_context } ->
-                        let diff_lines =
-                          diff_lines
-                          |> List.mapi (fun line_idx line ->
-                                 match (line, model.cursor) with
-                                 | ( Removed (content, line_included_in_diff),
-                                     LineCursor (c_file_idx, c_hunk_idx, c_line_idx) )
-                                   when c_file_idx = file_idx && c_hunk_idx = hunk_idx
-                                        && c_line_idx = line_idx ->
-                                     Removed (content, toggle line_included_in_diff)
-                                 | ( Added (content, line_included_in_diff),
-                                     LineCursor (c_file_idx, c_hunk_idx, c_line_idx) )
-                                   when c_file_idx = file_idx && c_hunk_idx = hunk_idx
-                                        && c_line_idx = line_idx ->
-                                     Added (content, toggle line_included_in_diff)
-                                 | _ -> line)
-                        in
-
-                        { pre_context; diff_lines; post_context })
-               in
-
-               { path; hunks })
-      in
       ({ model with files }, Command.Noop)
   (* for all other events, we do nothing *)
   | _ -> (model, Command.Noop)
