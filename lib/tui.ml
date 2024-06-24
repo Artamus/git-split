@@ -434,38 +434,35 @@ let render_hunk hunk cursor file_idx hunk_idx =
   in
   hunk_header :: code_lines
 
-let view model =
-  let lines =
-    model.files
-    |> List.mapi (fun file_idx file ->
-           (* Per file context. *)
-           let hunk_lines =
-             match file.hunks_visibility with
-             | Collapsed -> []
-             | Expanded ->
-                 file.hunks
-                 |> List.mapi (fun hunk_idx hunk -> render_hunk hunk model.cursor file_idx hunk_idx)
-                 |> List.flatten
-           in
-
-           let is_file_included_marker =
-             match file_lines_inclusion file with
-             | AllLines -> "x"
-             | SomeLines -> "~"
-             | NoLines -> " "
-           in
-
-           let file_line_content = Format.sprintf "[%s] %s" is_file_included_marker file.path in
-           let file_line =
-             if model.cursor = FileCursor file_idx then cursor_style "%s" file_line_content
-             else file_line_content
-           in
-           file_line :: hunk_lines)
-    |> List.flatten |> String.concat "\n"
+let render_file file cursor file_idx =
+  let hunk_lines =
+    match file.hunks_visibility with
+    | Collapsed -> []
+    | Expanded ->
+        file.hunks
+        |> List.mapi (fun hunk_idx hunk -> render_hunk hunk cursor file_idx hunk_idx)
+        |> List.flatten
   in
+
+  let is_file_included_marker =
+    match file_lines_inclusion file with AllLines -> "x" | SomeLines -> "~" | NoLines -> " "
+  in
+
+  let file_line_content = Format.sprintf "[%s] %s" is_file_included_marker file.path in
+  let file_line =
+    if cursor = FileCursor file_idx then cursor_style "%s" file_line_content else file_line_content
+  in
+  file_line :: hunk_lines
+
+let view model =
   let header =
     header "%s"
       "Use the arrow keys to navigate, space to select/unselect, c to confirm and ESC to exit."
+  in
+  let lines =
+    model.files
+    |> List.mapi (fun file_idx file -> render_file file model.cursor file_idx)
+    |> List.flatten |> String.concat "\n"
   in
   (* and we send the UI for rendering! *)
   Format.sprintf {|%s
