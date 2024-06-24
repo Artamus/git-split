@@ -1,14 +1,16 @@
 open Minttea
 
-let cursor = Spices.(default |> reverse true |> build)
+let cursor_style = Spices.(default |> reverse true |> build)
 let header = Spices.(default |> reverse true |> build)
+
+type visibility = Expanded | Collapsed
 
 type line =
   | Context of string
   | Diff of string * [ `added | `removed ] * [ `included | `notincluded ]
 
-type hunk = { lines : line list; visibility : [ `expanded | `collapsed ] }
-type file = { path : string; hunks : hunk list }
+type hunk = { lines : line list; lines_visibility : visibility }
+type file = { path : string; hunks : hunk list; hunks_visibility : visibility }
 type cursor = FileCursor of int | HunkCursor of int * int | LineCursor of int * int * int
 type model = { files : file list; cursor : cursor }
 type set_lines_inclusion = AllLines | SomeLines | NoLines
@@ -52,6 +54,7 @@ let initial_model =
       [
         {
           path = "src/TestMain";
+          hunks_visibility = Collapsed;
           hunks =
             [
               {
@@ -62,7 +65,7 @@ let initial_model =
                     Diff ("code 3", `added, `included);
                     Context "code 4";
                   ];
-                visibility = `expanded;
+                lines_visibility = Expanded;
               };
               {
                 lines =
@@ -74,12 +77,13 @@ let initial_model =
                     Diff ("code 7.9", `added, `included);
                     Context "code 8";
                   ];
-                visibility = `expanded;
+                lines_visibility = Expanded;
               };
             ];
         };
         {
           path = "src/MainFile";
+          hunks_visibility = Collapsed;
           hunks =
             [
               {
@@ -90,7 +94,7 @@ let initial_model =
                     Diff ("code 3", `added, `included);
                     Context "code 4";
                   ];
-                visibility = `expanded;
+                lines_visibility = Expanded;
               };
               {
                 lines =
@@ -102,12 +106,13 @@ let initial_model =
                     Diff ("code 7.9", `added, `included);
                     Context "code 8";
                   ];
-                visibility = `expanded;
+                lines_visibility = Expanded;
               };
             ];
         };
         {
           path = "src/YetAnotherFile";
+          hunks_visibility = Collapsed;
           hunks =
             [
               {
@@ -125,7 +130,7 @@ let initial_model =
                     Diff ("New", `added, `included);
                     Diff ("File", `added, `included);
                   ];
-                visibility = `expanded;
+                lines_visibility = Expanded;
               };
             ];
         };
@@ -223,13 +228,21 @@ let update event model =
       in
       let files =
         match model.cursor with
-        | FileCursor _ -> model.files
         | LineCursor _ -> model.files
+        | FileCursor c_file_idx -> (
+            let file = List.nth model.files c_file_idx in
+            match file.hunks_visibility with
+            | Expanded -> model.files
+            | Collapsed ->
+                model.files
+                |> List.mapi (fun file_idx file ->
+                       if file_idx <> c_file_idx then file
+                       else { file with hunks_visibility = Expanded }))
         | HunkCursor (c_file_idx, c_hunk_idx) -> (
             let hunk = get_hunk model.files c_file_idx c_hunk_idx in
-            match hunk.visibility with
-            | `expanded -> model.files
-            | `collapsed ->
+            match hunk.lines_visibility with
+            | Expanded -> model.files
+            | Collapsed ->
                 model.files
                 |> List.mapi (fun file_idx file ->
                        if file_idx <> c_file_idx then file
@@ -237,10 +250,11 @@ let update event model =
                          let hunks =
                            file.hunks
                            |> List.mapi (fun hunk_idx hunk ->
-                                  let visibility =
-                                    if hunk_idx = c_hunk_idx then `expanded else hunk.visibility
+                                  let lines_visibility =
+                                    if hunk_idx = c_hunk_idx then Expanded
+                                    else hunk.lines_visibility
                                   in
-                                  { hunk with visibility })
+                                  { hunk with lines_visibility })
                          in
                          { file with hunks }))
       in
@@ -252,21 +266,29 @@ let update event model =
         | FileCursor _ -> model.cursor
         | HunkCursor (file_idx, hunk_idx) -> (
             let hunk = List.nth (List.nth model.files file_idx).hunks hunk_idx in
-            match hunk.visibility with
-            | `expanded -> HunkCursor (file_idx, hunk_idx)
-            | `collapsed -> FileCursor file_idx)
+            match hunk.lines_visibility with
+            | Expanded -> HunkCursor (file_idx, hunk_idx)
+            | Collapsed -> FileCursor file_idx)
         | LineCursor (file_idx, hunk_idx, _) -> HunkCursor (file_idx, hunk_idx)
       in
 
       let files =
         match model.cursor with
-        | FileCursor _ -> model.files
         | LineCursor _ -> model.files
+        | FileCursor c_file_idx -> (
+            let file = List.nth model.files c_file_idx in
+            match file.hunks_visibility with
+            | Collapsed -> model.files
+            | Expanded ->
+                model.files
+                |> List.mapi (fun file_idx file ->
+                       if file_idx <> c_file_idx then file
+                       else { file with hunks_visibility = Collapsed }))
         | HunkCursor (c_file_idx, c_hunk_idx) -> (
             let hunk = List.nth (List.nth model.files c_file_idx).hunks c_hunk_idx in
-            match hunk.visibility with
-            | `collapsed -> model.files
-            | `expanded ->
+            match hunk.lines_visibility with
+            | Collapsed -> model.files
+            | Expanded ->
                 model.files
                 |> List.mapi (fun file_idx file ->
                        if file_idx <> c_file_idx then file
@@ -274,10 +296,11 @@ let update event model =
                          let hunks =
                            file.hunks
                            |> List.mapi (fun hunk_idx hunk ->
-                                  let visibility =
-                                    if hunk_idx = c_hunk_idx then `collapsed else hunk.visibility
+                                  let lines_visibility =
+                                    if hunk_idx = c_hunk_idx then Collapsed
+                                    else hunk.lines_visibility
                                   in
-                                  { hunk with visibility })
+                                  { hunk with lines_visibility })
                          in
                          { file with hunks }))
       in
@@ -369,63 +392,60 @@ let update event model =
   (* for all other events, we do nothing *)
   | _ -> (model, Command.Noop)
 
+let render_line line cursor file_idx hunk_idx line_idx =
+  let included_prefix =
+    match line with
+    | Context _ -> "   "
+    | Diff (_, _, `included) -> "[x]"
+    | Diff (_, _, `notincluded) -> "[ ]"
+  in
+
+  let raw_content =
+    match line with Context content -> content | Diff (content, _, _) -> content
+  in
+
+  let line_content = Format.sprintf "%s %s" included_prefix raw_content in
+
+  let styled_line =
+    if cursor = LineCursor (file_idx, hunk_idx, line_idx) then cursor_style "%s" line_content
+    else line_content
+  in
+
+  Format.sprintf "\t\t%s" styled_line
+
+let render_hunk hunk cursor file_idx hunk_idx =
+  let code_lines =
+    match hunk.lines_visibility with
+    | Collapsed -> []
+    | Expanded ->
+        hunk.lines
+        |> List.mapi (fun line_idx line -> render_line line cursor file_idx hunk_idx line_idx)
+  in
+
+  let is_hunk_included_marker =
+    match hunk_lines_inclusion hunk with AllLines -> "x" | SomeLines -> "~" | NoLines -> " "
+  in
+  let hunk_header_content =
+    Format.sprintf "\t[%s] Hunk %d" is_hunk_included_marker (hunk_idx + 1)
+  in
+  let hunk_header =
+    if cursor = HunkCursor (file_idx, hunk_idx) then cursor_style "%s" hunk_header_content
+    else hunk_header_content
+  in
+  hunk_header :: code_lines
+
 let view model =
   let lines =
     model.files
     |> List.mapi (fun file_idx file ->
            (* Per file context. *)
-           let code_hunks =
-             file.hunks
-             |> List.mapi (fun hunk_idx hunk ->
-                    (* Per hunk context. *)
-                    let code_lines =
-                      if hunk.visibility = `expanded then
-                        hunk.lines
-                        |> List.mapi (fun line_idx line ->
-                               (* Per line context. *)
-                               let included_prefix =
-                                 match line with
-                                 | Context _ -> "   "
-                                 | Diff (_, _, `included) -> "[x]"
-                                 | Diff (_, _, `notincluded) -> "[ ]"
-                               in
-
-                               let raw_content =
-                                 match line with
-                                 | Context content -> content
-                                 | Diff (content, _, _) -> content
-                               in
-
-                               let line_content =
-                                 Format.sprintf "%s %s" included_prefix raw_content
-                               in
-
-                               let styled_line =
-                                 if model.cursor = LineCursor (file_idx, hunk_idx, line_idx) then
-                                   cursor "%s" line_content
-                                 else line_content
-                               in
-
-                               Format.sprintf "\t\t%s" styled_line)
-                      else []
-                    in
-
-                    let is_hunk_included_marker =
-                      match hunk_lines_inclusion hunk with
-                      | AllLines -> "x"
-                      | SomeLines -> "~"
-                      | NoLines -> " "
-                    in
-                    let hunk_header_content =
-                      Format.sprintf "\t[%s] Hunk %d" is_hunk_included_marker (hunk_idx + 1)
-                    in
-                    let hunk_header =
-                      if model.cursor = HunkCursor (file_idx, hunk_idx) then
-                        cursor "%s" hunk_header_content
-                      else hunk_header_content
-                    in
-                    hunk_header :: code_lines)
-             |> List.flatten
+           let hunk_lines =
+             match file.hunks_visibility with
+             | Collapsed -> []
+             | Expanded ->
+                 file.hunks
+                 |> List.mapi (fun hunk_idx hunk -> render_hunk hunk model.cursor file_idx hunk_idx)
+                 |> List.flatten
            in
 
            let is_file_included_marker =
@@ -437,10 +457,10 @@ let view model =
 
            let file_line_content = Format.sprintf "[%s] %s" is_file_included_marker file.path in
            let file_line =
-             if model.cursor = FileCursor file_idx then cursor "%s" file_line_content
+             if model.cursor = FileCursor file_idx then cursor_style "%s" file_line_content
              else file_line_content
            in
-           file_line :: code_hunks)
+           file_line :: hunk_lines)
     |> List.flatten |> String.concat "\n"
   in
   let header =
