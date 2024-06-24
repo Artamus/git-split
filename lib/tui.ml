@@ -7,7 +7,7 @@ type line =
   | Context of string
   | Diff of string * [ `added | `removed ] * [ `included | `notincluded ]
 
-type hunk = { lines : line list; expanded : [ `expanded | `collapsed ] }
+type hunk = { lines : line list; visibility : [ `expanded | `collapsed ] }
 type file = { path : string; hunks : hunk list }
 type cursor = FileCursor of int | HunkCursor of int * int | LineCursor of int * int * int
 type model = { files : file list; cursor : cursor }
@@ -62,7 +62,7 @@ let initial_model =
                     Diff ("code 3", `added, `included);
                     Context "code 4";
                   ];
-                expanded = `expanded;
+                visibility = `expanded;
               };
               {
                 lines =
@@ -74,7 +74,7 @@ let initial_model =
                     Diff ("code 7.9", `added, `included);
                     Context "code 8";
                   ];
-                expanded = `expanded;
+                visibility = `expanded;
               };
             ];
         };
@@ -90,7 +90,7 @@ let initial_model =
                     Diff ("code 3", `added, `included);
                     Context "code 4";
                   ];
-                expanded = `expanded;
+                visibility = `expanded;
               };
               {
                 lines =
@@ -102,7 +102,7 @@ let initial_model =
                     Diff ("code 7.9", `added, `included);
                     Context "code 8";
                   ];
-                expanded = `expanded;
+                visibility = `expanded;
               };
             ];
         };
@@ -125,7 +125,7 @@ let initial_model =
                     Diff ("New", `added, `included);
                     Diff ("File", `added, `included);
                   ];
-                expanded = `expanded;
+                visibility = `expanded;
               };
             ];
         };
@@ -227,7 +227,7 @@ let update event model =
         | LineCursor _ -> model.files
         | HunkCursor (c_file_idx, c_hunk_idx) -> (
             let hunk = get_hunk model.files c_file_idx c_hunk_idx in
-            match hunk.expanded with
+            match hunk.visibility with
             | `expanded -> model.files
             | `collapsed ->
                 model.files
@@ -237,10 +237,10 @@ let update event model =
                          let hunks =
                            file.hunks
                            |> List.mapi (fun hunk_idx hunk ->
-                                  let expanded =
-                                    if hunk_idx = c_hunk_idx then `expanded else hunk.expanded
+                                  let visibility =
+                                    if hunk_idx = c_hunk_idx then `expanded else hunk.visibility
                                   in
-                                  { hunk with expanded })
+                                  { hunk with visibility })
                          in
                          { file with hunks }))
       in
@@ -252,7 +252,7 @@ let update event model =
         | FileCursor _ -> model.cursor
         | HunkCursor (file_idx, hunk_idx) -> (
             let hunk = List.nth (List.nth model.files file_idx).hunks hunk_idx in
-            match hunk.expanded with
+            match hunk.visibility with
             | `expanded -> HunkCursor (file_idx, hunk_idx)
             | `collapsed -> FileCursor file_idx)
         | LineCursor (file_idx, hunk_idx, _) -> HunkCursor (file_idx, hunk_idx)
@@ -264,7 +264,7 @@ let update event model =
         | LineCursor _ -> model.files
         | HunkCursor (c_file_idx, c_hunk_idx) -> (
             let hunk = List.nth (List.nth model.files c_file_idx).hunks c_hunk_idx in
-            match hunk.expanded with
+            match hunk.visibility with
             | `collapsed -> model.files
             | `expanded ->
                 model.files
@@ -274,10 +274,10 @@ let update event model =
                          let hunks =
                            file.hunks
                            |> List.mapi (fun hunk_idx hunk ->
-                                  let expanded =
-                                    if hunk_idx = c_hunk_idx then `collapsed else hunk.expanded
+                                  let visibility =
+                                    if hunk_idx = c_hunk_idx then `collapsed else hunk.visibility
                                   in
-                                  { hunk with expanded })
+                                  { hunk with visibility })
                          in
                          { file with hunks }))
       in
@@ -379,7 +379,7 @@ let view model =
              |> List.mapi (fun hunk_idx hunk ->
                     (* Per hunk context. *)
                     let code_lines =
-                      if hunk.expanded = `expanded then
+                      if hunk.visibility = `expanded then
                         hunk.lines
                         |> List.mapi (fun line_idx line ->
                                (* Per line context. *)
