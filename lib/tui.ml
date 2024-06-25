@@ -400,18 +400,22 @@ let render_line line cursor file_idx hunk_idx line_idx =
     | Diff (_, _, `notincluded) -> "[ ]"
   in
 
+  let line_kind_prefix =
+    match line with Context _ -> " " | Diff (_, `removed, _) -> "-" | Diff (_, `added, _) -> "+"
+  in
+
   let raw_content =
     match line with Context content -> content | Diff (content, _, _) -> content
   in
 
-  let line_content = Format.sprintf "%s %s" included_prefix raw_content in
+  let line_content = Format.sprintf "%s %s %s" included_prefix line_kind_prefix raw_content in
 
-  let styled_line =
+  let maybe_highlighted_line =
     if cursor = LineCursor (file_idx, hunk_idx, line_idx) then cursor_style "%s" line_content
     else line_content
   in
 
-  Format.sprintf "\t\t%s" styled_line
+  Format.sprintf "\t\t%s" maybe_highlighted_line
 
 let render_hunk hunk cursor file_idx hunk_idx =
   let code_lines =
