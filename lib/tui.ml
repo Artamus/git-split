@@ -1,5 +1,8 @@
 open Minttea
 
+let context_line_style fmt = Spices.(default |> faint true |> build) fmt
+let removed_line_style fmt = Spices.(default |> fg @@ color "#992222" |> build) fmt
+let added_line_style fmt = Spices.(default |> fg @@ color "#229922" |> build) fmt
 let cursor_style = Spices.(default |> reverse true |> build)
 let header = Spices.(default |> reverse true |> build)
 
@@ -405,14 +408,23 @@ let render_line line cursor file_idx hunk_idx line_idx =
   in
 
   let raw_content =
-    match line with Context content -> content | Diff (content, _, _) -> content
+    match line with
+    | Context content -> context_line_style "%s" content
+    | Diff (content, _, _) -> content
   in
 
   let line_content = Format.sprintf "%s %s %s" included_prefix line_kind_prefix raw_content in
 
+  let styled_line =
+    match line with
+    | Context _ -> context_line_style "%s" line_content
+    | Diff (_, `removed, _) -> removed_line_style "%s" line_content
+    | Diff (_, `added, _) -> added_line_style "%s" line_content
+  in
+
   let maybe_highlighted_line =
-    if cursor = LineCursor (file_idx, hunk_idx, line_idx) then cursor_style "%s" line_content
-    else line_content
+    if cursor = LineCursor (file_idx, hunk_idx, line_idx) then cursor_style "%s" styled_line
+    else styled_line
   in
 
   Format.sprintf "\t\t%s" maybe_highlighted_line
@@ -468,7 +480,6 @@ let view model =
     |> List.mapi (fun file_idx file -> render_file file model.cursor file_idx)
     |> List.flatten |> String.concat "\n"
   in
-  (* and we send the UI for rendering! *)
   Format.sprintf {|%s
 
 %s
