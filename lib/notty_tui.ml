@@ -44,14 +44,14 @@ let file_lines_included file =
   in
   if all_lines_included then AllLines else if any_line_included then SomeLines else NoLines
 
-exception LineShouldExist of string
+exception Line_should_exist of string
 
 let find_first_diff_line_idx lines =
   let idx_opt =
     lines |> List.find_index (fun line -> match line with Diff _ -> true | Context _ -> false)
   in
   match idx_opt with
-  | None -> raise (LineShouldExist "Lines of a hunk must have at least one diff line.")
+  | None -> raise (Line_should_exist "Lines of a hunk must have at least one diff line.")
   | Some idx -> idx
 
 let find_last_diff_line_idx lines =
@@ -60,7 +60,7 @@ let find_last_diff_line_idx lines =
     |> List.find_index (fun line -> match line with Diff _ -> true | Context _ -> false)
   in
   match idx_opt with
-  | None -> raise (LineShouldExist "Lines of a hunk must have at least one diff line.")
+  | None -> raise (Line_should_exist "Lines of a hunk must have at least one diff line.")
   | Some idx -> List.length lines - idx - 1
 
 let find_prev_diff_line_idx lines line =
@@ -69,7 +69,8 @@ let find_prev_diff_line_idx lines line =
   in
   match diff_lines |> List.find_index (fun diff_line -> diff_line = line) with
   | None ->
-      raise (LineShouldExist "Diff lines are a subset of hunk's lines, so line should be in both.")
+      raise
+        (Line_should_exist "Diff lines are a subset of hunk's lines, so line should be in both.")
   | Some 0 -> None
   | Some idx ->
       let prev_diff_line = List.nth diff_lines (idx - 1) in
@@ -81,7 +82,8 @@ let find_next_diff_line_idx lines line =
   in
   match diff_lines |> List.find_index (fun diff_line -> diff_line = line) with
   | None ->
-      raise (LineShouldExist "Diff lines are a subset of hunk's lines, so line should be in both.")
+      raise
+        (Line_should_exist "Diff lines are a subset of hunk's lines, so line should be in both.")
   | Some idx when idx = last_idx diff_lines -> None
   | Some idx ->
       let prev_diff_line = List.nth diff_lines (idx + 1) in
