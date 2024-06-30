@@ -27,7 +27,6 @@ let parse_file_diff file_diff =
   { path = file_path; hunks = List.map parse_hunk_diff hunk_diffs }
 
 let parse_diff raw_diff =
-  print_endline raw_diff;
   let file_split_regex = Re.Perl.re ~opts:[ `Multiline ] "^diff --git a/" |> Re.Perl.compile in
   let file_diffs = Re.split file_split_regex raw_diff in
   { files = List.map parse_file_diff file_diffs }

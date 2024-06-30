@@ -1,6 +1,6 @@
 (library
  (name git_split)
  (public_name git_split)
- (libraries re minttea spices)
+ (libraries re minttea spices nottui notty lwt notty.lwt)
  (preprocess
-  (pps ppx_deriving.show ppx_deriving.eq)))
+  (pps ppx_deriving.show ppx_deriving.eq lwt_ppx)))

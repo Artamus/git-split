@@ -1,3 +1,9 @@
+(** The Minttea implementation for the TUI of git-split.
+
+It is currently unused, because I did not find a way to handle "viewports" in the terminal
+with Minttea. It is also reasonably complete, but does not use a tree zipper for the model.
+*)
+
 open Minttea
 
 let context_line_style fmt = Spices.(default |> faint true |> build) fmt
