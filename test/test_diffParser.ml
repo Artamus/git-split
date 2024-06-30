@@ -1,8 +1,7 @@
 open Alcotest
-open Git_split.Model
+open Git_split.DiffParser
 
-let diff_testable =
-  testable pp_diff equal_diff
+let diff_testable = testable pp_diff equal_diff
 
 let test_simple_diff () =
   let raw_diff =
