@@ -1,4 +1,9 @@
-open Model
+type diffLine = UnchangedLine of string | RemovedLine of string | AddedLine of string
+[@@deriving show, eq]
+
+type diffHunk = { lines : diffLine list } [@@deriving show, eq]
+type diffFile = { path : string; hunks : diffHunk list } [@@deriving show, eq]
+type diff = { files : diffFile list } [@@deriving show, eq]
 
 exception Invalid_character of string
 
@@ -6,9 +11,9 @@ let parse_line line =
   let first_char = line.[0] in
   let line_contents = String.sub line 1 (String.length line - 1) in
   match first_char with
-  | ' ' -> Model.UnchangedLine line_contents
-  | '-' -> Model.RemovedLine line_contents
-  | '+' -> Model.AddedLine line_contents
+  | ' ' -> UnchangedLine line_contents
+  | '-' -> RemovedLine line_contents
+  | '+' -> AddedLine line_contents
   | c -> raise (Invalid_character (Printf.sprintf "Found unexpected character: %c" c))
 
 let not_empty str = String.length str > 0
