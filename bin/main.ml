@@ -14,7 +14,7 @@ let main () =
      + (libraries git_split feather re))"
   in
   let _diff = Git_split.DiffParser.parse_diff stdout in
-  let _final_model = Git_split.Notty_tui.run in
+  let _final_model = Git_split.NottyTui.run in
   ()
 
 let () = main ()
