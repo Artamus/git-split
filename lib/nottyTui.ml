@@ -11,7 +11,15 @@ type line =
   | Diff of string * [ `added | `removed ] * [ `included | `notincluded ]
 
 type hunk = { lines : line list; lines_visibility : visibility }
-type file = { path : string; hunks : hunk list; hunks_visibility : visibility }
+type changed_file = { path : string; hunks : hunk list; hunks_visibility : visibility }
+
+type renamed_file = {
+  old_path : string;
+  new_path : string;
+  included : [ `included | `notincluded ];
+}
+
+type file = RenamedFile of renamed_file | ChangedFile of changed_file
 type cursor = FileCursor of int | HunkCursor of int * int | LineCursor of int * int * int
 type model = { files : file list; cursor : cursor }
 type lines_included = AllLines | SomeLines | NoLines
@@ -94,90 +102,101 @@ let initial_model =
     cursor = FileCursor 0;
     files =
       [
-        {
-          path = "src/TestMain";
-          hunks_visibility = Collapsed;
-          hunks =
-            [
-              {
-                lines =
-                  [
-                    Context "code";
-                    Diff ("code 2", `removed, `included);
-                    Diff ("code 3", `added, `included);
-                    Context "code 4";
-                  ];
-                lines_visibility = Expanded;
-              };
-              {
-                lines =
-                  [
-                    Context "code 5";
-                    Context "code 6";
-                    Context "code 7";
-                    Diff ("code 7.5", `removed, `included);
-                    Diff ("code 7.9", `added, `included);
-                    Context "code 8";
-                  ];
-                lines_visibility = Expanded;
-              };
-            ];
-        };
-        {
-          path = "src/MainFile";
-          hunks_visibility = Collapsed;
-          hunks =
-            [
-              {
-                lines =
-                  [
-                    Context "code";
-                    Diff ("code 2", `removed, `included);
-                    Diff ("code 3", `added, `included);
-                    Context "code 4";
-                  ];
-                lines_visibility = Expanded;
-              };
-              {
-                lines =
-                  [
-                    Context "code 5";
-                    Context "code 6";
-                    Context "code 7";
-                    Diff ("code 7.5", `removed, `included);
-                    Diff ("code 7.9", `added, `included);
-                    Context "code 8";
-                  ];
-                lines_visibility = Expanded;
-              };
-            ];
-        };
-        {
-          path = "src/YetAnotherFile";
-          hunks_visibility = Collapsed;
-          hunks =
-            [
-              {
-                lines =
-                  [
-                    Diff ("These", `added, `included);
-                    Diff ("Are", `added, `included);
-                    Diff ("All", `added, `included);
-                    Diff ("Added", `added, `included);
-                    Diff ("Lines", `added, `included);
-                    Diff ("Because", `added, `included);
-                    Diff ("This", `added, `included);
-                    Diff ("Is", `added, `included);
-                    Diff ("A", `added, `included);
-                    Diff ("New", `added, `included);
-                    Diff ("File", `added, `included);
-                  ];
-                lines_visibility = Expanded;
-              };
-            ];
-        };
+        ChangedFile
+          {
+            path = "src/TestMain";
+            hunks_visibility = Collapsed;
+            hunks =
+              [
+                {
+                  lines =
+                    [
+                      Context "code";
+                      Diff ("code 2", `removed, `included);
+                      Diff ("code 3", `added, `included);
+                      Context "code 4";
+                    ];
+                  lines_visibility = Expanded;
+                };
+                {
+                  lines =
+                    [
+                      Context "code 5";
+                      Context "code 6";
+                      Context "code 7";
+                      Diff ("code 7.5", `removed, `included);
+                      Diff ("code 7.9", `added, `included);
+                      Context "code 8";
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+          };
+        ChangedFile
+          {
+            path = "src/MainFile";
+            hunks_visibility = Collapsed;
+            hunks =
+              [
+                {
+                  lines =
+                    [
+                      Context "code";
+                      Diff ("code 2", `removed, `included);
+                      Diff ("code 3", `added, `included);
+                      Context "code 4";
+                    ];
+                  lines_visibility = Expanded;
+                };
+                {
+                  lines =
+                    [
+                      Context "code 5";
+                      Context "code 6";
+                      Context "code 7";
+                      Diff ("code 7.5", `removed, `included);
+                      Diff ("code 7.9", `added, `included);
+                      Context "code 8";
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+          };
+        ChangedFile
+          {
+            path = "src/YetAnotherFile";
+            hunks_visibility = Collapsed;
+            hunks =
+              [
+                {
+                  lines =
+                    [
+                      Diff ("These", `added, `included);
+                      Diff ("Are", `added, `included);
+                      Diff ("All", `added, `included);
+                      Diff ("Added", `added, `included);
+                      Diff ("Lines", `added, `included);
+                      Diff ("Because", `added, `included);
+                      Diff ("This", `added, `included);
+                      Diff ("Is", `added, `included);
+                      Diff ("A", `added, `included);
+                      Diff ("New", `added, `included);
+                      Diff ("File", `added, `included);
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+          };
+        RenamedFile
+          { old_path = "lib/nottui_tui.ml"; new_path = "lib/nottuiTui.ml"; included = `included };
       ];
   }
+
+exception Illegal_state of string
+
+let get_changed_file_exn = function
+  | RenamedFile _ -> raise (Illegal_state "Hunk cursor cannot be on a renamed file.")
+  | ChangedFile file -> file
 
 let update event model =
   match event with
@@ -187,30 +206,36 @@ let update event model =
         | FileCursor 0 -> (
             let last_file_idx = last_idx model.files in
             let last_file = last_item model.files in
-            match last_file.hunks_visibility with
-            | Collapsed -> FileCursor last_file_idx
-            | Expanded -> (
-                let last_hunk = last_item last_file.hunks in
-                match last_hunk.lines_visibility with
-                | Collapsed -> HunkCursor (last_file_idx, last_idx last_file.hunks)
-                | Expanded ->
-                    let hunk = last_item last_file.hunks in
-                    let line_idx = find_last_diff_line_idx hunk.lines in
-                    LineCursor (last_file_idx, last_idx last_file.hunks, line_idx)))
+            match last_file with
+            | RenamedFile _ -> FileCursor last_file_idx
+            | ChangedFile changed_file -> (
+                match changed_file.hunks_visibility with
+                | Collapsed -> FileCursor last_file_idx
+                | Expanded -> (
+                    let last_hunk = last_item changed_file.hunks in
+                    match last_hunk.lines_visibility with
+                    | Collapsed -> HunkCursor (last_file_idx, last_idx changed_file.hunks)
+                    | Expanded ->
+                        let hunk = last_item changed_file.hunks in
+                        let line_idx = find_last_diff_line_idx hunk.lines in
+                        LineCursor (last_file_idx, last_idx changed_file.hunks, line_idx))))
         | FileCursor c_file_idx -> (
             let prev_file = List.nth model.files (c_file_idx - 1) in
-            match prev_file.hunks_visibility with
-            | Collapsed -> FileCursor (c_file_idx - 1)
-            | Expanded -> (
-                let last_hunk = last_item prev_file.hunks in
-                match last_hunk.lines_visibility with
-                | Collapsed -> HunkCursor (c_file_idx - 1, last_idx prev_file.hunks)
-                | Expanded ->
-                    let line_idx = find_last_diff_line_idx last_hunk.lines in
-                    LineCursor (c_file_idx - 1, last_idx prev_file.hunks, line_idx)))
+            match prev_file with
+            | RenamedFile _ -> FileCursor (c_file_idx - 1)
+            | ChangedFile changed_file -> (
+                match changed_file.hunks_visibility with
+                | Collapsed -> FileCursor (c_file_idx - 1)
+                | Expanded -> (
+                    let last_hunk = last_item changed_file.hunks in
+                    match last_hunk.lines_visibility with
+                    | Collapsed -> HunkCursor (c_file_idx - 1, last_idx changed_file.hunks)
+                    | Expanded ->
+                        let line_idx = find_last_diff_line_idx last_hunk.lines in
+                        LineCursor (c_file_idx - 1, last_idx changed_file.hunks, line_idx))))
         | HunkCursor (c_file_idx, 0) -> FileCursor c_file_idx
         | HunkCursor (c_file_idx, c_hunk_idx) -> (
-            let file = List.nth model.files c_file_idx in
+            let file = get_changed_file_exn @@ List.nth model.files c_file_idx in
             let prev_hunk = List.nth file.hunks (c_hunk_idx - 1) in
             match prev_hunk.lines_visibility with
             | Collapsed -> HunkCursor (c_file_idx, c_hunk_idx - 1)
@@ -218,7 +243,8 @@ let update event model =
                 let line_idx = find_last_diff_line_idx prev_hunk.lines in
                 LineCursor (c_file_idx, c_hunk_idx - 1, line_idx))
         | LineCursor (c_file_idx, c_hunk_idx, c_line_idx) -> (
-            let hunk = List.nth (List.nth model.files c_file_idx).hunks c_hunk_idx in
+            let file = get_changed_file_exn @@ List.nth model.files c_file_idx in
+            let hunk = List.nth file.hunks c_hunk_idx in
             let line = List.nth hunk.lines c_line_idx in
             let prev_diff_line_idx = find_prev_diff_line_idx hunk.lines line in
             match prev_diff_line_idx with
@@ -232,17 +258,25 @@ let update event model =
         match model.cursor with
         | FileCursor c_file_idx when c_file_idx = last_file_idx -> (
             let last_file = last_item model.files in
-            match last_file.hunks_visibility with
-            | Collapsed -> FileCursor 0
-            | Expanded -> HunkCursor (c_file_idx, 0))
+            match last_file with
+            | RenamedFile _ -> FileCursor 0
+            | ChangedFile changed_file -> (
+                match changed_file.hunks_visibility with
+                | Collapsed -> FileCursor 0
+                | Expanded -> HunkCursor (c_file_idx, 0)))
         | FileCursor c_idx -> (
             let file = List.nth model.files c_idx in
-            match file.hunks_visibility with
-            | Collapsed -> FileCursor (c_idx + 1)
-            | Expanded -> HunkCursor (c_idx, 0))
+            match file with
+            | RenamedFile _ -> FileCursor (c_idx + 1)
+            | ChangedFile changed_file -> (
+                match changed_file.hunks_visibility with
+                | Collapsed -> FileCursor (c_idx + 1)
+                | Expanded -> HunkCursor (c_idx, 0)))
         | HunkCursor (c_file_idx, c_hunk_idx)
-          when c_hunk_idx = last_idx (List.nth model.files c_file_idx).hunks -> (
-            let hunk = List.nth (List.nth model.files c_file_idx).hunks c_hunk_idx in
+          when c_hunk_idx = last_idx (get_changed_file_exn (List.nth model.files c_file_idx)).hunks
+          -> (
+            let file = get_changed_file_exn (List.nth model.files c_file_idx) in
+            let hunk = List.nth file.hunks c_hunk_idx in
             match hunk.lines_visibility with
             | Expanded ->
                 let first_diff_line = find_first_diff_line_idx hunk.lines in
@@ -250,7 +284,8 @@ let update event model =
             | Collapsed ->
                 if c_file_idx = last_file_idx then FileCursor 0 else FileCursor (c_file_idx + 1))
         | HunkCursor (c_file_idx, c_hunk_idx) -> (
-            let hunk = List.nth (List.nth model.files c_file_idx).hunks c_hunk_idx in
+            let file = get_changed_file_exn (List.nth model.files c_file_idx) in
+            let hunk = List.nth file.hunks c_hunk_idx in
             match hunk.lines_visibility with
             | Collapsed -> HunkCursor (c_file_idx, c_hunk_idx + 1)
             | Expanded ->
@@ -259,8 +294,10 @@ let update event model =
         (* Cursor is at last file -> last hunk -> line. *)
         | LineCursor (c_file_idx, c_hunk_idx, c_line_idx)
           when c_file_idx = last_file_idx
-               && c_hunk_idx = last_idx (List.nth model.files c_file_idx).hunks -> (
-            let hunk = List.nth (List.nth model.files c_file_idx).hunks c_hunk_idx in
+               && c_hunk_idx
+                  = last_idx (get_changed_file_exn (List.nth model.files c_file_idx)).hunks -> (
+            let file = get_changed_file_exn (List.nth model.files c_file_idx) in
+            let hunk = List.nth file.hunks c_hunk_idx in
             let curr_line = List.nth hunk.lines c_line_idx in
             let next_diff_line_idx = find_next_diff_line_idx hunk.lines curr_line in
             match next_diff_line_idx with
@@ -268,8 +305,10 @@ let update event model =
             | Some idx -> LineCursor (c_file_idx, c_hunk_idx, idx))
         (* Cursor is at some file -> last hunk -> line. *)
         | LineCursor (c_file_idx, c_hunk_idx, c_line_idx)
-          when c_hunk_idx = last_idx (List.nth model.files c_file_idx).hunks -> (
-            let hunk = List.nth (List.nth model.files c_file_idx).hunks c_hunk_idx in
+          when c_hunk_idx = last_idx (get_changed_file_exn (List.nth model.files c_file_idx)).hunks
+          -> (
+            let file = get_changed_file_exn (List.nth model.files c_file_idx) in
+            let hunk = List.nth file.hunks c_hunk_idx in
             let curr_line = List.nth hunk.lines c_line_idx in
             let next_diff_line_idx = find_next_diff_line_idx hunk.lines curr_line in
             match next_diff_line_idx with
@@ -277,7 +316,8 @@ let update event model =
             | Some idx -> LineCursor (c_file_idx, c_hunk_idx, idx))
         (* General some line case. *)
         | LineCursor (c_file_idx, c_hunk_idx, c_line_idx) -> (
-            let hunk = List.nth (List.nth model.files c_file_idx).hunks c_hunk_idx in
+            let file = get_changed_file_exn (List.nth model.files c_file_idx) in
+            let hunk = List.nth file.hunks c_hunk_idx in
             let curr_line = List.nth hunk.lines c_line_idx in
             let next_diff_line_idx = find_next_diff_line_idx hunk.lines curr_line in
             match next_diff_line_idx with
@@ -291,26 +331,32 @@ let update event model =
           let files =
             model.files
             |> List.mapi (fun file_idx file ->
-                   let hunks_visibility =
-                     if file_idx = c_file_idx then Expanded else file.hunks_visibility
-                   in
-                   { file with hunks_visibility })
+                   match file with
+                   | RenamedFile _ -> file
+                   | ChangedFile changed_file ->
+                       let hunks_visibility =
+                         if file_idx = c_file_idx then Expanded else changed_file.hunks_visibility
+                       in
+                       ChangedFile { changed_file with hunks_visibility })
           in
           { model with files }
       | HunkCursor (c_file_idx, c_hunk_idx) ->
           let files =
             model.files
             |> List.mapi (fun file_idx file ->
-                   let hunks =
-                     file.hunks
-                     |> List.mapi (fun hunk_idx hunk ->
-                            let lines_visibility =
-                              if hunk_idx = c_hunk_idx && file_idx = c_file_idx then Expanded
-                              else hunk.lines_visibility
-                            in
-                            { hunk with lines_visibility })
-                   in
-                   { file with hunks })
+                   match file with
+                   | RenamedFile _ -> file
+                   | ChangedFile changed_file ->
+                       let hunks =
+                         changed_file.hunks
+                         |> List.mapi (fun hunk_idx hunk ->
+                                let lines_visibility =
+                                  if hunk_idx = c_hunk_idx && file_idx = c_file_idx then Expanded
+                                  else hunk.lines_visibility
+                                in
+                                { hunk with lines_visibility })
+                       in
+                       ChangedFile { changed_file with hunks })
           in
           { model with files }
       | LineCursor _ -> model)
@@ -320,26 +366,32 @@ let update event model =
           let files =
             model.files
             |> List.mapi (fun file_idx file ->
-                   let hunks_visibility =
-                     if file_idx = c_file_idx then Collapsed else file.hunks_visibility
-                   in
-                   { file with hunks_visibility })
+                   match file with
+                   | RenamedFile _ -> file
+                   | ChangedFile changed_file ->
+                       let hunks_visibility =
+                         if file_idx = c_file_idx then Collapsed else changed_file.hunks_visibility
+                       in
+                       ChangedFile { changed_file with hunks_visibility })
           in
           { model with files }
       | HunkCursor (c_file_idx, c_hunk_idx) ->
           let files =
             model.files
             |> List.mapi (fun file_idx file ->
-                   let hunks =
-                     file.hunks
-                     |> List.mapi (fun hunk_idx hunk ->
-                            let lines_visibility =
-                              if hunk_idx = c_hunk_idx && file_idx = c_file_idx then Collapsed
-                              else hunk.lines_visibility
-                            in
-                            { hunk with lines_visibility })
-                   in
-                   { file with hunks })
+                   match file with
+                   | RenamedFile _ -> file
+                   | ChangedFile changed_file ->
+                       let hunks =
+                         changed_file.hunks
+                         |> List.mapi (fun hunk_idx hunk ->
+                                let lines_visibility =
+                                  if hunk_idx = c_hunk_idx && file_idx = c_file_idx then Collapsed
+                                  else hunk.lines_visibility
+                                in
+                                { hunk with lines_visibility })
+                       in
+                       ChangedFile { changed_file with hunks })
           in
           { model with files }
       | LineCursor _ -> model)
@@ -359,70 +411,83 @@ let update event model =
         | FileCursor c_file_idx ->
             model.files
             |> List.mapi (fun file_idx file ->
-                   let hunks =
-                     if file_idx <> c_file_idx then file.hunks
-                     else
-                       let file_lines_inclusion = file_lines_included file in
-                       let included_in_diff = toggle_group file_lines_inclusion in
-                       file.hunks
-                       |> List.map (fun hunk ->
-                              let lines =
-                                hunk.lines
-                                |> List.map (fun line ->
-                                       match line with
-                                       | Context _ -> line
-                                       | Diff (contents, diff_type, _) ->
-                                           Diff (contents, diff_type, included_in_diff))
-                              in
-                              { hunk with lines })
-                   in
-                   { file with hunks })
+                   match file with
+                   | RenamedFile renamed_file ->
+                       if file_idx <> c_file_idx then file
+                       else
+                         let included = toggle_line renamed_file.included in
+                         RenamedFile { renamed_file with included }
+                   | ChangedFile changed_file ->
+                       let hunks =
+                         if file_idx <> c_file_idx then changed_file.hunks
+                         else
+                           let file_lines_inclusion = file_lines_included changed_file in
+                           let included_in_diff = toggle_group file_lines_inclusion in
+                           changed_file.hunks
+                           |> List.map (fun hunk ->
+                                  let lines =
+                                    hunk.lines
+                                    |> List.map (fun line ->
+                                           match line with
+                                           | Context _ -> line
+                                           | Diff (contents, diff_type, _) ->
+                                               Diff (contents, diff_type, included_in_diff))
+                                  in
+                                  { hunk with lines })
+                       in
+                       ChangedFile { changed_file with hunks })
         | HunkCursor (c_file_idx, c_hunk_idx) ->
             model.files
             |> List.mapi (fun file_idx file ->
-                   let hunks =
-                     if file_idx <> c_file_idx then file.hunks
-                     else
-                       file.hunks
-                       |> List.mapi (fun hunk_idx hunk ->
-                              let hunk_lines_inclusion = hunk_lines_included hunk in
-                              let included_in_diff = toggle_group hunk_lines_inclusion in
-                              let lines =
-                                if hunk_idx <> c_hunk_idx then hunk.lines
-                                else
-                                  hunk.lines
-                                  |> List.map (fun line ->
-                                         match line with
-                                         | Context _ -> line
-                                         | Diff (contents, diff_type, _) ->
-                                             Diff (contents, diff_type, included_in_diff))
-                              in
-                              { hunk with lines })
-                   in
-                   { file with hunks })
+                   match file with
+                   | RenamedFile _ -> file
+                   | ChangedFile changed_file ->
+                       let hunks =
+                         if file_idx <> c_file_idx then changed_file.hunks
+                         else
+                           changed_file.hunks
+                           |> List.mapi (fun hunk_idx hunk ->
+                                  let hunk_lines_inclusion = hunk_lines_included hunk in
+                                  let included_in_diff = toggle_group hunk_lines_inclusion in
+                                  let lines =
+                                    if hunk_idx <> c_hunk_idx then hunk.lines
+                                    else
+                                      hunk.lines
+                                      |> List.map (fun line ->
+                                             match line with
+                                             | Context _ -> line
+                                             | Diff (contents, diff_type, _) ->
+                                                 Diff (contents, diff_type, included_in_diff))
+                                  in
+                                  { hunk with lines })
+                       in
+                       ChangedFile { changed_file with hunks })
         | LineCursor (c_file_idx, c_hunk_idx, c_line_idx) ->
             model.files
             |> List.mapi (fun file_idx file ->
-                   let hunks =
-                     if file_idx <> c_file_idx then file.hunks
-                     else
-                       file.hunks
-                       |> List.mapi (fun hunk_idx hunk ->
-                              let lines =
-                                if hunk_idx <> c_hunk_idx then hunk.lines
-                                else
-                                  hunk.lines
-                                  |> List.mapi (fun line_idx line ->
-                                         if line_idx <> c_line_idx then line
-                                         else
-                                           match line with
-                                           | Context _ -> line
-                                           | Diff (contents, diff_type, included) ->
-                                               Diff (contents, diff_type, toggle_line included))
-                              in
-                              { hunk with lines })
-                   in
-                   { file with hunks })
+                   match file with
+                   | RenamedFile renamed_file -> RenamedFile renamed_file
+                   | ChangedFile changed_file ->
+                       let hunks =
+                         if file_idx <> c_file_idx then changed_file.hunks
+                         else
+                           changed_file.hunks
+                           |> List.mapi (fun hunk_idx hunk ->
+                                  let lines =
+                                    if hunk_idx <> c_hunk_idx then hunk.lines
+                                    else
+                                      hunk.lines
+                                      |> List.mapi (fun line_idx line ->
+                                             if line_idx <> c_line_idx then line
+                                             else
+                                               match line with
+                                               | Context _ -> line
+                                               | Diff (contents, diff_type, included) ->
+                                                   Diff (contents, diff_type, toggle_line included))
+                                  in
+                                  { hunk with lines })
+                       in
+                       ChangedFile { changed_file with hunks })
       in
       { model with files }
   | _ -> model
@@ -475,7 +540,17 @@ let render_hunk hunk cursor file_idx hunk_idx =
   in
   hunk_line :: lines
 
-let render_file file_idx file cursor =
+let render_renamed_file file cursor file_idx =
+  let style = if cursor = FileCursor file_idx then A.st A.reverse else A.empty in
+  let file_included_marker = match file.included with `included -> "x" | `notincluded -> " " in
+  let file_line =
+    I.strf
+      ~attr:A.(fg yellow ++ style)
+      "[%s] %s -> %s" file_included_marker file.old_path file.new_path
+  in
+  [ file_line ]
+
+let render_changed_file file cursor file_idx =
   let hunk_lines =
     match file.hunks_visibility with
     | Collapsed -> []
@@ -493,27 +568,35 @@ let render_file file_idx file cursor =
   let file_line = I.strf ~attr:style "[%s] %s" file_included_marker content in
   file_line :: hunk_lines
 
+let render_file file cursor file_idx =
+  match file with
+  | RenamedFile renamed_file -> render_renamed_file renamed_file cursor file_idx
+  | ChangedFile changed_file -> render_changed_file changed_file cursor file_idx
+
 let with_cursor files =
   files
   |> List.mapi (fun file_idx file ->
-         let hunks =
-           match file.hunks_visibility with
-           | Collapsed -> []
-           | Expanded ->
-               file.hunks
-               |> List.mapi (fun hunk_idx hunk ->
-                      let lines =
-                        match hunk.lines_visibility with
-                        | Collapsed -> []
-                        | Expanded ->
-                            hunk.lines
-                            |> List.mapi (fun line_idx _line ->
-                                   LineCursor (file_idx, hunk_idx, line_idx))
-                      in
-                      HunkCursor (file_idx, hunk_idx) :: lines)
-               |> List.flatten
-         in
-         FileCursor file_idx :: hunks)
+         match file with
+         | RenamedFile _ -> [ FileCursor file_idx ]
+         | ChangedFile changed_file ->
+             let hunks =
+               match changed_file.hunks_visibility with
+               | Collapsed -> []
+               | Expanded ->
+                   changed_file.hunks
+                   |> List.mapi (fun hunk_idx hunk ->
+                          let lines =
+                            match hunk.lines_visibility with
+                            | Collapsed -> []
+                            | Expanded ->
+                                hunk.lines
+                                |> List.mapi (fun line_idx _line ->
+                                       LineCursor (file_idx, hunk_idx, line_idx))
+                          in
+                          HunkCursor (file_idx, hunk_idx) :: lines)
+                   |> List.flatten
+             in
+             FileCursor file_idx :: hunks)
   |> List.flatten
 
 let view model viewport_height =
@@ -524,7 +607,7 @@ let view model viewport_height =
 
   let terminal_lines =
     model.files
-    |> List.mapi (fun file_idx file -> render_file file_idx file model.cursor)
+    |> List.mapi (fun file_idx file -> render_file file model.cursor file_idx)
     |> List.flatten
   in
 
