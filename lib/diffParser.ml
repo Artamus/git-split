@@ -50,9 +50,6 @@ let parse_file_rename file_diff =
   { old_path = old_file; new_path = new_file }
 
 let parse_file_diff file_diff =
-  print_endline "##########";
-  print_endline file_diff;
-  print_endline "##########";
   let file_rename_regex = Re.str "rename from " |> Re.compile in
   let is_file_rename = Re.execp file_rename_regex file_diff in
   if is_file_rename then RenamedFile (parse_file_rename file_diff)
