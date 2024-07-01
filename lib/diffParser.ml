@@ -35,8 +35,18 @@ let parse_file_diff file_diff =
 
 let parse_file_rename file_diff =
   let lines = String.split_on_char '\n' file_diff in
-  let old_file = lines |> List.find (fun line -> String.starts_with ~prefix:"rename from " line) in
-  let new_file = lines |> List.find (fun line -> String.starts_with ~prefix:"rename to " line) in
+  let old_file_line_prefix = "rename from " in
+  let old_file_line =
+    lines |> List.find (fun line -> String.starts_with ~prefix:old_file_line_prefix line)
+  in
+  let old_file_path_len = String.length old_file_line - String.length old_file_line_prefix in
+  let old_file = String.sub old_file_line (String.length old_file_line_prefix) old_file_path_len in
+  let new_file_line_prefix = "rename to " in
+  let new_file_line =
+    lines |> List.find (fun line -> String.starts_with ~prefix:new_file_line_prefix line)
+  in
+  let new_file_path_len = String.length new_file_line - String.length new_file_line_prefix in
+  let new_file = String.sub new_file_line (String.length new_file_line_prefix) new_file_path_len in
   { old_path = old_file; new_path = new_file }
 
 let parse_file_diff file_diff =
