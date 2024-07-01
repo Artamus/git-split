@@ -23,22 +23,23 @@ let test_simple_diff () =
     {
       files =
         [
-          {
-            path = "bin/dune";
-            hunks =
-              [
-                {
-                  lines =
-                    [
-                      UnchangedLine "(executable";
-                      UnchangedLine " (public_name git_split)";
-                      UnchangedLine " (name main)";
-                      RemovedLine " (libraries git_split))";
-                      AddedLine " (libraries git_split feather re))";
-                    ];
-                };
-              ];
-          };
+          DiffFile
+            {
+              path = "bin/dune";
+              hunks =
+                [
+                  {
+                    lines =
+                      [
+                        UnchangedLine "(executable";
+                        UnchangedLine " (public_name git_split)";
+                        UnchangedLine " (name main)";
+                        RemovedLine " (libraries git_split))";
+                        AddedLine " (libraries git_split feather re))";
+                      ];
+                  };
+                ];
+            };
         ];
     }
   in
@@ -68,30 +69,103 @@ let test_diff_with_multiple_hunks () =
     {
       files =
         [
-          {
-            path = "src/test";
-            hunks =
-              [
-                {
-                  lines =
-                    [
-                      UnchangedLine "  hunk-1-unchanged-line";
-                      RemovedLine "  hunk-1-removed-line";
-                      RemovedLine "  hunk-1-removed-line";
-                      AddedLine "  hunk-1-added-line";
-                      UnchangedLine "  hunk-1-unchanged-line";
-                    ];
-                };
-                {
-                  lines =
-                    [
-                      UnchangedLine "  hunk-2-unchanged-line";
-                      AddedLine "  hunk-2-added-line";
-                      UnchangedLine "  hunk-2-unchanged-line";
-                    ];
-                };
-              ];
-          };
+          DiffFile
+            {
+              path = "src/test";
+              hunks =
+                [
+                  {
+                    lines =
+                      [
+                        UnchangedLine "  hunk-1-unchanged-line";
+                        RemovedLine "  hunk-1-removed-line";
+                        RemovedLine "  hunk-1-removed-line";
+                        AddedLine "  hunk-1-added-line";
+                        UnchangedLine "  hunk-1-unchanged-line";
+                      ];
+                  };
+                  {
+                    lines =
+                      [
+                        UnchangedLine "  hunk-2-unchanged-line";
+                        AddedLine "  hunk-2-added-line";
+                        UnchangedLine "  hunk-2-unchanged-line";
+                      ];
+                  };
+                ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" diff expected
+
+let test_diff_with_separate_changes_in_same_hunk () =
+  let raw_diff =
+    "diff --git a/lib/tui.ml b/lib/tui.ml\n\
+     index 0441c31..02b5753 100644\n\
+     --- a/lib/tui.ml\n\
+     +++ b/lib/tui.ml\n\
+     @@ -1,14 +1,16 @@\n\
+    \ open Minttea\n\n\
+     -let cursor = Spices.(default |> reverse true |> build)\n\
+     +let cursor_style = Spices.(default |> reverse true |> build)\n\
+    \ let header = Spices.(default |> reverse true |> build)\n\n\
+     +type visibility = Expanded | Collapsed\n\
+     +\n\
+    \ type line =\n\
+    \   | Context of string\n\
+    \   | Diff of string * [ `added | `removed ] * [ `included | `notincluded ]\n\n\
+     -type hunk = { lines : line list; visibility : [ `expanded | `collapsed ] }\n\
+     -type file = { path : string; hunks : hunk list }\n\
+     +type hunk = { lines : line list; lines_visibility : visibility }\n\
+     +type file = { path : string; hunks : hunk list; hunks_visibility : visibility }\n\
+    \ type cursor = FileCursor of int | HunkCursor of int * int | LineCursor of int * int * int\n\
+    \ type model = { files : file list; cursor : cursor }\n\
+    \ type set_lines_inclusion = AllLines | SomeLines | NoLines"
+  in
+
+  let diff = Git_split.DiffParser.parse_diff raw_diff in
+
+  let expected : diff =
+    {
+      files =
+        [
+          DiffFile
+            {
+              path = "lib/tui.ml";
+              hunks =
+                [
+                  {
+                    lines =
+                      [
+                        UnchangedLine "open Minttea";
+                        RemovedLine "let cursor = Spices.(default |> reverse true |> build)";
+                        AddedLine "let cursor_style = Spices.(default |> reverse true |> build)";
+                        UnchangedLine "let header = Spices.(default |> reverse true |> build)";
+                        AddedLine "type visibility = Expanded | Collapsed";
+                        AddedLine "";
+                        UnchangedLine "type line =";
+                        UnchangedLine "  | Context of string";
+                        UnchangedLine
+                          "  | Diff of string * [ `added | `removed ] * [ `included | `notincluded \
+                           ]";
+                        RemovedLine
+                          "type hunk = { lines : line list; visibility : [ `expanded | `collapsed \
+                           ] }";
+                        RemovedLine "type file = { path : string; hunks : hunk list }";
+                        AddedLine "type hunk = { lines : line list; lines_visibility : visibility }";
+                        AddedLine
+                          "type file = { path : string; hunks : hunk list; hunks_visibility : \
+                           visibility }";
+                        UnchangedLine
+                          "type cursor = FileCursor of int | HunkCursor of int * int | LineCursor \
+                           of int * int * int";
+                        UnchangedLine "type model = { files : file list; cursor : cursor }";
+                        UnchangedLine "type set_lines_inclusion = AllLines | SomeLines | NoLines";
+                      ];
+                  };
+                ];
+            };
         ];
     }
   in
@@ -124,27 +198,44 @@ let test_diff_with_multiple_files () =
     {
       files =
         [
-          {
-            path = "src/test";
-            hunks =
-              [
-                {
-                  lines =
-                    [
-                      RemovedLine "removed-line";
-                      RemovedLine "removed-line";
-                      AddedLine "added-line";
-                      AddedLine "added-line";
-                    ];
-                };
-              ];
-          };
-          {
-            path = "src/file";
-            hunks = [ { lines = [ AddedLine "added-line"; AddedLine " added-line" ] } ];
-          };
+          DiffFile
+            {
+              path = "src/test";
+              hunks =
+                [
+                  {
+                    lines =
+                      [
+                        RemovedLine "removed-line";
+                        RemovedLine "removed-line";
+                        AddedLine "added-line";
+                        AddedLine "added-line";
+                      ];
+                  };
+                ];
+            };
+          DiffFile
+            {
+              path = "src/file";
+              hunks = [ { lines = [ AddedLine "added-line"; AddedLine " added-line" ] } ];
+            };
         ];
     }
+  in
+  check diff_testable "same diffs" diff expected
+
+let test_diff_with_renamed_file () =
+  let raw_diff =
+    "diff --git a/lib/minttea_tui.ml b/lib/mintteaTui.ml\n\
+     similarity index 100%\n\
+     rename from lib/minttea_tui.ml\n\
+     rename to lib/mintteaTui.ml"
+  in
+
+  let diff = Git_split.DiffParser.parse_diff raw_diff in
+
+  let expected : diff =
+    { files = [ RenamedFile { old_path = "lib/minttea_tui.mll"; new_path = "lib/mintteaTui.ml" } ] }
   in
   check diff_testable "same diffs" diff expected
 
@@ -152,7 +243,11 @@ let suite =
   [
     ("parses a simple diff", `Quick, test_simple_diff);
     ("parses a diff with multiple hunks in file", `Quick, test_diff_with_multiple_hunks);
+    ( "parses a diff with separate non-adjacent changes in the same hunk",
+      `Quick,
+      test_diff_with_separate_changes_in_same_hunk );
     ("parses a diff with multiple files", `Quick, test_diff_with_multiple_files);
+    ("parses a diff with a file rename", `Quick, test_diff_with_renamed_file);
   ]
 
 let () = Alcotest.run "git-split" [ ("Diff parsing", suite) ]

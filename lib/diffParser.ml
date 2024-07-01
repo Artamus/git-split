@@ -3,7 +3,9 @@ type line = UnchangedLine of string | RemovedLine of string | AddedLine of strin
 
 type hunk = { lines : line list } [@@deriving show, eq]
 type file = { path : string; hunks : hunk list } [@@deriving show, eq]
-type diff = { files : file list } [@@deriving show, eq]
+type renamed_file = { old_path : string; new_path : string } [@@deriving show, eq]
+type diff_file = RenamedFile of renamed_file | DiffFile of file [@@deriving show, eq]
+type diff = { files : diff_file list } [@@deriving show, eq]
 
 exception Invalid_character of string
 
@@ -30,6 +32,21 @@ let parse_file_diff file_diff =
   let file_path = String.split_on_char ' ' file_metadata_text |> List.hd in
   let hunk_diffs = List.tl file_hunk_split in
   { path = file_path; hunks = List.map parse_hunk_diff hunk_diffs }
+
+let parse_file_rename file_diff =
+  let lines = String.split_on_char '\n' file_diff in
+  let old_file = lines |> List.find (fun line -> String.starts_with ~prefix:"rename from " line) in
+  let new_file = lines |> List.find (fun line -> String.starts_with ~prefix:"rename to " line) in
+  { old_path = old_file; new_path = new_file }
+
+let parse_file_diff file_diff =
+  print_endline "##########";
+  print_endline file_diff;
+  print_endline "##########";
+  let file_rename_regex = Re.str "rename from " |> Re.compile in
+  let is_file_rename = Re.execp file_rename_regex file_diff in
+  if is_file_rename then RenamedFile (parse_file_rename file_diff)
+  else DiffFile (parse_file_diff file_diff)
 
 let parse_diff raw_diff =
   let file_split_regex = Re.Perl.re ~opts:[ `Multiline ] "^diff --git a/" |> Re.Perl.compile in
