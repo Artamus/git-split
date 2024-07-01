@@ -470,7 +470,9 @@ let render_hunk hunk cursor file_idx hunk_idx =
   let hunk_included_marker =
     match hunk_lines_included hunk with AllLines -> "x" | SomeLines -> "~" | NoLines -> " "
   in
-  let hunk_line = I.strf ~attr:style "[%s] Hunk %d" hunk_included_marker hunk_idx |> I.hpad 2 0 in
+  let hunk_line =
+    I.strf ~attr:style "[%s] Hunk %d" hunk_included_marker (hunk_idx + 1) |> I.hpad 2 0
+  in
   hunk_line :: lines
 
 let render_file file_idx file cursor =
