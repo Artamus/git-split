@@ -1,3 +1,4 @@
+(* TODO: Rename unchanged line to context line. *)
 type line = UnchangedLine of string | RemovedLine of string | AddedLine of string
 [@@deriving show, eq]
 
