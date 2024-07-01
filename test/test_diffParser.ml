@@ -235,7 +235,7 @@ let test_diff_with_renamed_file () =
   let diff = Git_split.DiffParser.parse_diff raw_diff in
 
   let expected : diff =
-    { files = [ RenamedFile { old_path = "lib/minttea_tui.mll"; new_path = "lib/mintteaTui.ml" } ] }
+    { files = [ RenamedFile { old_path = "lib/minttea_tui.ml"; new_path = "lib/mintteaTui.ml" } ] }
   in
   check diff_testable "same diffs" diff expected
 
