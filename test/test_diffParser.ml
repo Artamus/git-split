@@ -17,7 +17,7 @@ let test_simple_diff () =
      + (libraries git_split feather re))"
   in
 
-  let diff = Git_split.DiffParser.parse_diff raw_diff in
+  let diff = parse_diff raw_diff in
 
   let expected : diff =
     {
@@ -63,7 +63,7 @@ let test_diff_with_multiple_hunks () =
     \   hunk-2-unchanged-line"
   in
 
-  let diff = Git_split.DiffParser.parse_diff raw_diff in
+  let diff = parse_diff raw_diff in
 
   let expected : diff =
     {
@@ -124,7 +124,7 @@ let test_diff_with_separate_changes_in_same_hunk () =
     \ type set_lines_inclusion = AllLines | SomeLines | NoLines"
   in
 
-  let diff = Git_split.DiffParser.parse_diff raw_diff in
+  let diff = parse_diff raw_diff in
 
   let expected : diff =
     {
@@ -192,7 +192,7 @@ let test_diff_with_multiple_files () =
      + added-line"
   in
 
-  let diff = Git_split.DiffParser.parse_diff raw_diff in
+  let diff = parse_diff raw_diff in
 
   let expected : diff =
     {
@@ -232,10 +232,38 @@ let test_diff_with_renamed_file () =
      rename to lib/mintteaTui.ml"
   in
 
-  let diff = Git_split.DiffParser.parse_diff raw_diff in
+  let diff = parse_diff raw_diff in
 
   let expected : diff =
     { files = [ RenamedFile { old_path = "lib/minttea_tui.ml"; new_path = "lib/mintteaTui.ml" } ] }
+  in
+  check diff_testable "same diffs" diff expected
+
+let test_diff_with_renamed_file_with_changes () =
+  let raw_diff =
+    "diff --git a/file.md b/file-super.md\n\
+     similarity index 90%\n\
+     rename from file.md\n\
+     rename to file-super.md\n\
+     index 0f3785f..0f1d8f8 100644\n\
+     --- a/file.md\n\
+     +++ b/file-super.md\n\
+     @@ -6,7 +6,7 @@ line5\n\
+    \ line6\n\
+    \ line7\n\
+    \ line8\n\
+     -line9\n\
+     +line91\n\
+    \ line10\n\
+    \ line11\n\
+    \ line12"
+  in
+
+  let diff = parse_diff raw_diff in
+
+  (* TODO: Expect changed lines. *)
+  let expected : diff =
+    { files = [ RenamedFile { old_path = "file.md"; new_path = "file-super.md" } ] }
   in
   check diff_testable "same diffs" diff expected
 
@@ -248,6 +276,9 @@ let suite =
       test_diff_with_separate_changes_in_same_hunk );
     ("parses a diff with multiple files", `Quick, test_diff_with_multiple_files);
     ("parses a diff with a file rename", `Quick, test_diff_with_renamed_file);
+    ( "parses a diff with a renamed file that also has changed lines",
+      `Quick,
+      test_diff_with_renamed_file_with_changes );
   ]
 
 let () = Alcotest.run "git-split" [ ("Diff parsing", suite) ]
