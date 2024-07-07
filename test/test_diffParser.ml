@@ -3,7 +3,7 @@ open Git_split.DiffParser
 
 let diff_testable = testable pp_diff equal_diff
 
-let test_simple_diff () =
+let test_single_hunk () =
   let raw_diff =
     "diff --git a/bin/dune b/bin/dune\n\
      index 3e8a4cb..fc8e91d 100644\n\
@@ -99,7 +99,128 @@ let test_diff_with_multiple_hunks () =
   in
   check diff_testable "same diffs" diff expected
 
-let test_diff_with_separate_changes_in_same_hunk () =
+(* TODO: Make it two changed files. *)
+let test_diff_with_multiple_files () =
+  let raw_diff =
+    "diff --git a/src/test b/src/test\n\
+     index 25531f2..57f2dfb 100644\n\
+     --- a/src/test\n\
+     +++ b/src/test\n\
+     @@ -1,10 +1,19 @@\n\
+     -removed-line\n\
+     +added-line\n\
+     diff --git a/src/file b/src/file\n\
+     new file mode 100644\n\
+     index 0000000..47d9444\n\
+     --- /dev/null\n\
+     +++ b/src/file\n\
+     @@ -0,0 +1,2 @@\n\
+     -removed-line\n\
+     + added-line"
+  in
+
+  let diff = parse_diff raw_diff in
+
+  let expected : diff =
+    {
+      files =
+        [
+          DiffFile
+            {
+              path = "src/test";
+              hunks = [ { lines = [ RemovedLine "removed-line"; AddedLine "added-line" ] } ];
+            };
+          DiffFile
+            {
+              path = "src/file";
+              hunks = [ { lines = [ RemovedLine "removed-line"; AddedLine " added-line" ] } ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" diff expected
+
+let test_diff_with_empty_added_file () =
+  let raw_diff =
+    "diff --git a/empty-new-file.md b/empty-new-file.md\n\
+     new file mode 100644\n\
+     index 0000000..e69de29"
+  in
+
+  let diff = parse_diff raw_diff in
+
+  let expected : diff = { files = [ DiffFile { path = "empty-new-file.md"; hunks = [] } ] } in
+  check diff_testable "same diffs" diff expected
+
+let test_diff_with_added_file () =
+  let raw_diff =
+    "diff --git a/new-nonempty-file.md b/new-nonempty-file.md\n\
+     new file mode 100644\n\
+     index 0000000..a1df4ea\n\
+     --- /dev/null\n\
+     +++ b/new-nonempty-file.md\n\
+     @@ -0,0 +1,2 @@\n\
+     +A line\n\
+     +Another line!"
+  in
+
+  let diff = parse_diff raw_diff in
+
+  let expected : diff =
+    {
+      files =
+        [
+          DiffFile
+            {
+              path = "new-nonempty-file.md";
+              hunks = [ { lines = [ AddedLine "A line"; AddedLine "Another line!" ] } ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" diff expected
+
+let test_diff_with_empty_removed_file () =
+  let raw_diff =
+    "diff --git a/empty-new-file.md b/empty-new-file.md\n\
+     deleted file mode 100644\n\
+     index e69de29..0000000"
+  in
+
+  let diff = parse_diff raw_diff in
+
+  let expected : diff = { files = [ DiffFile { path = "empty-new-file.md"; hunks = [] } ] } in
+  check diff_testable "same diffs" diff expected
+
+let test_diff_with_removed_file () =
+  let raw_diff =
+    "diff --git a/new-nonempty-file.md b/new-nonempty-file.md\n\
+     deleted file mode 100644\n\
+     index a1df4ea..0000000\n\
+     --- a/new-nonempty-file.md\n\
+     +++ /dev/null\n\
+     @@ -1,2 +0,0 @@\n\
+     -A line\n\
+     -Another line!"
+  in
+
+  let diff = parse_diff raw_diff in
+
+  let expected : diff =
+    {
+      files =
+        [
+          DiffFile
+            {
+              path = "new-nonempty-file.md";
+              hunks = [ { lines = [ RemovedLine "A line"; RemovedLine "Another line!" ] } ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" diff expected
+
+let test_diff_with_multiple_sets_of_changes_in_same_hunk () =
   let raw_diff =
     "diff --git a/lib/tui.ml b/lib/tui.ml\n\
      index 0441c31..02b5753 100644\n\
@@ -171,59 +292,6 @@ let test_diff_with_separate_changes_in_same_hunk () =
   in
   check diff_testable "same diffs" diff expected
 
-let test_diff_with_multiple_files () =
-  let raw_diff =
-    "diff --git a/src/test b/src/test\n\
-     index 25531f2..57f2dfb 100644\n\
-     --- a/src/test\n\
-     +++ b/src/test\n\
-     @@ -1,10 +1,19 @@\n\
-     -removed-line\n\
-     -removed-line\n\
-     +added-line\n\
-     +added-line\n\
-     diff --git a/src/file b/src/file\n\
-     new file mode 100644\n\
-     index 0000000..47d9444\n\
-     --- /dev/null\n\
-     +++ b/src/file\n\
-     @@ -0,0 +1,2 @@\n\
-     +added-line\n\
-     + added-line"
-  in
-
-  let diff = parse_diff raw_diff in
-
-  let expected : diff =
-    {
-      files =
-        [
-          DiffFile
-            {
-              path = "src/test";
-              hunks =
-                [
-                  {
-                    lines =
-                      [
-                        RemovedLine "removed-line";
-                        RemovedLine "removed-line";
-                        AddedLine "added-line";
-                        AddedLine "added-line";
-                      ];
-                  };
-                ];
-            };
-          DiffFile
-            {
-              path = "src/file";
-              hunks = [ { lines = [ AddedLine "added-line"; AddedLine " added-line" ] } ];
-            };
-        ];
-    }
-  in
-  check diff_testable "same diffs" diff expected
-
 let test_diff_with_renamed_file () =
   let raw_diff =
     "diff --git a/lib/minttea_tui.ml b/lib/mintteaTui.ml\n\
@@ -269,13 +337,17 @@ let test_diff_with_renamed_file_with_changes () =
 
 let suite =
   [
-    ("parses a simple diff", `Quick, test_simple_diff);
+    ("parses a diff with a hunk of changes", `Quick, test_single_hunk);
     ("parses a diff with multiple hunks in file", `Quick, test_diff_with_multiple_hunks);
+    ("parses a diff with multiple files", `Quick, test_diff_with_multiple_files);
+    ("parses a diff with an empty added file", `Quick, test_diff_with_empty_added_file);
+    ("parses a diff with an added file with contents", `Quick, test_diff_with_added_file);
+    ("parses a diff with an empty removed file", `Quick, test_diff_with_empty_removed_file);
+    ("parses a diff with a removed file with contents", `Quick, test_diff_with_removed_file);
     ( "parses a diff with separate non-adjacent changes in the same hunk",
       `Quick,
-      test_diff_with_separate_changes_in_same_hunk );
-    ("parses a diff with multiple files", `Quick, test_diff_with_multiple_files);
-    ("parses a diff with a file rename", `Quick, test_diff_with_renamed_file);
+      test_diff_with_multiple_sets_of_changes_in_same_hunk );
+    ("parses a diff with a renamed file", `Quick, test_diff_with_renamed_file);
     ( "parses a diff with a renamed file that also has changed lines",
       `Quick,
       test_diff_with_renamed_file_with_changes );
