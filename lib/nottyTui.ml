@@ -1,6 +1,5 @@
 open Notty
 open Notty_unix
-open Git_split
 
 let last_item list = List.hd @@ List.rev list
 let last_idx list = List.length list - 1
@@ -650,7 +649,7 @@ let tui_line_of_diff_line = function
   | Diff.RemovedLine content -> Diff (content, `removed, `included)
   | Diff.AddedLine content -> Diff (content, `added, `included)
 
-let model_of_diff (diff : Diff.diff) : model =
+let model_of_diff (diff : Diff.diff) =
   let files =
     diff.files
     |> List.map (fun (file : Diff.diff_file) : file ->
@@ -674,3 +673,35 @@ let model_of_diff (diff : Diff.diff) : model =
                ChangedFile { hunks; hunks_visibility = Collapsed; path = changed_file.path })
   in
   { files; cursor = FileCursor 0 }
+
+let diff_of_model model : Diff.diff =
+  let files =
+    model.files
+    |> List.filter (fun file ->
+           match file with
+           | RenamedFile renamed_file -> renamed_file.included = `included
+           | ChangedFile changed_file -> file_lines_included changed_file <> NoLines)
+    |> List.map (fun file ->
+           match file with
+           | ChangedFile changed_file ->
+               let hunks =
+                 changed_file.hunks
+                 |> List.filter (fun hunk -> hunk_lines_included hunk <> NoLines)
+                 |> List.map (fun (hunk : hunk) : Diff.hunk ->
+                        let lines =
+                          hunk.lines
+                          |> List.filter (fun (line : line) ->
+                                 match line with Diff (_, _, `included) -> false | _ -> true)
+                          |> List.map (fun line ->
+                                 match line with
+                                 | Context content -> Diff.UnchangedLine content
+                                 | Diff (content, `removed, _) -> Diff.RemovedLine content
+                                 | Diff (content, `added, _) -> Diff.AddedLine content)
+                        in
+                        { lines })
+               in
+               Diff.DiffFile { path = changed_file.path; hunks }
+           | RenamedFile { old_path; new_path; _ } ->
+               Diff.RenamedFile { old_path; new_path; hunks = [] })
+  in
+  { files }
