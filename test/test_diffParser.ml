@@ -1,7 +1,7 @@
 open Alcotest
-open Git_split.DiffParser
+open Git_split
 
-let diff_testable = testable pp_diff equal_diff
+let diff_testable = testable Diff.pp_diff Diff.equal_diff
 
 let test_single_hunk () =
   let raw_diff =
@@ -17,9 +17,9 @@ let test_single_hunk () =
      + (libraries git_split feather re))"
   in
 
-  let diff = parse_diff raw_diff in
+  let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : diff =
+  let expected : Diff.diff =
     {
       files =
         [
@@ -63,9 +63,9 @@ let test_diff_with_multiple_hunks () =
     \   hunk-2-unchanged-line"
   in
 
-  let diff = parse_diff raw_diff in
+  let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : diff =
+  let expected : Diff.diff =
     {
       files =
         [
@@ -118,9 +118,9 @@ let test_diff_with_multiple_files () =
      + added-line"
   in
 
-  let diff = parse_diff raw_diff in
+  let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : diff =
+  let expected : Diff.diff =
     {
       files =
         [
@@ -146,9 +146,9 @@ let test_diff_with_empty_added_file () =
      index 0000000..e69de29"
   in
 
-  let diff = parse_diff raw_diff in
+  let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : diff = { files = [ DiffFile { path = "empty-new-file.md"; hunks = [] } ] } in
+  let expected : Diff.diff = { files = [ DiffFile { path = "empty-new-file.md"; hunks = [] } ] } in
   check diff_testable "same diffs" diff expected
 
 let test_diff_with_added_file () =
@@ -163,9 +163,9 @@ let test_diff_with_added_file () =
      +Another line!"
   in
 
-  let diff = parse_diff raw_diff in
+  let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : diff =
+  let expected : Diff.diff =
     {
       files =
         [
@@ -186,9 +186,9 @@ let test_diff_with_empty_removed_file () =
      index e69de29..0000000"
   in
 
-  let diff = parse_diff raw_diff in
+  let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : diff = { files = [ DiffFile { path = "empty-new-file.md"; hunks = [] } ] } in
+  let expected : Diff.diff = { files = [ DiffFile { path = "empty-new-file.md"; hunks = [] } ] } in
   check diff_testable "same diffs" diff expected
 
 let test_diff_with_removed_file () =
@@ -203,9 +203,9 @@ let test_diff_with_removed_file () =
      -Another line!"
   in
 
-  let diff = parse_diff raw_diff in
+  let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : diff =
+  let expected : Diff.diff =
     {
       files =
         [
@@ -244,9 +244,9 @@ let test_diff_with_multiple_sets_of_changes_in_same_hunk () =
     \ type set_lines_inclusion = AllLines | SomeLines | NoLines"
   in
 
-  let diff = parse_diff raw_diff in
+  let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : diff =
+  let expected : Diff.diff =
     {
       files =
         [
@@ -299,9 +299,9 @@ let test_diff_with_renamed_file () =
      rename to lib/mintteaTui.ml"
   in
 
-  let diff = parse_diff raw_diff in
+  let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : diff =
+  let expected : Diff.diff =
     {
       files =
         [
@@ -332,10 +332,10 @@ let test_diff_with_renamed_file_with_changes () =
     \ line12"
   in
 
-  let diff = parse_diff raw_diff in
+  let diff = DiffParser.parse_diff raw_diff in
 
   (* TODO: Expect changed lines. *)
-  let expected : diff =
+  let expected : Diff.diff =
     {
       files =
         [

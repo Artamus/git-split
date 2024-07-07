@@ -1,25 +1,24 @@
 let tui_line_of_diff_line = function
-  | Git_split.DiffParser.UnchangedLine content -> Git_split.NottyTui.Context content
-  | Git_split.DiffParser.RemovedLine content ->
-      Git_split.NottyTui.Diff (content, `removed, `included)
-  | Git_split.DiffParser.AddedLine content -> Git_split.NottyTui.Diff (content, `added, `included)
+  | Git_split.Diff.UnchangedLine content -> Git_split.NottyTui.Context content
+  | Git_split.Diff.RemovedLine content -> Git_split.NottyTui.Diff (content, `removed, `included)
+  | Git_split.Diff.AddedLine content -> Git_split.NottyTui.Diff (content, `added, `included)
 
-let model_of_diff (diff : Git_split.DiffParser.diff) : Git_split.NottyTui.model =
+let model_of_diff (diff : Git_split.Diff.diff) : Git_split.NottyTui.model =
   let files =
     diff.files
-    |> List.map (fun (file : Git_split.DiffParser.diff_file) : Git_split.NottyTui.file ->
+    |> List.map (fun (file : Git_split.Diff.diff_file) : Git_split.NottyTui.file ->
            match file with
-           | Git_split.DiffParser.RenamedFile renamed_file ->
+           | Git_split.Diff.RenamedFile renamed_file ->
                Git_split.NottyTui.RenamedFile
                  {
                    old_path = renamed_file.old_path;
                    new_path = renamed_file.new_path;
                    included = `included;
                  }
-           | Git_split.DiffParser.DiffFile changed_file ->
+           | Git_split.Diff.DiffFile changed_file ->
                let hunks =
                  changed_file.hunks
-                 |> List.map (fun (hunk : Git_split.DiffParser.hunk) : Git_split.NottyTui.hunk ->
+                 |> List.map (fun (hunk : Git_split.Diff.hunk) : Git_split.NottyTui.hunk ->
                         let lines =
                           hunk.lines |> List.map (fun line -> tui_line_of_diff_line line)
                         in
@@ -88,8 +87,8 @@ rename from lib/notty_tui.ml
 rename to lib/nottyTui.ml|}
   in
   let diff = Git_split.DiffParser.parse_diff example2 in
-  let initial_model = model_of_diff diff in
-  let _final_model = Git_split.NottyTui.run initial_model in
+  let _initial_model = model_of_diff diff in
+  let _final_model = Git_split.NottyTui.run Git_split.NottyTui.initial_model in
   ()
 
 let () = main ()
