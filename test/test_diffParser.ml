@@ -365,7 +365,7 @@ let test_diff_with_renamed_file_with_changes () =
   in
   check diff_testable "same diffs" diff expected
 
-let suite =
+let diff_parser_suite =
   [
     ("parses a diff with a hunk of changes", `Quick, test_single_hunk);
     ("parses a diff with multiple hunks in file", `Quick, test_diff_with_multiple_hunks);
@@ -382,5 +382,3 @@ let suite =
       `Quick,
       test_diff_with_renamed_file_with_changes );
   ]
-
-let () = Alcotest.run "git-split" [ ("Diff parsing", suite) ]
