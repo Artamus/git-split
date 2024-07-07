@@ -1,5 +1,6 @@
 open Notty
 open Notty_unix
+open Git_split
 
 let last_item list = List.hd @@ List.rev list
 let last_idx list = List.length list - 1
@@ -643,3 +644,33 @@ let run initial_model =
   let final_model = ui_loop term initial_model in
   Term.release term;
   final_model
+
+let tui_line_of_diff_line = function
+  | Diff.UnchangedLine content -> Context content
+  | Diff.RemovedLine content -> Diff (content, `removed, `included)
+  | Diff.AddedLine content -> Diff (content, `added, `included)
+
+let model_of_diff (diff : Diff.diff) : model =
+  let files =
+    diff.files
+    |> List.map (fun (file : Diff.diff_file) : file ->
+           match file with
+           | Diff.RenamedFile renamed_file ->
+               RenamedFile
+                 {
+                   old_path = renamed_file.old_path;
+                   new_path = renamed_file.new_path;
+                   included = `included;
+                 }
+           | Diff.DiffFile changed_file ->
+               let hunks =
+                 changed_file.hunks
+                 |> List.map (fun (hunk : Diff.hunk) : hunk ->
+                        let lines =
+                          hunk.lines |> List.map (fun line -> tui_line_of_diff_line line)
+                        in
+                        { lines; lines_visibility = Expanded })
+               in
+               ChangedFile { hunks; hunks_visibility = Collapsed; path = changed_file.path })
+  in
+  { files; cursor = FileCursor 0 }

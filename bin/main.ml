@@ -1,37 +1,4 @@
-let tui_line_of_diff_line = function
-  | Git_split.Diff.UnchangedLine content -> Git_split.NottyTui.Context content
-  | Git_split.Diff.RemovedLine content -> Git_split.NottyTui.Diff (content, `removed, `included)
-  | Git_split.Diff.AddedLine content -> Git_split.NottyTui.Diff (content, `added, `included)
-
-let model_of_diff (diff : Git_split.Diff.diff) : Git_split.NottyTui.model =
-  let files =
-    diff.files
-    |> List.map (fun (file : Git_split.Diff.diff_file) : Git_split.NottyTui.file ->
-           match file with
-           | Git_split.Diff.RenamedFile renamed_file ->
-               Git_split.NottyTui.RenamedFile
-                 {
-                   old_path = renamed_file.old_path;
-                   new_path = renamed_file.new_path;
-                   included = `included;
-                 }
-           | Git_split.Diff.DiffFile changed_file ->
-               let hunks =
-                 changed_file.hunks
-                 |> List.map (fun (hunk : Git_split.Diff.hunk) : Git_split.NottyTui.hunk ->
-                        let lines =
-                          hunk.lines |> List.map (fun line -> tui_line_of_diff_line line)
-                        in
-                        { lines; lines_visibility = Git_split.NottyTui.Expanded })
-               in
-               Git_split.NottyTui.ChangedFile
-                 {
-                   hunks;
-                   hunks_visibility = Git_split.NottyTui.Collapsed;
-                   path = changed_file.path;
-                 })
-  in
-  { files; cursor = FileCursor 0 }
+open Git_split
 
 let main () =
   let git_diff_cmd = Feather.process "git" [ "diff"; "HEAD~1"; "HEAD" ] in
@@ -86,9 +53,9 @@ similarity index 100%
 rename from lib/notty_tui.ml
 rename to lib/nottyTui.ml|}
   in
-  let diff = Git_split.DiffParser.parse_diff example2 in
-  let _initial_model = model_of_diff diff in
-  let _final_model = Git_split.NottyTui.run Git_split.NottyTui.initial_model in
+  let diff = DiffParser.parse_diff example2 in
+  let _initial_model = NottyTui.model_of_diff diff in
+  let _final_model = NottyTui.run NottyTui.initial_model in
   ()
 
 let () = main ()
