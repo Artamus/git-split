@@ -3,7 +3,10 @@ type line = UnchangedLine of string | RemovedLine of string | AddedLine of strin
 
 type hunk = { lines : line list } [@@deriving show, eq]
 type file = { path : string; hunks : hunk list } [@@deriving show, eq]
-type renamed_file = { old_path : string; new_path : string } [@@deriving show, eq]
+
+type renamed_file = { old_path : string; new_path : string; hunks : hunk list }
+[@@deriving show, eq]
+
 type diff_file = RenamedFile of renamed_file | DiffFile of file [@@deriving show, eq]
 type diff = { files : diff_file list } [@@deriving show, eq]
 
@@ -25,13 +28,16 @@ let parse_hunk_diff hunk_diff =
   let non_empty_lines = List.filter not_empty lines in
   { lines = List.map parse_line non_empty_lines }
 
-let parse_file_diff file_diff =
+let parse_file_hunks file_diff =
   let hunk_split_regex = Re.Perl.re ~opts:[ `Multiline ] "^@@.*$" |> Re.Perl.compile in
   let file_hunk_split = Re.split hunk_split_regex file_diff in
-  let file_metadata_text = List.hd file_hunk_split in
-  let file_path = String.split_on_char ' ' file_metadata_text |> List.hd in
   let hunk_diffs = List.tl file_hunk_split in
-  { path = file_path; hunks = List.map parse_hunk_diff hunk_diffs }
+  List.map parse_hunk_diff hunk_diffs
+
+let parse_file_diff file_diff =
+  let file_path_regex = Re.Perl.re " b/" |> Re.Perl.compile in
+  let file_path = Re.split file_path_regex file_diff |> List.hd in
+  { path = file_path; hunks = parse_file_hunks file_diff }
 
 let parse_file_rename file_diff =
   let lines = String.split_on_char '\n' file_diff in
@@ -47,7 +53,9 @@ let parse_file_rename file_diff =
   in
   let new_file_path_len = String.length new_file_line - String.length new_file_line_prefix in
   let new_file = String.sub new_file_line (String.length new_file_line_prefix) new_file_path_len in
-  { old_path = old_file; new_path = new_file }
+  let hunks_present_regex = Re.str "@@ " |> Re.compile in
+  let hunks = if Re.execp hunks_present_regex file_diff then parse_file_hunks file_diff else [] in
+  { old_path = old_file; new_path = new_file; hunks }
 
 let parse_file_diff file_diff =
   let file_rename_regex = Re.str "rename from " |> Re.compile in

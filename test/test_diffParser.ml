@@ -302,7 +302,13 @@ let test_diff_with_renamed_file () =
   let diff = parse_diff raw_diff in
 
   let expected : diff =
-    { files = [ RenamedFile { old_path = "lib/minttea_tui.ml"; new_path = "lib/mintteaTui.ml" } ] }
+    {
+      files =
+        [
+          RenamedFile
+            { old_path = "lib/minttea_tui.ml"; new_path = "lib/mintteaTui.ml"; hunks = [] };
+        ];
+    }
   in
   check diff_testable "same diffs" diff expected
 
@@ -330,7 +336,32 @@ let test_diff_with_renamed_file_with_changes () =
 
   (* TODO: Expect changed lines. *)
   let expected : diff =
-    { files = [ RenamedFile { old_path = "file.md"; new_path = "file-super.md" } ] }
+    {
+      files =
+        [
+          RenamedFile
+            {
+              old_path = "file.md";
+              new_path = "file-super.md";
+              hunks =
+                [
+                  {
+                    lines =
+                      [
+                        UnchangedLine "line6";
+                        UnchangedLine "line7";
+                        UnchangedLine "line8";
+                        RemovedLine "line9";
+                        AddedLine "line91";
+                        UnchangedLine "line10";
+                        UnchangedLine "line11";
+                        UnchangedLine "line12";
+                      ];
+                  };
+                ];
+            };
+        ];
+    }
   in
   check diff_testable "same diffs" diff expected
 
