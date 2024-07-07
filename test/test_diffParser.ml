@@ -99,7 +99,6 @@ let test_diff_with_multiple_hunks () =
   in
   check diff_testable "same diffs" diff expected
 
-(* TODO: Make it two changed files. *)
 let test_diff_with_multiple_files () =
   let raw_diff =
     "diff --git a/src/test b/src/test\n\
