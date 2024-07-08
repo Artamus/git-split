@@ -3,7 +3,7 @@ open Git_split
 
 let diff_testable = testable Diff.pp_diff Diff.equal_diff
 
-let test_whole_open_diff_selected () =
+let test_subtract_diff_from_itself () =
   let open_diff : Diff.diff =
     {
       files =
@@ -11,32 +11,6 @@ let test_whole_open_diff_selected () =
           DiffFile
             {
               path = "src/file";
-              hunks =
-                [
-                  {
-                    lines =
-                      [
-                        Diff.UnchangedLine "context";
-                        Diff.RemovedLine "removed-line";
-                        Diff.AddedLine "added-line";
-                        Diff.UnchangedLine "context";
-                      ];
-                  };
-                  {
-                    lines =
-                      [
-                        Diff.UnchangedLine "more-context";
-                        Diff.RemovedLine "another-removed-line";
-                        Diff.AddedLine "another-added-line";
-                        Diff.UnchangedLine "more-context";
-                      ];
-                  };
-                ];
-            };
-          RenamedFile
-            {
-              old_path = "src/main";
-              new_path = "src/new-main";
               hunks =
                 [
                   {
@@ -71,32 +45,6 @@ let test_whole_open_diff_selected () =
                         Diff.UnchangedLine "context";
                       ];
                   };
-                  {
-                    lines =
-                      [
-                        Diff.UnchangedLine "more-context";
-                        Diff.RemovedLine "another-removed-line";
-                        Diff.AddedLine "another-added-line";
-                        Diff.UnchangedLine "more-context";
-                      ];
-                  };
-                ];
-            };
-          RenamedFile
-            {
-              old_path = "src/main";
-              new_path = "src/new-main";
-              hunks =
-                [
-                  {
-                    lines =
-                      [
-                        Diff.UnchangedLine "context";
-                        Diff.RemovedLine "removed-line";
-                        Diff.AddedLine "added-line";
-                        Diff.UnchangedLine "context";
-                      ];
-                  };
                 ];
             };
         ];
@@ -109,4 +57,8 @@ let test_whole_open_diff_selected () =
   check diff_testable "same diffs" diff expected
 
 let diff_suite =
-  [ ("subtracts the whole diff from the open diff", `Quick, test_whole_open_diff_selected) ]
+  [
+    ( "when subtracting a diff from itself, the result is an empty diff",
+      `Quick,
+      test_subtract_diff_from_itself );
+  ]
