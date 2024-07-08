@@ -43,7 +43,7 @@ let test_single_hunk () =
         ];
     }
   in
-  check diff_testable "same diffs" diff expected
+  check diff_testable "same diffs" expected diff
 
 let test_diff_with_multiple_hunks () =
   let raw_diff =
@@ -97,7 +97,7 @@ let test_diff_with_multiple_hunks () =
         ];
     }
   in
-  check diff_testable "same diffs" diff expected
+  check diff_testable "same diffs" expected diff
 
 let test_diff_with_multiple_files () =
   let raw_diff =
@@ -137,7 +137,7 @@ let test_diff_with_multiple_files () =
         ];
     }
   in
-  check diff_testable "same diffs" diff expected
+  check diff_testable "same diffs" expected diff
 
 let test_diff_with_empty_added_file () =
   let raw_diff =
@@ -149,7 +149,7 @@ let test_diff_with_empty_added_file () =
   let diff = DiffParser.parse_diff raw_diff in
 
   let expected : Diff.diff = { files = [ DiffFile { path = "empty-new-file.md"; hunks = [] } ] } in
-  check diff_testable "same diffs" diff expected
+  check diff_testable "same diffs" expected diff
 
 let test_diff_with_added_file () =
   let raw_diff =
@@ -177,7 +177,7 @@ let test_diff_with_added_file () =
         ];
     }
   in
-  check diff_testable "same diffs" diff expected
+  check diff_testable "same diffs" expected diff
 
 let test_diff_with_empty_removed_file () =
   let raw_diff =
@@ -189,7 +189,7 @@ let test_diff_with_empty_removed_file () =
   let diff = DiffParser.parse_diff raw_diff in
 
   let expected : Diff.diff = { files = [ DiffFile { path = "empty-new-file.md"; hunks = [] } ] } in
-  check diff_testable "same diffs" diff expected
+  check diff_testable "same diffs" expected diff
 
 let test_diff_with_removed_file () =
   let raw_diff =
@@ -217,7 +217,7 @@ let test_diff_with_removed_file () =
         ];
     }
   in
-  check diff_testable "same diffs" diff expected
+  check diff_testable "same diffs" expected diff
 
 let test_diff_with_multiple_sets_of_changes_in_same_hunk () =
   let raw_diff =
@@ -289,7 +289,7 @@ let test_diff_with_multiple_sets_of_changes_in_same_hunk () =
         ];
     }
   in
-  check diff_testable "same diffs" diff expected
+  check diff_testable "same diffs" expected diff
 
 let test_diff_with_renamed_file () =
   let raw_diff =
@@ -310,7 +310,7 @@ let test_diff_with_renamed_file () =
         ];
     }
   in
-  check diff_testable "same diffs" diff expected
+  check diff_testable "same diffs" expected diff
 
 let test_diff_with_renamed_file_with_changes () =
   let raw_diff =
@@ -363,7 +363,7 @@ let test_diff_with_renamed_file_with_changes () =
         ];
     }
   in
-  check diff_testable "same diffs" diff expected
+  check diff_testable "same diffs" expected diff
 
 let diff_parser_suite =
   [

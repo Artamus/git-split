@@ -29,7 +29,7 @@ let test_serializes_single_hunk () =
   let git_diff = DiffSerializer.serialize diff in
 
   let expected = "" in
-  check string "same diffs" git_diff expected
+  check string "same diffs" expected git_diff
 
 let diff_serializer_suite =
   [ ("parses a diff with a hunk of changes", `Quick, test_serializes_single_hunk) ]
