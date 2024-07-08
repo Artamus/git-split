@@ -691,11 +691,13 @@ let diff_of_model model : Diff.diff =
                         let lines =
                           hunk.lines
                           |> List.filter (fun (line : line) ->
-                                 match line with Diff (_, _, `included) -> false | _ -> true)
+                                 match line with Diff (_, `added, `included) -> false | _ -> true)
                           |> List.map (fun line ->
                                  match line with
                                  | Context content -> Diff.UnchangedLine content
-                                 | Diff (content, `removed, _) -> Diff.RemovedLine content
+                                 | Diff (content, `removed, `included) -> Diff.RemovedLine content
+                                 | Diff (content, `removed, `notincluded) ->
+                                     Diff.UnchangedLine content
                                  | Diff (content, `added, _) -> Diff.AddedLine content)
                         in
                         { lines })
