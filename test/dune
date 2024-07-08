@@ -1,4 +1,4 @@
 (test
  (name test)
- (modules test test_diffParser test_diff)
+ (modules test test_diffParser)
  (libraries alcotest git_split))
