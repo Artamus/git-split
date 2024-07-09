@@ -29,6 +29,7 @@ let test_single_hunk () =
               hunks =
                 [
                   {
+                    first_line_idx = 1;
                     lines =
                       [
                         UnchangedLine "(executable";
@@ -75,6 +76,7 @@ let test_diff_with_multiple_hunks () =
               hunks =
                 [
                   {
+                    first_line_idx = 4;
                     lines =
                       [
                         UnchangedLine "  hunk-1-unchanged-line";
@@ -85,6 +87,7 @@ let test_diff_with_multiple_hunks () =
                       ];
                   };
                   {
+                    first_line_idx = 57;
                     lines =
                       [
                         UnchangedLine "  hunk-2-unchanged-line";
@@ -127,12 +130,24 @@ let test_diff_with_multiple_files () =
           DiffFile
             {
               path = "src/test";
-              hunks = [ { lines = [ RemovedLine "removed-line"; AddedLine "added-line" ] } ];
+              hunks =
+                [
+                  {
+                    first_line_idx = 1;
+                    lines = [ RemovedLine "removed-line"; AddedLine "added-line" ];
+                  };
+                ];
             };
           DiffFile
             {
               path = "src/file";
-              hunks = [ { lines = [ RemovedLine "removed-line"; AddedLine " added-line" ] } ];
+              hunks =
+                [
+                  {
+                    first_line_idx = 0;
+                    lines = [ RemovedLine "removed-line"; AddedLine " added-line" ];
+                  };
+                ];
             };
         ];
     }
@@ -172,7 +187,10 @@ let test_diff_with_added_file () =
           DiffFile
             {
               path = "new-nonempty-file.md";
-              hunks = [ { lines = [ AddedLine "A line"; AddedLine "Another line!" ] } ];
+              hunks =
+                [
+                  { first_line_idx = 0; lines = [ AddedLine "A line"; AddedLine "Another line!" ] };
+                ];
             };
         ];
     }
@@ -212,7 +230,13 @@ let test_diff_with_removed_file () =
           DiffFile
             {
               path = "new-nonempty-file.md";
-              hunks = [ { lines = [ RemovedLine "A line"; RemovedLine "Another line!" ] } ];
+              hunks =
+                [
+                  {
+                    first_line_idx = 1;
+                    lines = [ RemovedLine "A line"; RemovedLine "Another line!" ];
+                  };
+                ];
             };
         ];
     }
@@ -256,6 +280,7 @@ let test_diff_with_multiple_sets_of_changes_in_same_hunk () =
               hunks =
                 [
                   {
+                    first_line_idx = 1;
                     lines =
                       [
                         UnchangedLine "open Minttea";
@@ -346,6 +371,7 @@ let test_diff_with_renamed_file_with_changes () =
               hunks =
                 [
                   {
+                    first_line_idx = 6;
                     lines =
                       [
                         UnchangedLine "line6";

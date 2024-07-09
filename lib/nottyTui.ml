@@ -700,7 +700,7 @@ let diff_of_model model : Diff.diff =
                                      Diff.UnchangedLine content
                                  | Diff (content, `added, _) -> Diff.AddedLine content)
                         in
-                        { lines })
+                        { lines; first_line_idx = 0 })
                in
                Diff.DiffFile { path = changed_file.path; hunks }
            | RenamedFile { old_path; new_path; _ } ->

@@ -13,16 +13,19 @@ let parse_line line =
 
 let not_empty str = String.length str > 0
 
-let parse_hunk_diff hunk_diff =
-  let lines = String.split_on_char '\n' hunk_diff in
+let parse_hunk_diff hunk =
+  let hunk_first_line_idx =
+    String.split_on_char ' ' hunk |> List.hd |> String.split_on_char ',' |> List.hd |> int_of_string
+  in
+  let lines = String.split_on_char '\n' hunk |> List.tl in
   let non_empty_lines = List.filter not_empty lines in
-  { lines = List.map parse_line non_empty_lines }
+  { first_line_idx = hunk_first_line_idx; lines = List.map parse_line non_empty_lines }
 
 let parse_file_hunks file_diff =
-  let hunk_split_regex = Re.Perl.re ~opts:[ `Multiline ] "^@@.*$" |> Re.Perl.compile in
+  let hunk_split_regex = Re.Perl.re ~opts:[ `Multiline ] "^@@ -" |> Re.Perl.compile in
   let file_hunk_split = Re.split hunk_split_regex file_diff in
-  let hunk_diffs = List.tl file_hunk_split in
-  List.map parse_hunk_diff hunk_diffs
+  let hunk_content = List.tl file_hunk_split in
+  List.map parse_hunk_diff hunk_content
 
 let parse_file_diff file_diff =
   let file_path_regex = Re.Perl.re " b/" |> Re.Perl.compile in

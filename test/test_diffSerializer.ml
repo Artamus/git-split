@@ -12,6 +12,7 @@ let test_serializes_single_hunk () =
               hunks =
                 [
                   {
+                    first_line_idx = 0;
                     lines =
                       [
                         Diff.UnchangedLine "context";
