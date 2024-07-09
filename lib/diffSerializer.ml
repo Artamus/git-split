@@ -1,37 +1,47 @@
 open Diff
 
+let count_left_lines lines =
+  lines
+  |> List.fold_left
+       (fun count line ->
+         match line with
+         | UnchangedLine _ -> count + 1
+         | RemovedLine _ -> count + 1
+         | AddedLine _ -> count)
+       0
+
+let count_right_lines lines =
+  lines
+  |> List.fold_left
+       (fun count line ->
+         match line with
+         | UnchangedLine _ -> count + 1
+         | RemovedLine _ -> count
+         | AddedLine _ -> count + 1)
+       0
+
 let serialize_line = function
   | UnchangedLine content -> Printf.sprintf " %s" content
   | RemovedLine content -> Printf.sprintf "-%s" content
   | AddedLine content -> Printf.sprintf "+%s" content
 
-let serialize_hunk hunk =
-  let minus_startline = hunk.first_line_idx in
-  let minus_endline =
-    List.fold_left
-      (fun acc line ->
-        match line with UnchangedLine _ -> acc + 1 | RemovedLine _ -> acc + 1 | AddedLine _ -> acc)
-      (minus_startline - 1) hunk.lines
+let serialize_hunk hunk right_offset =
+  let left_start_line = hunk.first_line_idx in
+  let left_line_count = count_left_lines hunk.lines in
+
+  let right_start_line = left_start_line + right_offset in
+  let right_line_count = count_right_lines hunk.lines in
+
+  let left_lines =
+    if left_line_count = 1 then Printf.sprintf "-%d" left_start_line
+    else Printf.sprintf "-%d,%d" left_start_line left_line_count
+  in
+  let right_lines =
+    if right_line_count = 1 then Printf.sprintf "+%d" right_start_line
+    else Printf.sprintf "+%d,%d" right_start_line right_line_count
   in
 
-  let plus_startline = minus_startline in
-  let plus_endline =
-    List.fold_left
-      (fun acc line ->
-        match line with UnchangedLine _ -> acc + 1 | RemovedLine _ -> acc | AddedLine _ -> acc + 1)
-      (plus_startline - 1) hunk.lines
-  in
-
-  let left_line_indices =
-    if minus_startline = minus_endline then Printf.sprintf "-%d" minus_startline
-    else Printf.sprintf "-%d,%d" minus_startline minus_endline
-  in
-  let right_line_indices =
-    if plus_startline = plus_endline then Printf.sprintf "+%d" plus_startline
-    else Printf.sprintf "+%d,%d" plus_startline plus_endline
-  in
-
-  let hunk_header = Printf.sprintf "@@ %s %s @@" left_line_indices right_line_indices in
+  let hunk_header = Printf.sprintf "@@ %s %s @@" left_lines right_lines in
   let lines = hunk.lines |> List.map serialize_line in
   hunk_header :: lines |> String.concat "\n"
 
@@ -42,7 +52,14 @@ let serialize_diff_file file =
 +++ b/%s|} file.path file.path file.path
       file.path
   in
-  let hunks = file.hunks |> List.map serialize_hunk in
+  let _, hunks =
+    List.fold_left_map
+      (fun acc hunk ->
+        let left_lines = count_left_lines hunk.lines in
+        let right_lines = count_right_lines hunk.lines in
+        (acc + right_lines - left_lines, serialize_hunk hunk acc))
+      0 file.hunks
+  in
   file_header :: hunks |> String.concat "\n"
 
 let serialize_file = function

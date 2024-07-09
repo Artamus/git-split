@@ -10,3 +10,5 @@ type renamed_file = { old_path : string; new_path : string; hunks : hunk list }
 
 type diff_file = RenamedFile of renamed_file | DiffFile of file [@@deriving show, eq]
 type diff = { files : diff_file list } [@@deriving show, eq]
+
+(* TODO: Perhaps enshrine deleted and created files as their own types? *)
