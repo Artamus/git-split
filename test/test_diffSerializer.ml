@@ -378,6 +378,73 @@ let test_serializes_created_file () =
   check string "same git diffs" expected git_diff
 
 (* TODO: Multiple files. *)
+let test_serializes_multiple_files () =
+  let diff : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = "src/first";
+              hunks =
+                [
+                  {
+                    starting_line = 1;
+                    context_snippet = None;
+                    lines =
+                      [
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `AddedLine "added-line";
+                        `ContextLine "context";
+                      ];
+                  };
+                ];
+            };
+          ChangedFile
+            {
+              path = "src/second";
+              hunks =
+                [
+                  {
+                    starting_line = 1;
+                    context_snippet = None;
+                    lines =
+                      [
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `AddedLine "added-line";
+                        `ContextLine "context";
+                      ];
+                  };
+                ];
+            };
+        ];
+    }
+  in
+
+  let git_diff = DiffSerializer.serialize diff in
+
+  let expected =
+    "diff --git a/src/first b/src/first\n\
+     --- a/src/first\n\
+     +++ b/src/first\n\
+     @@ -1,3 +1,3 @@\n\
+    \ context\n\
+     -removed-line\n\
+     +added-line\n\
+    \ context\n\
+     diff --git a/src/second b/src/second\n\
+     --- a/src/second\n\
+     +++ b/src/second\n\
+     @@ -1,3 +1,3 @@\n\
+    \ context\n\
+     -removed-line\n\
+     +added-line\n\
+    \ context"
+  in
+  check string "same git diffs" expected git_diff
+
 (* TODO: Renamed files. *)
 
 let diff_serializer_suite =
@@ -402,4 +469,5 @@ let diff_serializer_suite =
       test_serializes_multiple_hunks_with_asymmetric_change_counts );
     ("serializes a removed file", `Quick, test_serializes_deleted_file);
     ("serializes an added file", `Quick, test_serializes_created_file);
+    ("serializes multiple files", `Quick, test_serializes_multiple_files);
   ]
