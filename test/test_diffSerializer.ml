@@ -377,7 +377,43 @@ let test_serializes_created_file () =
   in
   check string "same git diffs" expected git_diff
 
-(* TODO: Multiple files. *)
+let test_serializes_renamed_file_no_content () =
+  let diff : Diff.diff =
+    {
+      files =
+        [
+          RenamedFile
+            {
+              old_path = "src/old";
+              new_path = "src/new";
+              hunks =
+                [
+                  {
+                    starting_line = 1;
+                    context_snippet = None;
+                    lines =
+                      [
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `AddedLine "added-line";
+                        `ContextLine "context";
+                      ];
+                  };
+                ];
+            };
+        ];
+    }
+  in
+
+  let git_diff = DiffSerializer.serialize diff in
+
+  let expected =
+    "diff --git a/src/old b/src/new\nsimilarity index 100%\nrename from src/old\nrename to src/new"
+  in
+  check string "same git diffs" expected git_diff
+
+(* TODO: Renamed file with changes. *)
+
 let test_serializes_multiple_files () =
   let diff : Diff.diff =
     {
@@ -445,8 +481,6 @@ let test_serializes_multiple_files () =
   in
   check string "same git diffs" expected git_diff
 
-(* TODO: Renamed files. *)
-
 let diff_serializer_suite =
   [
     ( "serializes a hunk that starts with a context line",
@@ -469,5 +503,8 @@ let diff_serializer_suite =
       test_serializes_multiple_hunks_with_asymmetric_change_counts );
     ("serializes a removed file", `Quick, test_serializes_deleted_file);
     ("serializes an added file", `Quick, test_serializes_created_file);
+    ( "serializes a renamed file with no content changes",
+      `Quick,
+      test_serializes_renamed_file_no_content );
     ("serializes multiple files", `Quick, test_serializes_multiple_files);
   ]

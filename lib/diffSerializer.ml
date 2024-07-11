@@ -90,10 +90,17 @@ let serialize_changed_file (file : changed_file) =
   in
   file_header :: hunks |> String.concat "\n"
 
+let serialize_renamed_file (file : renamed_file) =
+  Printf.sprintf {|diff --git a/%s b/%s
+similarity index 100%%
+rename from %s
+rename to %s|}
+    file.old_path file.new_path file.old_path file.new_path
+
 let serialize_file = function
   | DeletedFile file -> serialize_deleted_file file
   | CreatedFile file -> serialize_created_file file
   | ChangedFile file -> serialize_changed_file file
-  | RenamedFile _ -> ""
+  | RenamedFile file -> serialize_renamed_file file
 
 let serialize diff = diff.files |> List.map serialize_file |> String.concat "\n"
