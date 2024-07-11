@@ -645,23 +645,36 @@ let run initial_model =
   final_model
 
 let tui_line_of_diff_line = function
-  | Diff.UnchangedLine content -> Context content
-  | Diff.RemovedLine content -> Diff (content, `removed, `included)
-  | Diff.AddedLine content -> Diff (content, `added, `included)
+  | `ContextLine content -> Context content
+  | `RemovedLine content -> Diff (content, `removed, `included)
+  | `AddedLine content -> Diff (content, `added, `included)
 
 let model_of_diff (diff : Diff.diff) =
   let files =
     diff.files
-    |> List.map (fun (file : Diff.diff_file) : file ->
+    |> List.map (fun (file : Diff.file) : file ->
            match file with
-           | Diff.RenamedFile renamed_file ->
-               RenamedFile
+           | Diff.DeletedFile deleted_file ->
+               let lines =
+                 deleted_file.lines |> List.map (fun line -> tui_line_of_diff_line line)
+               in
+               ChangedFile
                  {
-                   old_path = renamed_file.old_path;
-                   new_path = renamed_file.new_path;
-                   included = `included;
+                   hunks = [ { lines; lines_visibility = Expanded } ];
+                   hunks_visibility = Collapsed;
+                   path = deleted_file.path;
                  }
-           | Diff.DiffFile changed_file ->
+           | Diff.CreatedFile created_file ->
+               let lines =
+                 created_file.lines |> List.map (fun line -> tui_line_of_diff_line line)
+               in
+               ChangedFile
+                 {
+                   hunks = [ { lines; lines_visibility = Expanded } ];
+                   hunks_visibility = Collapsed;
+                   path = created_file.path;
+                 }
+           | Diff.ChangedFile changed_file ->
                let hunks =
                  changed_file.hunks
                  |> List.map (fun (hunk : Diff.hunk) : hunk ->
@@ -670,7 +683,14 @@ let model_of_diff (diff : Diff.diff) =
                         in
                         { lines; lines_visibility = Expanded })
                in
-               ChangedFile { hunks; hunks_visibility = Collapsed; path = changed_file.path })
+               ChangedFile { hunks; hunks_visibility = Collapsed; path = changed_file.path }
+           | Diff.RenamedFile renamed_file ->
+               RenamedFile
+                 {
+                   old_path = renamed_file.old_path;
+                   new_path = renamed_file.new_path;
+                   included = `included;
+                 })
   in
   { files; cursor = FileCursor 0 }
 
@@ -694,15 +714,14 @@ let diff_of_model model : Diff.diff =
                                  match line with Diff (_, `added, `included) -> false | _ -> true)
                           |> List.map (fun line ->
                                  match line with
-                                 | Context content -> Diff.UnchangedLine content
-                                 | Diff (content, `removed, `included) -> Diff.RemovedLine content
-                                 | Diff (content, `removed, `notincluded) ->
-                                     Diff.UnchangedLine content
-                                 | Diff (content, `added, _) -> Diff.AddedLine content)
+                                 | Context content -> `ContextLine content
+                                 | Diff (content, `removed, `included) -> `RemovedLine content
+                                 | Diff (content, `removed, `notincluded) -> `ContextLine content
+                                 | Diff (content, `added, _) -> `AddedLine content)
                         in
-                        { lines; first_line_idx = 0 })
+                        { starting_line = 0; context_snippet = None; lines })
                in
-               Diff.DiffFile { path = changed_file.path; hunks }
+               Diff.ChangedFile { path = changed_file.path; hunks }
            | RenamedFile { old_path; new_path; _ } ->
                Diff.RenamedFile { old_path; new_path; hunks = [] })
   in

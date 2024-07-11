@@ -6,19 +6,20 @@ let test_serializes_single_hunk_with_context () =
     {
       files =
         [
-          DiffFile
+          ChangedFile
             {
               path = "src/main";
               hunks =
                 [
                   {
-                    first_line_idx = 1;
+                    starting_line = 1;
+                    context_snippet = None;
                     lines =
                       [
-                        Diff.UnchangedLine "context";
-                        Diff.RemovedLine "removed-line";
-                        Diff.AddedLine "added-line";
-                        Diff.UnchangedLine "context";
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `AddedLine "added-line";
+                        `ContextLine "context";
                       ];
                   };
                 ];
@@ -41,23 +42,65 @@ let test_serializes_single_hunk_with_context () =
   in
   check string "same git diffs" expected git_diff
 
-let test_serializes_single_hunk_starting_with_removed_line () =
+let test_serializes_single_hunk_with_snippet () =
   let diff : Diff.diff =
     {
       files =
         [
-          DiffFile
+          ChangedFile
             {
               path = "src/main";
               hunks =
                 [
                   {
-                    first_line_idx = 1;
+                    starting_line = 1;
+                    context_snippet = Some "context";
                     lines =
                       [
-                        Diff.RemovedLine "removed-line";
-                        Diff.RemovedLine "removed-line-2";
-                        Diff.UnchangedLine "context";
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `AddedLine "added-line";
+                        `ContextLine "context";
+                      ];
+                  };
+                ];
+            };
+        ];
+    }
+  in
+
+  let git_diff = DiffSerializer.serialize diff in
+
+  let expected =
+    "diff --git a/src/main b/src/main\n\
+     --- a/src/main\n\
+     +++ b/src/main\n\
+     @@ -1,3 +1,3 @@ context\n\
+    \ context\n\
+     -removed-line\n\
+     +added-line\n\
+    \ context"
+  in
+  check string "same git diffs" expected git_diff
+
+let test_serializes_single_hunk_starting_with_removed_line () =
+  let diff : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = "src/main";
+              hunks =
+                [
+                  {
+                    starting_line = 1;
+                    context_snippet = None;
+                    lines =
+                      [
+                        `RemovedLine "removed-line";
+                        `RemovedLine "removed-line-2";
+                        `ContextLine "context";
                       ];
                   };
                 ];
@@ -84,19 +127,16 @@ let test_serializes_single_hunk_starting_with_added_line () =
     {
       files =
         [
-          DiffFile
+          ChangedFile
             {
               path = "src/main";
               hunks =
                 [
                   {
-                    first_line_idx = 1;
+                    starting_line = 1;
+                    context_snippet = None;
                     lines =
-                      [
-                        Diff.AddedLine "added-line";
-                        Diff.AddedLine "added-line-2";
-                        Diff.UnchangedLine "context";
-                      ];
+                      [ `AddedLine "added-line"; `AddedLine "added-line-2"; `ContextLine "context" ];
                   };
                 ];
             };
@@ -122,26 +162,27 @@ let test_serializes_single_hunk_with_nonconsecutive_changes () =
     {
       files =
         [
-          DiffFile
+          ChangedFile
             {
               path = "src/main";
               hunks =
                 [
                   {
-                    first_line_idx = 1;
+                    starting_line = 1;
+                    context_snippet = None;
                     lines =
                       [
-                        Diff.UnchangedLine "context";
-                        Diff.UnchangedLine "context";
-                        Diff.RemovedLine "removed-line";
-                        Diff.RemovedLine "removed-line-2";
-                        Diff.AddedLine "added-line";
-                        Diff.UnchangedLine "context";
-                        Diff.UnchangedLine "context";
-                        Diff.RemovedLine "removed-line";
-                        Diff.AddedLine "added-line";
-                        Diff.AddedLine "added-line-2";
-                        Diff.UnchangedLine "context";
+                        `ContextLine "context";
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `RemovedLine "removed-line-2";
+                        `AddedLine "added-line";
+                        `ContextLine "context";
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `AddedLine "added-line";
+                        `AddedLine "added-line-2";
+                        `ContextLine "context";
                       ];
                   };
                 ];
@@ -176,48 +217,51 @@ let test_serializes_multiple_hunks_with_asymmetric_change_counts () =
     {
       files =
         [
-          DiffFile
+          ChangedFile
             {
               path = "src/main";
               hunks =
                 [
                   {
-                    first_line_idx = 1;
+                    starting_line = 1;
+                    context_snippet = None;
                     lines =
                       [
-                        Diff.UnchangedLine "context";
-                        Diff.RemovedLine "removed-line";
-                        Diff.RemovedLine "removed-line-2";
-                        Diff.UnchangedLine "context";
-                        Diff.UnchangedLine "context";
-                        Diff.UnchangedLine "context";
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `RemovedLine "removed-line-2";
+                        `ContextLine "context";
+                        `ContextLine "context";
+                        `ContextLine "context";
                       ];
                   };
                   {
-                    first_line_idx = 8;
+                    starting_line = 8;
+                    context_snippet = None;
                     lines =
                       [
-                        Diff.UnchangedLine "context";
-                        Diff.UnchangedLine "context";
-                        Diff.UnchangedLine "context";
-                        Diff.AddedLine "added-line";
-                        Diff.UnchangedLine "context";
-                        Diff.UnchangedLine "context";
-                        Diff.UnchangedLine "context";
+                        `ContextLine "context";
+                        `ContextLine "context";
+                        `ContextLine "context";
+                        `AddedLine "added-line";
+                        `ContextLine "context";
+                        `ContextLine "context";
+                        `ContextLine "context";
                       ];
                   };
                   {
-                    first_line_idx = 15;
+                    starting_line = 15;
+                    context_snippet = None;
                     lines =
                       [
-                        Diff.UnchangedLine "context";
-                        Diff.UnchangedLine "context";
-                        Diff.UnchangedLine "context";
-                        Diff.RemovedLine "removed-line";
-                        Diff.AddedLine "added-line";
-                        Diff.UnchangedLine "context";
-                        Diff.UnchangedLine "context";
-                        Diff.UnchangedLine "context";
+                        `ContextLine "context";
+                        `ContextLine "context";
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `AddedLine "added-line";
+                        `ContextLine "context";
+                        `ContextLine "context";
+                        `ContextLine "context";
                       ];
                   };
                 ];
@@ -259,27 +303,21 @@ let test_serializes_multiple_hunks_with_asymmetric_change_counts () =
   in
   check string "same git diffs" expected git_diff
 
-let test_serializes_removed_file () =
+let test_serializes_deleted_file () =
   let diff : Diff.diff =
     {
       files =
         [
-          DiffFile
+          DeletedFile
             {
               path = "src/main";
-              hunks =
+              lines =
                 [
-                  {
-                    first_line_idx = 1;
-                    lines =
-                      [
-                        Diff.RemovedLine "removed-line-1";
-                        Diff.RemovedLine "removed-line-2";
-                        Diff.RemovedLine "removed-line-3";
-                        Diff.RemovedLine "removed-line-4";
-                        Diff.RemovedLine "removed-line-5";
-                      ];
-                  };
+                  `RemovedLine "removed-line-1";
+                  `RemovedLine "removed-line-2";
+                  `RemovedLine "removed-line-3";
+                  `RemovedLine "removed-line-4";
+                  `RemovedLine "removed-line-5";
                 ];
             };
         ];
@@ -302,27 +340,21 @@ let test_serializes_removed_file () =
   in
   check string "same git diffs" expected git_diff
 
-let test_serializes_added_file () =
+let test_serializes_created_file () =
   let diff : Diff.diff =
     {
       files =
         [
-          DiffFile
+          CreatedFile
             {
               path = "src/main";
-              hunks =
+              lines =
                 [
-                  {
-                    first_line_idx = 1;
-                    lines =
-                      [
-                        Diff.AddedLine "added-line-1";
-                        Diff.AddedLine "added-line-2";
-                        Diff.AddedLine "added-line-3";
-                        Diff.AddedLine "added-line-4";
-                        Diff.AddedLine "added-line-5";
-                      ];
-                  };
+                  `AddedLine "added-line-1";
+                  `AddedLine "added-line-2";
+                  `AddedLine "added-line-3";
+                  `AddedLine "added-line-4";
+                  `AddedLine "added-line-5";
                 ];
             };
         ];
@@ -348,11 +380,14 @@ let test_serializes_added_file () =
 (* TODO: Multiple files. *)
 (* TODO: Renamed files. *)
 
-let diff_serializer_suite =
+let new_diff_serializer_suite =
   [
     ( "serializes a hunk that starts with a context line",
       `Quick,
       test_serializes_single_hunk_with_context );
+    ( "serializes a hunk that has a hunk context snippet",
+      `Quick,
+      test_serializes_single_hunk_with_snippet );
     ( "serializes a hunk that starts with a removed line",
       `Quick,
       test_serializes_single_hunk_starting_with_removed_line );
@@ -365,6 +400,6 @@ let diff_serializer_suite =
     ( "serializes multiple hunks with asymmetric number of changes per hunk",
       `Quick,
       test_serializes_multiple_hunks_with_asymmetric_change_counts );
-    ("serializes a removed file", `Quick, test_serializes_removed_file);
-    ("serializes an added file", `Quick, test_serializes_added_file);
+    ("serializes a removed file", `Quick, test_serializes_deleted_file);
+    ("serializes an added file", `Quick, test_serializes_created_file);
   ]

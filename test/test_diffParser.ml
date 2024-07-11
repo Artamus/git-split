@@ -23,20 +23,21 @@ let test_single_hunk () =
     {
       files =
         [
-          DiffFile
+          ChangedFile
             {
               path = "bin/dune";
               hunks =
                 [
                   {
-                    first_line_idx = 1;
+                    starting_line = 1;
+                    context_snippet = None;
                     lines =
                       [
-                        UnchangedLine "(executable";
-                        UnchangedLine " (public_name git_split)";
-                        UnchangedLine " (name main)";
-                        RemovedLine " (libraries git_split))";
-                        AddedLine " (libraries git_split feather re))";
+                        `ContextLine "(executable";
+                        `ContextLine " (public_name git_split)";
+                        `ContextLine " (name main)";
+                        `RemovedLine " (libraries git_split))";
+                        `AddedLine " (libraries git_split feather re))";
                       ];
                   };
                 ];
@@ -70,29 +71,31 @@ let test_diff_with_multiple_hunks () =
     {
       files =
         [
-          DiffFile
+          ChangedFile
             {
               path = "src/test";
               hunks =
                 [
                   {
-                    first_line_idx = 4;
+                    starting_line = 4;
+                    context_snippet = None;
                     lines =
                       [
-                        UnchangedLine "  hunk-1-unchanged-line";
-                        RemovedLine "  hunk-1-removed-line";
-                        RemovedLine "  hunk-1-removed-line";
-                        AddedLine "  hunk-1-added-line";
-                        UnchangedLine "  hunk-1-unchanged-line";
+                        `ContextLine "  hunk-1-unchanged-line";
+                        `RemovedLine "  hunk-1-removed-line";
+                        `RemovedLine "  hunk-1-removed-line";
+                        `AddedLine "  hunk-1-added-line";
+                        `ContextLine "  hunk-1-unchanged-line";
                       ];
                   };
                   {
-                    first_line_idx = 57;
+                    starting_line = 57;
+                    context_snippet = None;
                     lines =
                       [
-                        UnchangedLine "  hunk-2-unchanged-line";
-                        AddedLine "  hunk-2-added-line";
-                        UnchangedLine "  hunk-2-unchanged-line";
+                        `ContextLine "  hunk-2-unchanged-line";
+                        `AddedLine "  hunk-2-added-line";
+                        `ContextLine "  hunk-2-unchanged-line";
                       ];
                   };
                 ];
@@ -127,25 +130,27 @@ let test_diff_with_multiple_files () =
     {
       files =
         [
-          DiffFile
+          ChangedFile
             {
               path = "src/test";
               hunks =
                 [
                   {
-                    first_line_idx = 1;
-                    lines = [ RemovedLine "removed-line"; AddedLine "added-line" ];
+                    starting_line = 1;
+                    context_snippet = None;
+                    lines = [ `RemovedLine "removed-line"; `AddedLine "added-line" ];
                   };
                 ];
             };
-          DiffFile
+          ChangedFile
             {
               path = "src/file";
               hunks =
                 [
                   {
-                    first_line_idx = 0;
-                    lines = [ RemovedLine "removed-line"; AddedLine " added-line" ];
+                    starting_line = 0;
+                    context_snippet = None;
+                    lines = [ `RemovedLine "removed-line"; `AddedLine " added-line" ];
                   };
                 ];
             };
@@ -163,7 +168,9 @@ let test_diff_with_empty_added_file () =
 
   let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : Diff.diff = { files = [ DiffFile { path = "empty-new-file.md"; hunks = [] } ] } in
+  let expected : Diff.diff =
+    { files = [ ChangedFile { path = "empty-new-file.md"; hunks = [] } ] }
+  in
   check diff_testable "same diffs" expected diff
 
 let test_diff_with_added_file () =
@@ -184,12 +191,16 @@ let test_diff_with_added_file () =
     {
       files =
         [
-          DiffFile
+          ChangedFile
             {
               path = "new-nonempty-file.md";
               hunks =
                 [
-                  { first_line_idx = 0; lines = [ AddedLine "A line"; AddedLine "Another line!" ] };
+                  {
+                    starting_line = 0;
+                    context_snippet = None;
+                    lines = [ `AddedLine "A line"; `AddedLine "Another line!" ];
+                  };
                 ];
             };
         ];
@@ -206,7 +217,9 @@ let test_diff_with_empty_removed_file () =
 
   let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : Diff.diff = { files = [ DiffFile { path = "empty-new-file.md"; hunks = [] } ] } in
+  let expected : Diff.diff =
+    { files = [ ChangedFile { path = "empty-new-file.md"; hunks = [] } ] }
+  in
   check diff_testable "same diffs" expected diff
 
 let test_diff_with_removed_file () =
@@ -227,14 +240,15 @@ let test_diff_with_removed_file () =
     {
       files =
         [
-          DiffFile
+          ChangedFile
             {
               path = "new-nonempty-file.md";
               hunks =
                 [
                   {
-                    first_line_idx = 1;
-                    lines = [ RemovedLine "A line"; RemovedLine "Another line!" ];
+                    starting_line = 1;
+                    context_snippet = None;
+                    lines = [ `RemovedLine "A line"; `RemovedLine "Another line!" ];
                   };
                 ];
             };
@@ -274,39 +288,41 @@ let test_diff_with_multiple_sets_of_changes_in_same_hunk () =
     {
       files =
         [
-          DiffFile
+          ChangedFile
             {
               path = "lib/tui.ml";
               hunks =
                 [
                   {
-                    first_line_idx = 1;
+                    starting_line = 1;
+                    context_snippet = None;
                     lines =
                       [
-                        UnchangedLine "open Minttea";
-                        RemovedLine "let cursor = Spices.(default |> reverse true |> build)";
-                        AddedLine "let cursor_style = Spices.(default |> reverse true |> build)";
-                        UnchangedLine "let header = Spices.(default |> reverse true |> build)";
-                        AddedLine "type visibility = Expanded | Collapsed";
-                        AddedLine "";
-                        UnchangedLine "type line =";
-                        UnchangedLine "  | Context of string";
-                        UnchangedLine
+                        `ContextLine "open Minttea";
+                        `RemovedLine "let cursor = Spices.(default |> reverse true |> build)";
+                        `AddedLine "let cursor_style = Spices.(default |> reverse true |> build)";
+                        `ContextLine "let header = Spices.(default |> reverse true |> build)";
+                        `AddedLine "type visibility = Expanded | Collapsed";
+                        `AddedLine "";
+                        `ContextLine "type line =";
+                        `ContextLine "  | Context of string";
+                        `ContextLine
                           "  | Diff of string * [ `added | `removed ] * [ `included | `notincluded \
                            ]";
-                        RemovedLine
+                        `RemovedLine
                           "type hunk = { lines : line list; visibility : [ `expanded | `collapsed \
                            ] }";
-                        RemovedLine "type file = { path : string; hunks : hunk list }";
-                        AddedLine "type hunk = { lines : line list; lines_visibility : visibility }";
-                        AddedLine
+                        `RemovedLine "type file = { path : string; hunks : hunk list }";
+                        `AddedLine
+                          "type hunk = { lines : line list; lines_visibility : visibility }";
+                        `AddedLine
                           "type file = { path : string; hunks : hunk list; hunks_visibility : \
                            visibility }";
-                        UnchangedLine
+                        `ContextLine
                           "type cursor = FileCursor of int | HunkCursor of int * int | LineCursor \
                            of int * int * int";
-                        UnchangedLine "type model = { files : file list; cursor : cursor }";
-                        UnchangedLine "type set_lines_inclusion = AllLines | SomeLines | NoLines";
+                        `ContextLine "type model = { files : file list; cursor : cursor }";
+                        `ContextLine "type set_lines_inclusion = AllLines | SomeLines | NoLines";
                       ];
                   };
                 ];
@@ -371,17 +387,18 @@ let test_diff_with_renamed_file_with_changes () =
               hunks =
                 [
                   {
-                    first_line_idx = 6;
+                    starting_line = 6;
+                    context_snippet = None;
                     lines =
                       [
-                        UnchangedLine "line6";
-                        UnchangedLine "line7";
-                        UnchangedLine "line8";
-                        RemovedLine "line9";
-                        AddedLine "line91";
-                        UnchangedLine "line10";
-                        UnchangedLine "line11";
-                        UnchangedLine "line12";
+                        `ContextLine "line6";
+                        `ContextLine "line7";
+                        `ContextLine "line8";
+                        `RemovedLine "line9";
+                        `AddedLine "line91";
+                        `ContextLine "line10";
+                        `ContextLine "line11";
+                        `ContextLine "line12";
                       ];
                   };
                 ];

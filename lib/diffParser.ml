@@ -6,9 +6,9 @@ let parse_line line =
   let first_char = line.[0] in
   let line_contents = String.sub line 1 (String.length line - 1) in
   match first_char with
-  | ' ' -> UnchangedLine line_contents
-  | '-' -> RemovedLine line_contents
-  | '+' -> AddedLine line_contents
+  | ' ' -> `ContextLine line_contents
+  | '-' -> `RemovedLine line_contents
+  | '+' -> `AddedLine line_contents
   | c -> raise (Invalid_character (Printf.sprintf "Found unexpected character: %c" c))
 
 let not_empty str = String.length str > 0
@@ -19,7 +19,11 @@ let parse_hunk_diff hunk =
   in
   let lines = String.split_on_char '\n' hunk |> List.tl in
   let non_empty_lines = List.filter not_empty lines in
-  { first_line_idx = hunk_first_line_idx; lines = List.map parse_line non_empty_lines }
+  {
+    starting_line = hunk_first_line_idx;
+    context_snippet = None;
+    lines = List.map parse_line non_empty_lines;
+  }
 
 let parse_file_hunks file_diff =
   let hunk_split_regex = Re.Perl.re ~opts:[ `Multiline ] "^@@ -" |> Re.Perl.compile in
@@ -54,7 +58,7 @@ let parse_file_diff file_diff =
   let file_rename_regex = Re.str "rename from " |> Re.compile in
   let is_file_rename = Re.execp file_rename_regex file_diff in
   if is_file_rename then RenamedFile (parse_file_rename file_diff)
-  else DiffFile (parse_file_diff file_diff)
+  else ChangedFile (parse_file_diff file_diff)
 
 let parse_diff raw_diff =
   let file_split_regex = Re.Perl.re ~opts:[ `Multiline ] "^diff --git a/" |> Re.Perl.compile in
