@@ -379,30 +379,7 @@ let test_serializes_created_file () =
 
 let test_serializes_renamed_file_no_content () =
   let diff : Diff.diff =
-    {
-      files =
-        [
-          RenamedFile
-            {
-              old_path = "src/old";
-              new_path = "src/new";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = None;
-                    lines =
-                      [
-                        `ContextLine "context";
-                        `RemovedLine "removed-line";
-                        `AddedLine "added-line";
-                        `ContextLine "context";
-                      ];
-                  };
-                ];
-            };
-        ];
-    }
+    { files = [ RenamedFile { old_path = "src/old"; new_path = "src/new"; hunks = [] } ] }
   in
 
   let git_diff = DiffSerializer.serialize diff in
