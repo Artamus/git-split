@@ -380,7 +380,7 @@ let test_serializes_created_file () =
 (* TODO: Multiple files. *)
 (* TODO: Renamed files. *)
 
-let new_diff_serializer_suite =
+let diff_serializer_suite =
   [
     ( "serializes a hunk that starts with a context line",
       `Quick,
