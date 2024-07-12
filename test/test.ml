@@ -1,6 +1,6 @@
 let () =
   Alcotest.run "git-split"
     [
-      ("Diff parsing", Test_diffParser.diff_parser_suite);
-      ("Diff serializing", Test_diffSerializer.diff_serializer_suite);
+      ("Parses git diff", Test_diffParser.diff_parser_suite);
+      ("Serializes Diff", Test_diffSerializer.diff_serializer_suite);
     ]

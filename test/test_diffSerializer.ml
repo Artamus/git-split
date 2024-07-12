@@ -1,7 +1,7 @@
 open Alcotest
 open Git_split
 
-let test_serializes_single_hunk_with_context () =
+let test_serializes_single_hunk_starting_with_context_line () =
   let diff : Diff.diff =
     {
       files =
@@ -35,47 +35,6 @@ let test_serializes_single_hunk_with_context () =
      --- a/src/main\n\
      +++ b/src/main\n\
      @@ -1,3 +1,3 @@\n\
-    \ context\n\
-     -removed-line\n\
-     +added-line\n\
-    \ context"
-  in
-  check string "same git diffs" expected git_diff
-
-let test_serializes_single_hunk_with_snippet () =
-  let diff : Diff.diff =
-    {
-      files =
-        [
-          ChangedFile
-            {
-              path = "src/main";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = Some "context";
-                    lines =
-                      [
-                        `ContextLine "context";
-                        `RemovedLine "removed-line";
-                        `AddedLine "added-line";
-                        `ContextLine "context";
-                      ];
-                  };
-                ];
-            };
-        ];
-    }
-  in
-
-  let git_diff = DiffSerializer.serialize diff in
-
-  let expected =
-    "diff --git a/src/main b/src/main\n\
-     --- a/src/main\n\
-     +++ b/src/main\n\
-     @@ -1,3 +1,3 @@ context\n\
     \ context\n\
      -removed-line\n\
      +added-line\n\
@@ -153,6 +112,47 @@ let test_serializes_single_hunk_starting_with_added_line () =
      @@ -1 +1,3 @@\n\
      +added-line\n\
      +added-line-2\n\
+    \ context"
+  in
+  check string "same git diffs" expected git_diff
+
+let test_serializes_single_hunk_with_snippet () =
+  let diff : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = "src/main";
+              hunks =
+                [
+                  {
+                    starting_line = 1;
+                    context_snippet = Some "context";
+                    lines =
+                      [
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `AddedLine "added-line";
+                        `ContextLine "context";
+                      ];
+                  };
+                ];
+            };
+        ];
+    }
+  in
+
+  let git_diff = DiffSerializer.serialize diff in
+
+  let expected =
+    "diff --git a/src/main b/src/main\n\
+     --- a/src/main\n\
+     +++ b/src/main\n\
+     @@ -1,3 +1,3 @@ context\n\
+    \ context\n\
+     -removed-line\n\
+     +added-line\n\
     \ context"
   in
   check string "same git diffs" expected git_diff
@@ -503,31 +503,31 @@ let test_serializes_multiple_files () =
 
 let diff_serializer_suite =
   [
-    ( "serializes a hunk that starts with a context line",
+    ( "containing a hunk that starts with a context line",
       `Quick,
-      test_serializes_single_hunk_with_context );
-    ( "serializes a hunk that has a hunk context snippet",
-      `Quick,
-      test_serializes_single_hunk_with_snippet );
-    ( "serializes a hunk that starts with a removed line",
+      test_serializes_single_hunk_starting_with_context_line );
+    ( "containing a hunk that starts with a removed line",
       `Quick,
       test_serializes_single_hunk_starting_with_removed_line );
-    ( "serializes a hunk that starts with an added line",
+    ( "containing a hunk that starts with an added line",
       `Quick,
       test_serializes_single_hunk_starting_with_added_line );
-    ( "serializes a hunk that contains nonconsecutive changes",
+    ( "containing a hunk that has a hunk context snippet",
+      `Quick,
+      test_serializes_single_hunk_with_snippet );
+    ( "containing a hunk that contains nonconsecutive changes",
       `Quick,
       test_serializes_single_hunk_with_nonconsecutive_changes );
-    ( "serializes multiple hunks with asymmetric number of changes per hunk",
+    ( "containing multiple hunks with asymmetric number of changes per hunk",
       `Quick,
       test_serializes_multiple_hunks_with_asymmetric_change_counts );
-    ("serializes a removed file", `Quick, test_serializes_deleted_file);
-    ("serializes an added file", `Quick, test_serializes_created_file);
-    ( "serializes a renamed file with no content changes",
+    ("containing a removed file", `Quick, test_serializes_deleted_file);
+    ("containing an added file", `Quick, test_serializes_created_file);
+    ( "containing a renamed file with no content changes",
       `Quick,
       test_serializes_renamed_file_no_changes );
-    ( "serializes a renamed file with content changes",
+    ( "containing a renamed file with content changes",
       `Quick,
       test_serializes_renamed_file_with_changes );
-    ("serializes multiple files", `Quick, test_serializes_multiple_files);
+    ("containing multiple files", `Quick, test_serializes_multiple_files);
   ]

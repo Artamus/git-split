@@ -3,18 +3,17 @@ open Git_split
 
 let diff_testable = testable Diff.pp_diff Diff.equal_diff
 
-let test_single_hunk () =
+let test_parses_single_hunk () =
   let raw_diff =
-    "diff --git a/bin/dune b/bin/dune\n\
+    "diff --git a/src/main b/src/main\n\
      index 3e8a4cb..fc8e91d 100644\n\
-     --- a/bin/dune\n\
-     +++ b/bin/dune\n\
-     @@ -1,4 +1,4 @@\n\
-    \ (executable\n\
-    \  (public_name git_split)\n\
-    \  (name main)\n\
-     - (libraries git_split))\n\
-     + (libraries git_split feather re))"
+     --- a/src/main\n\
+     +++ b/src/main\n\
+     @@ -1,3 +1,3 @@\n\
+    \ context\n\
+     -removed-line\n\
+     +added-line\n\
+    \ context"
   in
 
   let diff = DiffParser.parse_diff raw_diff in
@@ -25,7 +24,7 @@ let test_single_hunk () =
         [
           ChangedFile
             {
-              path = "bin/dune";
+              path = "src/main";
               hunks =
                 [
                   {
@@ -33,11 +32,10 @@ let test_single_hunk () =
                     context_snippet = None;
                     lines =
                       [
-                        `ContextLine "(executable";
-                        `ContextLine " (public_name git_split)";
-                        `ContextLine " (name main)";
-                        `RemovedLine " (libraries git_split))";
-                        `AddedLine " (libraries git_split feather re))";
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `AddedLine "added-line";
+                        `ContextLine "context";
                       ];
                   };
                 ];
@@ -47,7 +45,49 @@ let test_single_hunk () =
   in
   check diff_testable "same diffs" expected diff
 
-let test_diff_with_multiple_hunks () =
+let test_parses_single_hunk_with_snippet () =
+  let raw_diff =
+    "diff --git a/src/main b/src/main\n\
+     index 3e8a4cb..fc8e91d 100644\n\
+     --- a/src/main\n\
+     +++ b/src/main\n\
+     @@ -5,3 +5,3 @@ context\n\
+    \ context\n\
+     -removed-line\n\
+     +added-line\n\
+    \ context"
+  in
+
+  let diff = DiffParser.parse_diff raw_diff in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = "src/main";
+              hunks =
+                [
+                  {
+                    starting_line = 5;
+                    context_snippet = Some "context";
+                    lines =
+                      [
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `AddedLine "added-line";
+                        `ContextLine "context";
+                      ];
+                  };
+                ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
+let test_parses_diff_with_multiple_hunks () =
   let raw_diff =
     "diff --git a/src/test b/src/test\n\
      index 5ca75dc..b20f9ac 100644\n\
@@ -78,7 +118,7 @@ let test_diff_with_multiple_hunks () =
                 [
                   {
                     starting_line = 4;
-                    context_snippet = None;
+                    context_snippet = Some "fun main() {";
                     lines =
                       [
                         `ContextLine "  hunk-1-unchanged-line";
@@ -90,7 +130,7 @@ let test_diff_with_multiple_hunks () =
                   };
                   {
                     starting_line = 57;
-                    context_snippet = None;
+                    context_snippet = Some "fun main() {";
                     lines =
                       [
                         `ContextLine "  hunk-2-unchanged-line";
@@ -105,23 +145,24 @@ let test_diff_with_multiple_hunks () =
   in
   check diff_testable "same diffs" expected diff
 
-let test_diff_with_multiple_files () =
+let test_parses_single_hunk_with_nonconsecutive_changes () =
   let raw_diff =
-    "diff --git a/src/test b/src/test\n\
-     index 25531f2..57f2dfb 100644\n\
-     --- a/src/test\n\
-     +++ b/src/test\n\
-     @@ -1,10 +1,19 @@\n\
+    "diff --git a/src/main b/src/main\n\
+     index 3e8a4cb..fc8e91d 100644\n\
+     --- a/src/main\n\
+     +++ b/src/main\n\
+     @@ -1,8 +1,8 @@\n\
+    \ context\n\
+    \ context\n\
+     -removed-line\n\
+     -removed-line-2\n\
+     +added-line\n\
+    \ context\n\
+    \ context\n\
      -removed-line\n\
      +added-line\n\
-     diff --git a/src/file b/src/file\n\
-     new file mode 100644\n\
-     index 0000000..47d9444\n\
-     --- /dev/null\n\
-     +++ b/src/file\n\
-     @@ -0,0 +1,2 @@\n\
-     -removed-line\n\
-     + added-line"
+     +added-line-2\n\
+    \ context"
   in
 
   let diff = DiffParser.parse_diff raw_diff in
@@ -132,165 +173,7 @@ let test_diff_with_multiple_files () =
         [
           ChangedFile
             {
-              path = "src/test";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = None;
-                    lines = [ `RemovedLine "removed-line"; `AddedLine "added-line" ];
-                  };
-                ];
-            };
-          ChangedFile
-            {
-              path = "src/file";
-              hunks =
-                [
-                  {
-                    starting_line = 0;
-                    context_snippet = None;
-                    lines = [ `RemovedLine "removed-line"; `AddedLine " added-line" ];
-                  };
-                ];
-            };
-        ];
-    }
-  in
-  check diff_testable "same diffs" expected diff
-
-let test_diff_with_empty_added_file () =
-  let raw_diff =
-    "diff --git a/empty-new-file.md b/empty-new-file.md\n\
-     new file mode 100644\n\
-     index 0000000..e69de29"
-  in
-
-  let diff = DiffParser.parse_diff raw_diff in
-
-  let expected : Diff.diff =
-    { files = [ ChangedFile { path = "empty-new-file.md"; hunks = [] } ] }
-  in
-  check diff_testable "same diffs" expected diff
-
-let test_diff_with_added_file () =
-  let raw_diff =
-    "diff --git a/new-nonempty-file.md b/new-nonempty-file.md\n\
-     new file mode 100644\n\
-     index 0000000..a1df4ea\n\
-     --- /dev/null\n\
-     +++ b/new-nonempty-file.md\n\
-     @@ -0,0 +1,2 @@\n\
-     +A line\n\
-     +Another line!"
-  in
-
-  let diff = DiffParser.parse_diff raw_diff in
-
-  let expected : Diff.diff =
-    {
-      files =
-        [
-          ChangedFile
-            {
-              path = "new-nonempty-file.md";
-              hunks =
-                [
-                  {
-                    starting_line = 0;
-                    context_snippet = None;
-                    lines = [ `AddedLine "A line"; `AddedLine "Another line!" ];
-                  };
-                ];
-            };
-        ];
-    }
-  in
-  check diff_testable "same diffs" expected diff
-
-let test_diff_with_empty_removed_file () =
-  let raw_diff =
-    "diff --git a/empty-new-file.md b/empty-new-file.md\n\
-     deleted file mode 100644\n\
-     index e69de29..0000000"
-  in
-
-  let diff = DiffParser.parse_diff raw_diff in
-
-  let expected : Diff.diff =
-    { files = [ ChangedFile { path = "empty-new-file.md"; hunks = [] } ] }
-  in
-  check diff_testable "same diffs" expected diff
-
-let test_diff_with_removed_file () =
-  let raw_diff =
-    "diff --git a/new-nonempty-file.md b/new-nonempty-file.md\n\
-     deleted file mode 100644\n\
-     index a1df4ea..0000000\n\
-     --- a/new-nonempty-file.md\n\
-     +++ /dev/null\n\
-     @@ -1,2 +0,0 @@\n\
-     -A line\n\
-     -Another line!"
-  in
-
-  let diff = DiffParser.parse_diff raw_diff in
-
-  let expected : Diff.diff =
-    {
-      files =
-        [
-          ChangedFile
-            {
-              path = "new-nonempty-file.md";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = None;
-                    lines = [ `RemovedLine "A line"; `RemovedLine "Another line!" ];
-                  };
-                ];
-            };
-        ];
-    }
-  in
-  check diff_testable "same diffs" expected diff
-
-let test_diff_with_multiple_sets_of_changes_in_same_hunk () =
-  let raw_diff =
-    "diff --git a/lib/tui.ml b/lib/tui.ml\n\
-     index 0441c31..02b5753 100644\n\
-     --- a/lib/tui.ml\n\
-     +++ b/lib/tui.ml\n\
-     @@ -1,14 +1,16 @@\n\
-    \ open Minttea\n\n\
-     -let cursor = Spices.(default |> reverse true |> build)\n\
-     +let cursor_style = Spices.(default |> reverse true |> build)\n\
-    \ let header = Spices.(default |> reverse true |> build)\n\n\
-     +type visibility = Expanded | Collapsed\n\
-     +\n\
-    \ type line =\n\
-    \   | Context of string\n\
-    \   | Diff of string * [ `added | `removed ] * [ `included | `notincluded ]\n\n\
-     -type hunk = { lines : line list; visibility : [ `expanded | `collapsed ] }\n\
-     -type file = { path : string; hunks : hunk list }\n\
-     +type hunk = { lines : line list; lines_visibility : visibility }\n\
-     +type file = { path : string; hunks : hunk list; hunks_visibility : visibility }\n\
-    \ type cursor = FileCursor of int | HunkCursor of int * int | LineCursor of int * int * int\n\
-    \ type model = { files : file list; cursor : cursor }\n\
-    \ type set_lines_inclusion = AllLines | SomeLines | NoLines"
-  in
-
-  let diff = DiffParser.parse_diff raw_diff in
-
-  let expected : Diff.diff =
-    {
-      files =
-        [
-          ChangedFile
-            {
-              path = "lib/tui.ml";
+              path = "src/main";
               hunks =
                 [
                   {
@@ -298,31 +181,17 @@ let test_diff_with_multiple_sets_of_changes_in_same_hunk () =
                     context_snippet = None;
                     lines =
                       [
-                        `ContextLine "open Minttea";
-                        `RemovedLine "let cursor = Spices.(default |> reverse true |> build)";
-                        `AddedLine "let cursor_style = Spices.(default |> reverse true |> build)";
-                        `ContextLine "let header = Spices.(default |> reverse true |> build)";
-                        `AddedLine "type visibility = Expanded | Collapsed";
-                        `AddedLine "";
-                        `ContextLine "type line =";
-                        `ContextLine "  | Context of string";
-                        `ContextLine
-                          "  | Diff of string * [ `added | `removed ] * [ `included | `notincluded \
-                           ]";
-                        `RemovedLine
-                          "type hunk = { lines : line list; visibility : [ `expanded | `collapsed \
-                           ] }";
-                        `RemovedLine "type file = { path : string; hunks : hunk list }";
-                        `AddedLine
-                          "type hunk = { lines : line list; lines_visibility : visibility }";
-                        `AddedLine
-                          "type file = { path : string; hunks : hunk list; hunks_visibility : \
-                           visibility }";
-                        `ContextLine
-                          "type cursor = FileCursor of int | HunkCursor of int * int | LineCursor \
-                           of int * int * int";
-                        `ContextLine "type model = { files : file list; cursor : cursor }";
-                        `ContextLine "type set_lines_inclusion = AllLines | SomeLines | NoLines";
+                        `ContextLine "context";
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `RemovedLine "removed-line-2";
+                        `AddedLine "added-line";
+                        `ContextLine "context";
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `AddedLine "added-line";
+                        `AddedLine "added-line-2";
+                        `ContextLine "context";
                       ];
                   };
                 ];
@@ -332,12 +201,32 @@ let test_diff_with_multiple_sets_of_changes_in_same_hunk () =
   in
   check diff_testable "same diffs" expected diff
 
-let test_diff_with_renamed_file () =
+let test_parses_empty_deleted_file () =
   let raw_diff =
-    "diff --git a/lib/minttea_tui.ml b/lib/mintteaTui.ml\n\
-     similarity index 100%\n\
-     rename from lib/minttea_tui.ml\n\
-     rename to lib/mintteaTui.ml"
+    "diff --git a/empty-new-file.md b/empty-new-file.md\n\
+     deleted file mode 100644\n\
+     index e69de29..0000000"
+  in
+
+  let diff = DiffParser.parse_diff raw_diff in
+
+  let expected : Diff.diff =
+    { files = [ DeletedFile { path = "empty-new-file.md"; lines = [] } ] }
+  in
+  check diff_testable "same diffs" expected diff
+
+let test_parses_deleted_file () =
+  let raw_diff =
+    "diff --git a/src/main b/src/main\n\
+     deleted file mode 100644\n\
+     --- a/src/main\n\
+     +++ /dev/null\n\
+     @@ -1,5 +0,0 @@\n\
+     -removed-line-1\n\
+     -removed-line-2\n\
+     -removed-line-3\n\
+     -removed-line-4\n\
+     -removed-line-5"
   in
 
   let diff = DiffParser.parse_diff raw_diff in
@@ -346,59 +235,189 @@ let test_diff_with_renamed_file () =
     {
       files =
         [
-          RenamedFile
-            { old_path = "lib/minttea_tui.ml"; new_path = "lib/mintteaTui.ml"; hunks = [] };
+          DeletedFile
+            {
+              path = "src/main";
+              lines =
+                [
+                  `RemovedLine "removed-line-1";
+                  `RemovedLine "removed-line-2";
+                  `RemovedLine "removed-line-3";
+                  `RemovedLine "removed-line-4";
+                  `RemovedLine "removed-line-5";
+                ];
+            };
         ];
     }
   in
   check diff_testable "same diffs" expected diff
 
-let test_diff_with_renamed_file_with_changes () =
+let test_parses_empty_created_file () =
   let raw_diff =
-    "diff --git a/file.md b/file-super.md\n\
-     similarity index 90%\n\
-     rename from file.md\n\
-     rename to file-super.md\n\
-     index 0f3785f..0f1d8f8 100644\n\
-     --- a/file.md\n\
-     +++ b/file-super.md\n\
-     @@ -6,7 +6,7 @@ line5\n\
-    \ line6\n\
-    \ line7\n\
-    \ line8\n\
-     -line9\n\
-     +line91\n\
-    \ line10\n\
-    \ line11\n\
-    \ line12"
+    "diff --git a/empty-new-file.md b/empty-new-file.md\n\
+     new file mode 100644\n\
+     index 0000000..e69de29"
   in
 
   let diff = DiffParser.parse_diff raw_diff in
 
-  (* TODO: Expect changed lines. *)
+  let expected : Diff.diff =
+    { files = [ CreatedFile { path = "empty-new-file.md"; lines = [] } ] }
+  in
+  check diff_testable "same diffs" expected diff
+
+let test_parses_created_file () =
+  let raw_diff =
+    "diff --git a/src/main b/src/main\n\
+     new file mode 100644\n\
+     --- /dev/null\n\
+     +++ b/src/main\n\
+     @@ -0,0 +1,5 @@\n\
+     +added-line-1\n\
+     +added-line-2\n\
+     +added-line-3\n\
+     +added-line-4\n\
+     +added-line-5"
+  in
+
+  let diff = DiffParser.parse_diff raw_diff in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          CreatedFile
+            {
+              path = "src/main";
+              lines =
+                [
+                  `AddedLine "added-line-1";
+                  `AddedLine "added-line-2";
+                  `AddedLine "added-line-3";
+                  `AddedLine "added-line-4";
+                  `AddedLine "added-line-5";
+                ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
+let test_parses_renamed_file_no_changes () =
+  let raw_diff =
+    "diff --git a/src/old b/src/new\nsimilarity index 100%\nrename from src/old\nrename to src/new"
+  in
+
+  let diff = DiffParser.parse_diff raw_diff in
+
+  let expected : Diff.diff =
+    { files = [ RenamedFile { old_path = "src/old"; new_path = "src/new"; hunks = [] } ] }
+  in
+  check diff_testable "same diffs" expected diff
+
+let test_parses_renamed_file_with_changes () =
+  let raw_diff =
+    "diff --git a/src/old b/src/new\n\
+     similarity index 55%\n\
+     rename from src/old\n\
+     rename to src/new\n\
+     --- a/src/old\n\
+     +++ b/src/new\n\
+     @@ -1,3 +1,3 @@\n\
+    \ context\n\
+     -removed-line\n\
+     +added-line\n\
+    \ context"
+  in
+
+  let diff = DiffParser.parse_diff raw_diff in
+
   let expected : Diff.diff =
     {
       files =
         [
           RenamedFile
             {
-              old_path = "file.md";
-              new_path = "file-super.md";
+              old_path = "src/old";
+              new_path = "src/new";
               hunks =
                 [
                   {
-                    starting_line = 6;
+                    starting_line = 1;
                     context_snippet = None;
                     lines =
                       [
-                        `ContextLine "line6";
-                        `ContextLine "line7";
-                        `ContextLine "line8";
-                        `RemovedLine "line9";
-                        `AddedLine "line91";
-                        `ContextLine "line10";
-                        `ContextLine "line11";
-                        `ContextLine "line12";
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `AddedLine "added-line";
+                        `ContextLine "context";
+                      ];
+                  };
+                ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
+let test_parses_diff_with_multiple_files () =
+  let raw_diff =
+    "diff --git a/src/first b/src/first\n\
+     --- a/src/first\n\
+     +++ b/src/first\n\
+     @@ -1,3 +1,3 @@\n\
+    \ context\n\
+     -removed-line\n\
+     +added-line\n\
+    \ context\n\
+     diff --git a/src/second b/src/second\n\
+     --- a/src/second\n\
+     +++ b/src/second\n\
+     @@ -1,3 +1,3 @@\n\
+    \ context\n\
+     -removed-line\n\
+     +added-line\n\
+    \ context"
+  in
+
+  let diff = DiffParser.parse_diff raw_diff in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = "src/first";
+              hunks =
+                [
+                  {
+                    starting_line = 1;
+                    context_snippet = None;
+                    lines =
+                      [
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `AddedLine "added-line";
+                        `ContextLine "context";
+                      ];
+                  };
+                ];
+            };
+          ChangedFile
+            {
+              path = "src/second";
+              hunks =
+                [
+                  {
+                    starting_line = 1;
+                    context_snippet = None;
+                    lines =
+                      [
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `AddedLine "added-line";
+                        `ContextLine "context";
                       ];
                   };
                 ];
@@ -410,18 +429,19 @@ let test_diff_with_renamed_file_with_changes () =
 
 let diff_parser_suite =
   [
-    ("parses a diff with a hunk of changes", `Quick, test_single_hunk);
-    ("parses a diff with multiple hunks in file", `Quick, test_diff_with_multiple_hunks);
-    ("parses a diff with multiple files", `Quick, test_diff_with_multiple_files);
-    ("parses a diff with an empty added file", `Quick, test_diff_with_empty_added_file);
-    ("parses a diff with an added file with contents", `Quick, test_diff_with_added_file);
-    ("parses a diff with an empty removed file", `Quick, test_diff_with_empty_removed_file);
-    ("parses a diff with a removed file with contents", `Quick, test_diff_with_removed_file);
-    ( "parses a diff with separate non-adjacent changes in the same hunk",
+    ("containing a single hunk", `Quick, test_parses_single_hunk);
+    ( "containing a single hunk that has a context snippet",
       `Quick,
-      test_diff_with_multiple_sets_of_changes_in_same_hunk );
-    ("parses a diff with a renamed file", `Quick, test_diff_with_renamed_file);
-    ( "parses a diff with a renamed file that also has changed lines",
+      test_parses_single_hunk_with_snippet );
+    ("containing multiple hunks", `Quick, test_parses_diff_with_multiple_hunks);
+    ( "containing a hunk made up of nonconsecutive changes",
       `Quick,
-      test_diff_with_renamed_file_with_changes );
+      test_parses_single_hunk_with_nonconsecutive_changes );
+    ("containing an empty deleted file", `Quick, test_parses_empty_deleted_file);
+    ("containg a deleted file", `Quick, test_parses_deleted_file);
+    ("containing an empty created file", `Quick, test_parses_empty_created_file);
+    ("containing a created file", `Quick, test_parses_created_file);
+    ("containing a file rename", `Quick, test_parses_renamed_file_no_changes);
+    ("containing a file rename that also has changes", `Quick, test_parses_renamed_file_with_changes);
+    ("containing changes for multiple files", `Quick, test_parses_diff_with_multiple_files);
   ]
