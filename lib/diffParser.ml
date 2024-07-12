@@ -97,6 +97,7 @@ let parse_changed_file file_diff =
   { path = file_path; hunks = parse_file_hunks file_diff }
 
 let parse_file_diff file_diff =
+  (* FIXME: This is not resistant to the diff actually containing those statements. We should probably have more clever parsing. *)
   let file_deleted_regex = Re.str "deleted file mode" |> Re.compile in
   let was_file_deleted = Re.execp file_deleted_regex file_diff in
   let file_created_regex = Re.str "new file mode" |> Re.compile in
