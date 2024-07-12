@@ -15,16 +15,17 @@ let parse_line line =
 
 let parse_hunk_context_snippet hunk =
   let hunk_context_snippet_regex = Re.Perl.re "@@" |> Re.Perl.compile in
-  let foo =
+  let context_snippet_elements =
     hunk |> String.split_on_char '\n' |> List.hd |> Re.split hunk_context_snippet_regex |> List.tl
   in
-  if List.is_empty foo then None
+  if List.is_empty context_snippet_elements then None
   else
-    let snippet = List.hd foo in
+    let snippet = List.hd context_snippet_elements in
     let context_snippet = String.sub snippet 1 (String.length snippet - 1) in
     Some context_snippet
 
 let parse_hunk_diff hunk =
+  print_endline hunk;
   let hunk_first_line_idx =
     hunk |> String.split_on_char ' ' |> List.hd |> String.split_on_char ',' |> List.hd
     |> int_of_string
@@ -44,12 +45,24 @@ let parse_file_hunks file_diff =
   let hunk_content = List.tl file_hunk_split in
   List.map parse_hunk_diff hunk_content
 
-let parse_file_diff file_diff =
-  let file_path_regex = Re.Perl.re " b/" |> Re.Perl.compile in
+let parse_deleted_file file_diff : deleted_file =
+  print_endline file_diff;
+  let file_path_regex = Re.str " b/" |> Re.compile in
   let file_path = Re.split file_path_regex file_diff |> List.hd in
-  { path = file_path; hunks = parse_file_hunks file_diff }
 
-let parse_file_rename file_diff =
+  let hunk_context_snippet_regex = Re.str "@@" |> Re.compile in
+  let file_elements = Re.split hunk_context_snippet_regex file_diff in
+  let lines =
+    if List.length file_elements < 3 then []
+    else
+      let lines_content = List.nth file_elements 2 in
+      lines_content |> String.split_on_char '\n' |> List.tl
+      |> List.map (fun line -> `RemovedLine (String.sub line 1 (String.length line - 1)))
+  in
+
+  { path = file_path; lines }
+
+let parse_renamed_file file_diff =
   let lines = String.split_on_char '\n' file_diff in
   let old_file_line_prefix = "rename from " in
   let old_file_line =
@@ -67,11 +80,19 @@ let parse_file_rename file_diff =
   let hunks = if Re.execp hunks_present_regex file_diff then parse_file_hunks file_diff else [] in
   { old_path = old_file; new_path = new_file; hunks }
 
+let parse_changed_file file_diff =
+  let file_path_regex = Re.Perl.re " b/" |> Re.Perl.compile in
+  let file_path = Re.split file_path_regex file_diff |> List.hd in
+  { path = file_path; hunks = parse_file_hunks file_diff }
+
 let parse_file_diff file_diff =
+  let file_delete_regex = Re.str "deleted file mode" |> Re.compile in
+  let is_file_delete = Re.execp file_delete_regex file_diff in
   let file_rename_regex = Re.str "rename from " |> Re.compile in
   let is_file_rename = Re.execp file_rename_regex file_diff in
-  if is_file_rename then RenamedFile (parse_file_rename file_diff)
-  else ChangedFile (parse_file_diff file_diff)
+  if is_file_delete then DeletedFile (parse_deleted_file file_diff)
+  else if is_file_rename then RenamedFile (parse_renamed_file file_diff)
+  else ChangedFile (parse_changed_file file_diff)
 
 let parse_diff raw_diff =
   let file_split_regex = Re.Perl.re ~opts:[ `Multiline ] "^diff --git a/" |> Re.Perl.compile in
