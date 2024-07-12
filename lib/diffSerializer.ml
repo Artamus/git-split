@@ -91,11 +91,30 @@ let serialize_changed_file (file : changed_file) =
   file_header :: hunks |> String.concat "\n"
 
 let serialize_renamed_file (file : renamed_file) =
-  Printf.sprintf {|diff --git a/%s b/%s
+  (* The similarity index is not actually important at this point. *)
+  let file_header =
+    Printf.sprintf {|diff --git a/%s b/%s
 similarity index 100%%
 rename from %s
 rename to %s|}
-    file.old_path file.new_path file.old_path file.new_path
+      file.old_path file.new_path file.old_path file.new_path
+  in
+  let _, hunks =
+    file.hunks
+    |> List.fold_left_map
+         (fun acc (hunk : hunk) ->
+           let left_lines = count_left_lines hunk.lines in
+           let right_lines = count_right_lines hunk.lines in
+           (acc + right_lines - left_lines, serialize_hunk hunk acc))
+         0
+  in
+  let foo =
+    if List.is_empty hunks then ""
+    else
+      Printf.sprintf "\n--- a/%s\n+++ b/%s\n%s" file.old_path file.new_path
+        (String.concat "\n" hunks)
+  in
+  file_header ^ foo
 
 let serialize_file = function
   | DeletedFile file -> serialize_deleted_file file

@@ -377,7 +377,7 @@ let test_serializes_created_file () =
   in
   check string "same git diffs" expected git_diff
 
-let test_serializes_renamed_file_no_content () =
+let test_serializes_renamed_file_no_changes () =
   let diff : Diff.diff =
     { files = [ RenamedFile { old_path = "src/old"; new_path = "src/new"; hunks = [] } ] }
   in
@@ -389,7 +389,50 @@ let test_serializes_renamed_file_no_content () =
   in
   check string "same git diffs" expected git_diff
 
-(* TODO: Renamed file with changes. *)
+let test_serializes_renamed_file_with_changes () =
+  let diff : Diff.diff =
+    {
+      files =
+        [
+          RenamedFile
+            {
+              old_path = "src/old";
+              new_path = "src/new";
+              hunks =
+                [
+                  {
+                    starting_line = 1;
+                    context_snippet = None;
+                    lines =
+                      [
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `AddedLine "added-line";
+                        `ContextLine "context";
+                      ];
+                  };
+                ];
+            };
+        ];
+    }
+  in
+
+  let git_diff = DiffSerializer.serialize diff in
+
+  let expected =
+    "diff --git a/src/old b/src/new\n\
+     similarity index 100%\n\
+     rename from src/old\n\
+     rename to src/new\n\
+     --- a/src/old\n\
+     +++ b/src/new\n\
+     @@ -1,3 +1,3 @@\n\
+    \ context\n\
+     -removed-line\n\
+     +added-line\n\
+    \ context"
+  in
+  check string "same git diffs" expected git_diff
 
 let test_serializes_multiple_files () =
   let diff : Diff.diff =
@@ -482,6 +525,9 @@ let diff_serializer_suite =
     ("serializes an added file", `Quick, test_serializes_created_file);
     ( "serializes a renamed file with no content changes",
       `Quick,
-      test_serializes_renamed_file_no_content );
+      test_serializes_renamed_file_no_changes );
+    ( "serializes a renamed file with content changes",
+      `Quick,
+      test_serializes_renamed_file_with_changes );
     ("serializes multiple files", `Quick, test_serializes_multiple_files);
   ]
