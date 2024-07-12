@@ -46,12 +46,10 @@ let parse_file_hunks file_diff =
   List.map parse_hunk_diff hunk_content
 
 let parse_deleted_file file_diff : deleted_file =
-  print_endline file_diff;
   let file_path_regex = Re.str " b/" |> Re.compile in
   let file_path = Re.split file_path_regex file_diff |> List.hd in
-
-  let hunk_context_snippet_regex = Re.str "@@" |> Re.compile in
-  let file_elements = Re.split hunk_context_snippet_regex file_diff in
+  let hunk_splitting_regex = Re.str "@@" |> Re.compile in
+  let file_elements = Re.split hunk_splitting_regex file_diff in
   let lines =
     if List.length file_elements < 3 then []
     else

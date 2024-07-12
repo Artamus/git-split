@@ -438,7 +438,7 @@ let diff_parser_suite =
       `Quick,
       test_parses_single_hunk_with_nonconsecutive_changes );
     ("containing an empty deleted file", `Quick, test_parses_empty_deleted_file);
-    ("containg a deleted file", `Quick, test_parses_deleted_file);
+    ("containing a deleted file", `Quick, test_parses_deleted_file);
     ("containing an empty created file", `Quick, test_parses_empty_created_file);
     ("containing a created file", `Quick, test_parses_created_file);
     ("containing a file rename", `Quick, test_parses_renamed_file_no_changes);
