@@ -57,7 +57,20 @@ let parse_deleted_file file_diff : deleted_file =
       lines_content |> String.split_on_char '\n' |> List.tl
       |> List.map (fun line -> `RemovedLine (String.sub line 1 (String.length line - 1)))
   in
+  { path = file_path; lines }
 
+let parse_created_file file_diff : created_file =
+  let file_path_regex = Re.str " b/" |> Re.compile in
+  let file_path = Re.split file_path_regex file_diff |> List.hd in
+  let hunk_splitting_regex = Re.str "@@" |> Re.compile in
+  let file_elements = Re.split hunk_splitting_regex file_diff in
+  let lines =
+    if List.length file_elements < 3 then []
+    else
+      let lines_content = List.nth file_elements 2 in
+      lines_content |> String.split_on_char '\n' |> List.tl
+      |> List.map (fun line -> `AddedLine (String.sub line 1 (String.length line - 1)))
+  in
   { path = file_path; lines }
 
 let parse_renamed_file file_diff =
@@ -84,12 +97,15 @@ let parse_changed_file file_diff =
   { path = file_path; hunks = parse_file_hunks file_diff }
 
 let parse_file_diff file_diff =
-  let file_delete_regex = Re.str "deleted file mode" |> Re.compile in
-  let is_file_delete = Re.execp file_delete_regex file_diff in
-  let file_rename_regex = Re.str "rename from " |> Re.compile in
-  let is_file_rename = Re.execp file_rename_regex file_diff in
-  if is_file_delete then DeletedFile (parse_deleted_file file_diff)
-  else if is_file_rename then RenamedFile (parse_renamed_file file_diff)
+  let file_deleted_regex = Re.str "deleted file mode" |> Re.compile in
+  let was_file_deleted = Re.execp file_deleted_regex file_diff in
+  let file_created_regex = Re.str "new file mode" |> Re.compile in
+  let was_file_created = Re.execp file_created_regex file_diff in
+  let file_renamed_regex = Re.str "rename from " |> Re.compile in
+  let was_file_renamed = Re.execp file_renamed_regex file_diff in
+  if was_file_deleted then DeletedFile (parse_deleted_file file_diff)
+  else if was_file_created then CreatedFile (parse_created_file file_diff)
+  else if was_file_renamed then RenamedFile (parse_renamed_file file_diff)
   else ChangedFile (parse_changed_file file_diff)
 
 let parse_diff raw_diff =
