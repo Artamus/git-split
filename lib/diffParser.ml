@@ -98,11 +98,13 @@ let parse_changed_file file_diff =
 
 let parse_file_diff file_diff =
   (* FIXME: This is not resistant to the diff actually containing those statements. We should probably have more clever parsing. *)
-  let file_deleted_regex = Re.str "deleted file mode" |> Re.compile in
+  let file_deleted_regex =
+    Re.Perl.re ~opts:[ `Multiline ] "^deleted file mode" |> Re.Perl.compile
+  in
   let was_file_deleted = Re.execp file_deleted_regex file_diff in
-  let file_created_regex = Re.str "new file mode" |> Re.compile in
+  let file_created_regex = Re.Perl.re ~opts:[ `Multiline ] "^new file mode" |> Re.Perl.compile in
   let was_file_created = Re.execp file_created_regex file_diff in
-  let file_renamed_regex = Re.str "rename from " |> Re.compile in
+  let file_renamed_regex = Re.Perl.re ~opts:[ `Multiline ] "^rename from " |> Re.Perl.compile in
   let was_file_renamed = Re.execp file_renamed_regex file_diff in
   if was_file_deleted then DeletedFile (parse_deleted_file file_diff)
   else if was_file_created then CreatedFile (parse_created_file file_diff)
