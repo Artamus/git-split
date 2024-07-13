@@ -4,24 +4,31 @@ open Notty_unix
 let last_item list = List.hd @@ List.rev list
 let last_idx list = List.length list - 1
 
-type visibility = Expanded | Collapsed
+type visibility = Expanded | Collapsed [@@deriving show, eq]
 
 type line =
   | Context of string
   | Diff of string * [ `added | `removed ] * [ `included | `notincluded ]
+[@@deriving show, eq]
 
-type hunk = { lines : line list; lines_visibility : visibility }
+type hunk = { lines : line list; lines_visibility : visibility } [@@deriving show, eq]
+
 type changed_file = { path : string; hunks : hunk list; hunks_visibility : visibility }
+[@@deriving show, eq]
 
 type renamed_file = {
   old_path : string;
   new_path : string;
   included : [ `included | `notincluded ];
 }
+[@@deriving show, eq]
 
-type file = RenamedFile of renamed_file | ChangedFile of changed_file
+type file = RenamedFile of renamed_file | ChangedFile of changed_file [@@deriving show, eq]
+
 type cursor = FileCursor of int | HunkCursor of int * int | LineCursor of int * int * int
-type model = { files : file list; cursor : cursor }
+[@@deriving show, eq]
+
+type model = { files : file list; cursor : cursor } [@@deriving show, eq]
 type lines_included = AllLines | SomeLines | NoLines
 
 let hunk_lines_included hunk =
