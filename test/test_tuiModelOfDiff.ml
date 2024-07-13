@@ -58,7 +58,7 @@ let changed_file_single_hunk () =
         ];
     }
   in
-  check tui_model_testable "same git diffs" expected tui_model
+  check tui_model_testable "same TUI model" expected tui_model
 
 let changed_file_multiple_hunks () =
   let diff : Diff.diff =
@@ -136,7 +136,7 @@ let changed_file_multiple_hunks () =
         ];
     }
   in
-  check tui_model_testable "same git diffs" expected tui_model
+  check tui_model_testable "same TUI model" expected tui_model
 
 let deleted_file () =
   let diff : Diff.diff =
@@ -186,7 +186,7 @@ let deleted_file () =
         ];
     }
   in
-  check tui_model_testable "same git diffs" expected tui_model
+  check tui_model_testable "same TUI model" expected tui_model
 
 let created_file () =
   let diff : Diff.diff =
@@ -236,7 +236,7 @@ let created_file () =
         ];
     }
   in
-  check tui_model_testable "same git diffs" expected tui_model
+  check tui_model_testable "same TUI model" expected tui_model
 
 let renamed_file_without_content_changes () =
   let diff : Diff.diff =
@@ -251,7 +251,7 @@ let renamed_file_without_content_changes () =
       files = [ RenamedFile { old_path = "src/old"; new_path = "src/new"; included = `included } ];
     }
   in
-  check tui_model_testable "same git diffs" expected tui_model
+  check tui_model_testable "same TUI model" expected tui_model
 
 let renamed_file_with_content_changes () =
   let diff : Diff.diff =
@@ -290,7 +290,7 @@ let renamed_file_with_content_changes () =
       files = [ RenamedFile { old_path = "src/old"; new_path = "src/new"; included = `included } ];
     }
   in
-  check tui_model_testable "same git diffs" expected tui_model
+  check tui_model_testable "same TUI model" expected tui_model
 
 let multiple_files () =
   let diff : Diff.diff =
@@ -383,7 +383,7 @@ let multiple_files () =
         ];
     }
   in
-  check tui_model_testable "same git diffs" expected tui_model
+  check tui_model_testable "same TUI model" expected tui_model
 
 let tui_model_of_diff_suite =
   [
