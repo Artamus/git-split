@@ -717,8 +717,6 @@ let diff_of_model model : Diff.diff =
                  |> List.map (fun (hunk : hunk) : Diff.hunk ->
                         let lines =
                           hunk.lines
-                          |> List.filter (fun (line : line) ->
-                                 match line with Diff (_, `added, `included) -> false | _ -> true)
                           |> List.map (fun line ->
                                  match line with
                                  | Context content -> `ContextLine content
@@ -726,7 +724,7 @@ let diff_of_model model : Diff.diff =
                                  | Diff (content, `removed, `notincluded) -> `ContextLine content
                                  | Diff (content, `added, _) -> `AddedLine content)
                         in
-                        { starting_line = 0; context_snippet = None; lines })
+                        { starting_line = 1; context_snippet = None; lines })
                in
                Diff.ChangedFile { path = changed_file.path; hunks }
            | RenamedFile { old_path; new_path; _ } ->
