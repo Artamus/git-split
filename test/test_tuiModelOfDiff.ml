@@ -258,7 +258,11 @@ let renamed_file_without_content_changes () =
   let expected : NottyTui.model =
     {
       cursor = FileCursor 0;
-      files = [ RenamedFile { old_path = "src/old"; new_path = "src/new"; included = `included } ];
+      files =
+        [
+          RenamedFile
+            { old_path = "src/old"; new_path = "src/new"; hunks = []; included = `included };
+        ];
     }
   in
   check tui_model_testable "same TUI model" expected tui_model
@@ -293,11 +297,33 @@ let renamed_file_with_content_changes () =
 
   let tui_model = NottyTui.model_of_diff diff in
 
-  (* TODO: Support changes. *)
   let expected : NottyTui.model =
     {
       cursor = FileCursor 0;
-      files = [ RenamedFile { old_path = "src/old"; new_path = "src/new"; included = `included } ];
+      files =
+        [
+          RenamedFile
+            {
+              old_path = "src/old";
+              new_path = "src/new";
+              hunks =
+                [
+                  {
+                    starting_line = 15;
+                    context_snippet = Some "context";
+                    lines =
+                      [
+                        Context "context";
+                        Diff ("removed-line", `removed, `included);
+                        Diff ("added-line", `added, `included);
+                        Context "context";
+                      ];
+                    lines_visibility = Expanded;
+                  };
+                ];
+              included = `included;
+            };
+        ];
     }
   in
   check tui_model_testable "same TUI model" expected tui_model

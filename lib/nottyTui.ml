@@ -22,9 +22,11 @@ type hunk = {
 type changed_file = { path : string; hunks : hunk list; hunks_visibility : visibility }
 [@@deriving show, eq]
 
+(* TODO: Do I want to support separating renaming and changes? If I do, the file itself has to keep being either includable or not includable. *)
 type renamed_file = {
   old_path : string;
   new_path : string;
+  hunks : hunk list;
   included : [ `included | `notincluded ];
 }
 [@@deriving show, eq]
@@ -51,7 +53,7 @@ let hunk_lines_included hunk =
   in
   if all_lines_included then AllLines else if any_line_included then SomeLines else NoLines
 
-let file_lines_included file =
+let file_lines_included (file : changed_file) =
   let all_lines_included =
     file.hunks
     |> List.map (fun hunk -> hunk_lines_included hunk)
@@ -211,7 +213,26 @@ let initial_model =
               ];
           };
         RenamedFile
-          { old_path = "lib/nottui_tui.ml"; new_path = "lib/nottuiTui.ml"; included = `included };
+          {
+            old_path = "lib/nottui_tui.ml";
+            new_path = "lib/nottuiTui.ml";
+            included = `included;
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  lines =
+                    [
+                      Context "code";
+                      Diff ("code 2", `removed, `included);
+                      Diff ("code 3", `added, `included);
+                      Context "code 4";
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+          };
       ];
   }
 
@@ -729,10 +750,24 @@ let model_of_diff (diff : Diff.diff) =
                in
                ChangedFile { hunks; hunks_visibility = Collapsed; path = changed_file.path }
            | Diff.RenamedFile renamed_file ->
+               let hunks =
+                 renamed_file.hunks
+                 |> List.map (fun (hunk : Diff.hunk) : hunk ->
+                        let lines =
+                          hunk.lines |> List.map (fun line -> tui_line_of_diff_line line)
+                        in
+                        {
+                          starting_line = hunk.starting_line;
+                          context_snippet = hunk.context_snippet;
+                          lines;
+                          lines_visibility = Expanded;
+                        })
+               in
                RenamedFile
                  {
                    old_path = renamed_file.old_path;
                    new_path = renamed_file.new_path;
+                   hunks;
                    included = `included;
                  })
   in
@@ -768,7 +803,27 @@ let diff_of_model model : Diff.diff =
                         })
                in
                Diff.ChangedFile { path = changed_file.path; hunks }
-           | RenamedFile { old_path; new_path; _ } ->
-               Diff.RenamedFile { old_path; new_path; hunks = [] })
+           | RenamedFile renamed_file ->
+               let hunks =
+                 renamed_file.hunks
+                 |> List.filter (fun hunk -> hunk_lines_included hunk <> NoLines)
+                 |> List.map (fun (hunk : hunk) : Diff.hunk ->
+                        let lines =
+                          hunk.lines
+                          |> List.map (fun line ->
+                                 match line with
+                                 | Context content -> `ContextLine content
+                                 | Diff (content, `removed, `included) -> `RemovedLine content
+                                 | Diff (content, `removed, `notincluded) -> `ContextLine content
+                                 | Diff (content, `added, _) -> `AddedLine content)
+                        in
+                        {
+                          starting_line = hunk.starting_line;
+                          context_snippet = hunk.context_snippet;
+                          lines;
+                        })
+               in
+               Diff.RenamedFile
+                 { old_path = renamed_file.old_path; new_path = renamed_file.new_path; hunks })
   in
   { files }
