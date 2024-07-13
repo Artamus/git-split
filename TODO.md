@@ -1,4 +1,4 @@
-- [ ] Commit de30d91 is buggy in TUI.
+- [ ] Commit de30d91 is buggy in TUI. (The bug is due to having multiple lines with the exact same content)
 - [ ] TUI is missing hunk context snippets.
 - [ ] TUI could be using a tree zipper.
 - [ ] Tests for TUI update and view.
