@@ -385,7 +385,7 @@ let multiple_files () =
   in
   check tui_model_testable "same git diffs" expected tui_model
 
-let tui_model_converter_suite =
+let tui_model_of_diff_suite =
   [
     ("single hunk", `Quick, changed_file_single_hunk);
     ("multiple hunks", `Quick, changed_file_multiple_hunks);

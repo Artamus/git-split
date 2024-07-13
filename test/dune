@@ -1,4 +1,4 @@
 (test
  (name test)
- (modules test test_diffParser test_diffSerializer test_diffToTuiModel)
+ (modules test test_diffParser test_diffSerializer test_tuiModelOfDiff)
  (libraries alcotest git_split))
