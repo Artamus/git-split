@@ -43,6 +43,7 @@ let changed_file_single_hunk () =
               hunks =
                 [
                   {
+                    starting_line = 1;
                     context_snippet = None;
                     lines =
                       [
@@ -112,6 +113,7 @@ let changed_file_multiple_hunks () =
               hunks =
                 [
                   {
+                    starting_line = 1;
                     context_snippet = None;
                     lines =
                       [
@@ -123,6 +125,7 @@ let changed_file_multiple_hunks () =
                     lines_visibility = Expanded;
                   };
                   {
+                    starting_line = 15;
                     context_snippet = Some "context";
                     lines =
                       [
@@ -174,6 +177,7 @@ let deleted_file () =
               hunks =
                 [
                   {
+                    starting_line = 1;
                     context_snippet = None;
                     lines =
                       [
@@ -225,6 +229,7 @@ let created_file () =
               hunks =
                 [
                   {
+                    starting_line = 1;
                     context_snippet = None;
                     lines =
                       [
@@ -355,6 +360,7 @@ let multiple_files () =
               hunks =
                 [
                   {
+                    starting_line = 1;
                     context_snippet = None;
                     lines =
                       [
@@ -374,6 +380,7 @@ let multiple_files () =
               hunks =
                 [
                   {
+                    starting_line = 15;
                     context_snippet = Some "context";
                     lines =
                       [

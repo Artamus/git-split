@@ -11,7 +11,12 @@ type line =
   | Diff of string * [ `added | `removed ] * [ `included | `notincluded ]
 [@@deriving show, eq]
 
-type hunk = { context_snippet : string option; lines : line list; lines_visibility : visibility }
+type hunk = {
+  starting_line : int;
+  context_snippet : string option;
+  lines : line list;
+  lines_visibility : visibility;
+}
 [@@deriving show, eq]
 
 type changed_file = { path : string; hunks : hunk list; hunks_visibility : visibility }
@@ -117,6 +122,8 @@ let initial_model =
             hunks =
               [
                 {
+                  starting_line = 1;
+                  context_snippet = None;
                   lines =
                     [
                       Context "code";
@@ -125,9 +132,10 @@ let initial_model =
                       Context "code 4";
                     ];
                   lines_visibility = Expanded;
-                  context_snippet = None;
                 };
                 {
+                  starting_line = 15;
+                  context_snippet = None;
                   lines =
                     [
                       Context "code 5";
@@ -138,7 +146,6 @@ let initial_model =
                       Context "code 8";
                     ];
                   lines_visibility = Expanded;
-                  context_snippet = None;
                 };
               ];
           };
@@ -149,6 +156,8 @@ let initial_model =
             hunks =
               [
                 {
+                  starting_line = 1;
+                  context_snippet = None;
                   lines =
                     [
                       Context "code";
@@ -157,9 +166,10 @@ let initial_model =
                       Context "code 4";
                     ];
                   lines_visibility = Expanded;
-                  context_snippet = None;
                 };
                 {
+                  starting_line = 20;
+                  context_snippet = None;
                   lines =
                     [
                       Context "code 5";
@@ -170,7 +180,6 @@ let initial_model =
                       Context "code 8";
                     ];
                   lines_visibility = Expanded;
-                  context_snippet = None;
                 };
               ];
           };
@@ -181,6 +190,7 @@ let initial_model =
             hunks =
               [
                 {
+                  starting_line = 1;
                   lines =
                     [
                       Diff ("These", `added, `included);
@@ -673,7 +683,15 @@ let model_of_diff (diff : Diff.diff) =
                in
                ChangedFile
                  {
-                   hunks = [ { lines; context_snippet = None; lines_visibility = Expanded } ];
+                   hunks =
+                     [
+                       {
+                         starting_line = 1;
+                         context_snippet = None;
+                         lines;
+                         lines_visibility = Expanded;
+                       };
+                     ];
                    hunks_visibility = Collapsed;
                    path = deleted_file.path;
                  }
@@ -683,7 +701,15 @@ let model_of_diff (diff : Diff.diff) =
                in
                ChangedFile
                  {
-                   hunks = [ { lines; context_snippet = None; lines_visibility = Expanded } ];
+                   hunks =
+                     [
+                       {
+                         starting_line = 1;
+                         context_snippet = None;
+                         lines;
+                         lines_visibility = Expanded;
+                       };
+                     ];
                    hunks_visibility = Collapsed;
                    path = created_file.path;
                  }
@@ -695,8 +721,9 @@ let model_of_diff (diff : Diff.diff) =
                           hunk.lines |> List.map (fun line -> tui_line_of_diff_line line)
                         in
                         {
-                          lines;
+                          starting_line = hunk.starting_line;
                           context_snippet = hunk.context_snippet;
+                          lines;
                           lines_visibility = Expanded;
                         })
                in
@@ -734,7 +761,11 @@ let diff_of_model model : Diff.diff =
                                  | Diff (content, `removed, `notincluded) -> `ContextLine content
                                  | Diff (content, `added, _) -> `AddedLine content)
                         in
-                        { starting_line = 1; context_snippet = hunk.context_snippet; lines })
+                        {
+                          starting_line = hunk.starting_line;
+                          context_snippet = hunk.context_snippet;
+                          lines;
+                        })
                in
                Diff.ChangedFile { path = changed_file.path; hunks }
            | RenamedFile { old_path; new_path; _ } ->
