@@ -43,6 +43,7 @@ let changed_file_single_hunk () =
               hunks =
                 [
                   {
+                    context_snippet = None;
                     lines =
                       [
                         Context "context";
@@ -111,6 +112,7 @@ let changed_file_multiple_hunks () =
               hunks =
                 [
                   {
+                    context_snippet = None;
                     lines =
                       [
                         Context "context";
@@ -121,6 +123,7 @@ let changed_file_multiple_hunks () =
                     lines_visibility = Expanded;
                   };
                   {
+                    context_snippet = Some "context";
                     lines =
                       [
                         Context "context";
@@ -171,6 +174,7 @@ let deleted_file () =
               hunks =
                 [
                   {
+                    context_snippet = None;
                     lines =
                       [
                         Diff ("removed-line-1", `removed, `included);
@@ -221,6 +225,7 @@ let created_file () =
               hunks =
                 [
                   {
+                    context_snippet = None;
                     lines =
                       [
                         Diff ("added-line-1", `added, `included);
@@ -350,6 +355,7 @@ let multiple_files () =
               hunks =
                 [
                   {
+                    context_snippet = None;
                     lines =
                       [
                         Context "context";
@@ -368,6 +374,7 @@ let multiple_files () =
               hunks =
                 [
                   {
+                    context_snippet = Some "context";
                     lines =
                       [
                         Context "context";

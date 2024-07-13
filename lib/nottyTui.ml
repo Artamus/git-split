@@ -11,7 +11,8 @@ type line =
   | Diff of string * [ `added | `removed ] * [ `included | `notincluded ]
 [@@deriving show, eq]
 
-type hunk = { lines : line list; lines_visibility : visibility } [@@deriving show, eq]
+type hunk = { context_snippet : string option; lines : line list; lines_visibility : visibility }
+[@@deriving show, eq]
 
 type changed_file = { path : string; hunks : hunk list; hunks_visibility : visibility }
 [@@deriving show, eq]
@@ -124,6 +125,7 @@ let initial_model =
                       Context "code 4";
                     ];
                   lines_visibility = Expanded;
+                  context_snippet = None;
                 };
                 {
                   lines =
@@ -136,6 +138,7 @@ let initial_model =
                       Context "code 8";
                     ];
                   lines_visibility = Expanded;
+                  context_snippet = None;
                 };
               ];
           };
@@ -154,6 +157,7 @@ let initial_model =
                       Context "code 4";
                     ];
                   lines_visibility = Expanded;
+                  context_snippet = None;
                 };
                 {
                   lines =
@@ -166,6 +170,7 @@ let initial_model =
                       Context "code 8";
                     ];
                   lines_visibility = Expanded;
+                  context_snippet = None;
                 };
               ];
           };
@@ -191,6 +196,7 @@ let initial_model =
                       Diff ("File", `added, `included);
                     ];
                   lines_visibility = Expanded;
+                  context_snippet = None;
                 };
               ];
           };
@@ -667,7 +673,7 @@ let model_of_diff (diff : Diff.diff) =
                in
                ChangedFile
                  {
-                   hunks = [ { lines; lines_visibility = Expanded } ];
+                   hunks = [ { lines; context_snippet = None; lines_visibility = Expanded } ];
                    hunks_visibility = Collapsed;
                    path = deleted_file.path;
                  }
@@ -677,7 +683,7 @@ let model_of_diff (diff : Diff.diff) =
                in
                ChangedFile
                  {
-                   hunks = [ { lines; lines_visibility = Expanded } ];
+                   hunks = [ { lines; context_snippet = None; lines_visibility = Expanded } ];
                    hunks_visibility = Collapsed;
                    path = created_file.path;
                  }
@@ -688,7 +694,11 @@ let model_of_diff (diff : Diff.diff) =
                         let lines =
                           hunk.lines |> List.map (fun line -> tui_line_of_diff_line line)
                         in
-                        { lines; lines_visibility = Expanded })
+                        {
+                          lines;
+                          context_snippet = hunk.context_snippet;
+                          lines_visibility = Expanded;
+                        })
                in
                ChangedFile { hunks; hunks_visibility = Collapsed; path = changed_file.path }
            | Diff.RenamedFile renamed_file ->
@@ -724,7 +734,7 @@ let diff_of_model model : Diff.diff =
                                  | Diff (content, `removed, `notincluded) -> `ContextLine content
                                  | Diff (content, `added, _) -> `AddedLine content)
                         in
-                        { starting_line = 1; context_snippet = None; lines })
+                        { starting_line = 1; context_snippet = hunk.context_snippet; lines })
                in
                Diff.ChangedFile { path = changed_file.path; hunks }
            | RenamedFile { old_path; new_path; _ } ->
