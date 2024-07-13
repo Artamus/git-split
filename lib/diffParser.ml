@@ -5,13 +5,19 @@ exception Invalid_character of string
 let not_empty str = String.length str > 0
 
 let parse_line line =
-  let first_char = line.[0] in
-  let line_contents = String.sub line 1 (String.length line - 1) in
-  match first_char with
-  | ' ' -> `ContextLine line_contents
-  | '-' -> `RemovedLine line_contents
-  | '+' -> `AddedLine line_contents
-  | c -> raise (Invalid_character (Printf.sprintf "Found unexpected character: %c" c))
+  if String.starts_with ~prefix:"\\ No newline at end of file" line then None
+  else
+    let first_char = line.[0] in
+    let line_contents = String.sub line 1 (String.length line - 1) in
+    let parsed_line =
+      match first_char with
+      | ' ' -> `ContextLine line_contents
+      | '-' -> `RemovedLine line_contents
+      | '+' -> `AddedLine line_contents
+      (* TODO: Replace with Result type. *)
+      | c -> raise (Invalid_character (Printf.sprintf "Found unexpected character: %c" c))
+    in
+    Some parsed_line
 
 let parse_hunk_context_snippet hunk =
   let hunk_context_snippet_regex = Re.Perl.re "@@" |> Re.Perl.compile in
@@ -36,7 +42,7 @@ let parse_hunk_diff hunk =
   {
     starting_line = hunk_first_line_idx;
     context_snippet = maybe_hunk_context_snippet;
-    lines = List.map parse_line non_empty_lines;
+    lines = non_empty_lines |> List.filter_map parse_line;
   }
 
 let parse_file_hunks file_diff =
