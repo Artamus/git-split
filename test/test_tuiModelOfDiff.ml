@@ -37,26 +37,25 @@ let changed_file_single_hunk () =
       cursor = FileCursor 0;
       files =
         [
-          ChangedFile
-            {
-              path = "src/main";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = None;
-                    lines =
-                      [
-                        Context "context";
-                        Diff ("removed-line", `removed, `included);
-                        Diff ("added-line", `added, `included);
-                        Context "context";
-                      ];
-                    lines_visibility = Expanded;
-                  };
-                ];
-              hunks_visibility = Collapsed;
-            };
+          {
+            path = FilePath "src/main";
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  lines =
+                    [
+                      Context "context";
+                      Diff ("removed-line", `removed, `included);
+                      Diff ("added-line", `added, `included);
+                      Context "context";
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+            hunks_visibility = Collapsed;
+          };
         ];
     }
   in
@@ -107,38 +106,37 @@ let changed_file_multiple_hunks () =
       cursor = FileCursor 0;
       files =
         [
-          ChangedFile
-            {
-              path = "src/main";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = None;
-                    lines =
-                      [
-                        Context "context";
-                        Diff ("removed-line", `removed, `included);
-                        Diff ("added-line", `added, `included);
-                        Context "context";
-                      ];
-                    lines_visibility = Expanded;
-                  };
-                  {
-                    starting_line = 15;
-                    context_snippet = Some "context";
-                    lines =
-                      [
-                        Context "context";
-                        Diff ("removed-line", `removed, `included);
-                        Diff ("added-line", `added, `included);
-                        Context "context";
-                      ];
-                    lines_visibility = Expanded;
-                  };
-                ];
-              hunks_visibility = Collapsed;
-            };
+          {
+            path = FilePath "src/main";
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  lines =
+                    [
+                      Context "context";
+                      Diff ("removed-line", `removed, `included);
+                      Diff ("added-line", `added, `included);
+                      Context "context";
+                    ];
+                  lines_visibility = Expanded;
+                };
+                {
+                  starting_line = 15;
+                  context_snippet = Some "context";
+                  lines =
+                    [
+                      Context "context";
+                      Diff ("removed-line", `removed, `included);
+                      Diff ("added-line", `added, `included);
+                      Context "context";
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+            hunks_visibility = Collapsed;
+          };
         ];
     }
   in
@@ -171,26 +169,25 @@ let deleted_file () =
       cursor = FileCursor 0;
       files =
         [
-          ChangedFile
-            {
-              path = "src/main";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = None;
-                    lines =
-                      [
-                        Diff ("removed-line-1", `removed, `included);
-                        Diff ("removed-line-2", `removed, `included);
-                        Diff ("removed-line-3", `removed, `included);
-                        Diff ("removed-line-4", `removed, `included);
-                      ];
-                    lines_visibility = Expanded;
-                  };
-                ];
-              hunks_visibility = Collapsed;
-            };
+          {
+            path = FilePath "src/main";
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  lines =
+                    [
+                      Diff ("removed-line-1", `removed, `included);
+                      Diff ("removed-line-2", `removed, `included);
+                      Diff ("removed-line-3", `removed, `included);
+                      Diff ("removed-line-4", `removed, `included);
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+            hunks_visibility = Collapsed;
+          };
         ];
     }
   in
@@ -223,26 +220,25 @@ let created_file () =
       cursor = FileCursor 0;
       files =
         [
-          ChangedFile
-            {
-              path = "src/main";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = None;
-                    lines =
-                      [
-                        Diff ("added-line-1", `added, `included);
-                        Diff ("added-line-2", `added, `included);
-                        Diff ("added-line-3", `added, `included);
-                        Diff ("added-line-4", `added, `included);
-                      ];
-                    lines_visibility = Expanded;
-                  };
-                ];
-              hunks_visibility = Collapsed;
-            };
+          {
+            path = FilePath "src/main";
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  lines =
+                    [
+                      Diff ("added-line-1", `added, `included);
+                      Diff ("added-line-2", `added, `included);
+                      Diff ("added-line-3", `added, `included);
+                      Diff ("added-line-4", `added, `included);
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+            hunks_visibility = Collapsed;
+          };
         ];
     }
   in
@@ -260,8 +256,11 @@ let renamed_file_without_content_changes () =
       cursor = FileCursor 0;
       files =
         [
-          RenamedFile
-            { old_path = "src/old"; new_path = "src/new"; hunks = []; included = `included };
+          {
+            path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
+            hunks = [];
+            hunks_visibility = Collapsed;
+          };
         ];
     }
   in
@@ -302,27 +301,25 @@ let renamed_file_with_content_changes () =
       cursor = FileCursor 0;
       files =
         [
-          RenamedFile
-            {
-              old_path = "src/old";
-              new_path = "src/new";
-              hunks =
-                [
-                  {
-                    starting_line = 15;
-                    context_snippet = Some "context";
-                    lines =
-                      [
-                        Context "context";
-                        Diff ("removed-line", `removed, `included);
-                        Diff ("added-line", `added, `included);
-                        Context "context";
-                      ];
-                    lines_visibility = Expanded;
-                  };
-                ];
-              included = `included;
-            };
+          {
+            path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
+            hunks =
+              [
+                {
+                  starting_line = 15;
+                  context_snippet = Some "context";
+                  lines =
+                    [
+                      Context "context";
+                      Diff ("removed-line", `removed, `included);
+                      Diff ("added-line", `added, `included);
+                      Context "context";
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+            hunks_visibility = Collapsed;
+          };
         ];
     }
   in
@@ -380,46 +377,44 @@ let multiple_files () =
       cursor = FileCursor 0;
       files =
         [
-          ChangedFile
-            {
-              path = "src/main";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = None;
-                    lines =
-                      [
-                        Context "context";
-                        Diff ("removed-line", `removed, `included);
-                        Diff ("added-line", `added, `included);
-                        Context "context";
-                      ];
-                    lines_visibility = Expanded;
-                  };
-                ];
-              hunks_visibility = Collapsed;
-            };
-          ChangedFile
-            {
-              path = "src/other";
-              hunks =
-                [
-                  {
-                    starting_line = 15;
-                    context_snippet = Some "context";
-                    lines =
-                      [
-                        Context "context";
-                        Diff ("removed-line", `removed, `included);
-                        Diff ("added-line", `added, `included);
-                        Context "context";
-                      ];
-                    lines_visibility = Expanded;
-                  };
-                ];
-              hunks_visibility = Collapsed;
-            };
+          {
+            path = FilePath "src/main";
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  lines =
+                    [
+                      Context "context";
+                      Diff ("removed-line", `removed, `included);
+                      Diff ("added-line", `added, `included);
+                      Context "context";
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+            hunks_visibility = Collapsed;
+          };
+          {
+            path = FilePath "src/other";
+            hunks =
+              [
+                {
+                  starting_line = 15;
+                  context_snippet = Some "context";
+                  lines =
+                    [
+                      Context "context";
+                      Diff ("removed-line", `removed, `included);
+                      Diff ("added-line", `added, `included);
+                      Context "context";
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+            hunks_visibility = Collapsed;
+          };
         ];
     }
   in
