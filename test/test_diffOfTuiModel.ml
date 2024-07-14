@@ -142,6 +142,108 @@ let changed_file_multiple_hunks () =
   in
   check diff_testable "same diffs" expected diff
 
+let deleted_file () =
+  let tui_model : NottyTui.model =
+    {
+      cursor = FileCursor 0;
+      files =
+        [
+          {
+            path = FilePath "src/deleted";
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  lines =
+                    [
+                      Diff ("removed-line-1", `removed, `included);
+                      Diff ("removed-line-2", `removed, `included);
+                      Diff ("removed-line-3", `removed, `included);
+                      Diff ("removed-line-4", `removed, `included);
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+            hunks_visibility = Collapsed;
+          };
+        ];
+    }
+  in
+
+  let diff = NottyTui.diff_of_model tui_model in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          DeletedFile
+            {
+              path = "src/deleted";
+              lines =
+                [
+                  `RemovedLine "removed-line-1";
+                  `RemovedLine "removed-line-2";
+                  `RemovedLine "removed-line-3";
+                  `RemovedLine "removed-line-4";
+                ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
+let created_file () =
+  let tui_model : NottyTui.model =
+    {
+      cursor = FileCursor 0;
+      files =
+        [
+          {
+            path = FilePath "src/created";
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  lines =
+                    [
+                      Diff ("added-line-1", `added, `included);
+                      Diff ("added-line-2", `added, `included);
+                      Diff ("added-line-3", `added, `included);
+                      Diff ("added-line-4", `added, `included);
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+            hunks_visibility = Collapsed;
+          };
+        ];
+    }
+  in
+
+  let diff = NottyTui.diff_of_model tui_model in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          CreatedFile
+            {
+              path = "src/created";
+              lines =
+                [
+                  `AddedLine "added-line-1";
+                  `AddedLine "added-line-2";
+                  `AddedLine "added-line-3";
+                  `AddedLine "added-line-4";
+                ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
 let renamed_file_without_content_changes () =
   let tui_model : NottyTui.model =
     {
@@ -322,8 +424,8 @@ let diff_of_tui_model_suite =
   [
     ("single hunk", `Quick, changed_file_single_hunk);
     ("multiple hunks", `Quick, changed_file_multiple_hunks);
-    (* TODO: Deleted file. *)
-    (* TODO: Created file. *)
+    ("deleted file", `Quick, deleted_file);
+    ("created file", `Quick, created_file);
     ("renamed file without content", `Quick, renamed_file_without_content_changes);
     ("renamed file with content changes", `Quick, renamed_file_with_content_changes);
     ("multiple files", `Quick, multiple_files);

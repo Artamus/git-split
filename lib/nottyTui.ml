@@ -707,6 +707,28 @@ let diff_of_model model : Diff.diff =
     model.files
     |> List.filter (fun file -> file_lines_included file <> NoLines)
     |> List.map (fun file ->
+           let is_created_file =
+             List.length file.hunks = 1
+             &&
+             let hunk = List.hd file.hunks in
+             hunk.starting_line = 1
+             &&
+             let hunk = List.hd file.hunks in
+             hunk.lines
+             |> List.for_all (fun line ->
+                    match line with Diff (_, `added, _) -> true | _ -> false)
+           in
+           let is_deleted_file =
+             List.length file.hunks = 1
+             &&
+             let hunk = List.hd file.hunks in
+             hunk.starting_line = 1
+             &&
+             let hunk = List.hd file.hunks in
+             hunk.lines
+             |> List.for_all (fun line ->
+                    match line with Diff (_, `removed, _) -> true | _ -> false)
+           in
            let hunks =
              file.hunks
              |> List.filter (fun hunk -> hunk_lines_included hunk <> NoLines)
@@ -726,10 +748,41 @@ let diff_of_model model : Diff.diff =
                       lines;
                     })
            in
-           match file.path with
-           | FilePath path -> Diff.ChangedFile { path; hunks }
-           | ChangedPath changed_path ->
-               Diff.RenamedFile
-                 { old_path = changed_path.old_path; new_path = changed_path.new_path; hunks })
+           if is_created_file then
+             let hunk = List.hd file.hunks in
+             let lines =
+               hunk.lines
+               |> List.filter_map (fun line ->
+                      match line with
+                      | Diff (content, `added, `included) -> Some (`AddedLine content)
+                      | _ -> None)
+             in
+             let path =
+               match file.path with
+               | FilePath path -> path
+               | _ -> raise (Illegal_state "created file cannot have changed path")
+             in
+             Diff.CreatedFile { path; lines }
+           else if is_deleted_file then
+             let hunk = List.hd file.hunks in
+             let lines =
+               hunk.lines
+               |> List.filter_map (fun line ->
+                      match line with
+                      | Diff (content, `removed, `included) -> Some (`RemovedLine content)
+                      | _ -> None)
+             in
+             let path =
+               match file.path with
+               | FilePath path -> path
+               | _ -> raise (Illegal_state "deleted file cannot have changed path")
+             in
+             Diff.DeletedFile { path; lines }
+           else
+             match file.path with
+             | FilePath path -> Diff.ChangedFile { path; hunks }
+             | ChangedPath changed_path ->
+                 Diff.RenamedFile
+                   { old_path = changed_path.old_path; new_path = changed_path.new_path; hunks })
   in
   { files }
