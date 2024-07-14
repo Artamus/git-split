@@ -420,6 +420,121 @@ let multiple_files () =
   in
   check diff_testable "same diffs" expected diff
 
+let unselected_removed_become_context () =
+  let tui_model : NottyTui.model =
+    {
+      cursor = FileCursor 0;
+      files =
+        [
+          {
+            path = FilePath "src/main";
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  lines =
+                    [
+                      Context "context";
+                      Diff ("removed-line", `removed, `included);
+                      Diff ("added-line", `added, `included);
+                      Diff ("unselected-removed-line", `removed, `notincluded);
+                      Context "context";
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+            hunks_visibility = Collapsed;
+          };
+        ];
+    }
+  in
+
+  let diff = NottyTui.diff_of_model tui_model in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = "src/main";
+              hunks =
+                [
+                  {
+                    starting_line = 1;
+                    context_snippet = None;
+                    lines =
+                      [
+                        `ContextLine "context";
+                        `RemovedLine "removed-line";
+                        `AddedLine "added-line";
+                        `ContextLine "unselected-removed-line";
+                        `ContextLine "context";
+                      ];
+                  };
+                ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
+let unselected_added_are_excluded () =
+  let tui_model : NottyTui.model =
+    {
+      cursor = FileCursor 0;
+      files =
+        [
+          {
+            path = FilePath "src/main";
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  lines =
+                    [
+                      Context "context";
+                      Diff ("removed-line", `removed, `included);
+                      Diff ("unselected-added-line", `added, `notincluded);
+                      Context "context";
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+            hunks_visibility = Collapsed;
+          };
+        ];
+    }
+  in
+
+  let diff = NottyTui.diff_of_model tui_model in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = "src/main";
+              hunks =
+                [
+                  {
+                    starting_line = 1;
+                    context_snippet = None;
+                    lines =
+                      [
+                        `ContextLine "context"; `RemovedLine "removed-line"; `ContextLine "context";
+                      ];
+                  };
+                ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
 let diff_of_tui_model_suite =
   [
     ("single hunk", `Quick, changed_file_single_hunk);
@@ -429,4 +544,9 @@ let diff_of_tui_model_suite =
     ("renamed file without content", `Quick, renamed_file_without_content_changes);
     ("renamed file with content changes", `Quick, renamed_file_with_content_changes);
     ("multiple files", `Quick, multiple_files);
+    ( "unselected removed lines become context lines in the diff",
+      `Quick,
+      unselected_removed_become_context );
+    ("unselected added lines are excluded from the diff", `Quick, unselected_added_are_excluded);
+    (* Not included lines in created / deleted files still cause those files to be created/deleted? *)
   ]

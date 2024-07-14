@@ -735,12 +735,13 @@ let diff_of_model model : Diff.diff =
              |> List.map (fun (hunk : hunk) : Diff.hunk ->
                     let lines =
                       hunk.lines
-                      |> List.map (fun line ->
+                      |> List.filter_map (fun line ->
                              match line with
-                             | Context content -> `ContextLine content
-                             | Diff (content, `removed, `included) -> `RemovedLine content
-                             | Diff (content, `removed, `notincluded) -> `ContextLine content
-                             | Diff (content, `added, _) -> `AddedLine content)
+                             | Context content -> Some (`ContextLine content)
+                             | Diff (content, `removed, `included) -> Some (`RemovedLine content)
+                             | Diff (content, `removed, `notincluded) -> Some (`ContextLine content)
+                             | Diff (content, `added, `included) -> Some (`AddedLine content)
+                             | Diff (_, `added, `notincluded) -> None)
                     in
                     {
                       starting_line = hunk.starting_line;
