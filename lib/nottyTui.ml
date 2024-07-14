@@ -727,7 +727,7 @@ let diff_of_model model : Diff.diff =
              let hunk = List.hd file.hunks in
              hunk.lines
              |> List.for_all (fun line ->
-                    match line with Diff (_, `removed, _) -> true | _ -> false)
+                    match line with Diff (_, `removed, `included) -> true | _ -> false)
            in
            let hunks =
              file.hunks

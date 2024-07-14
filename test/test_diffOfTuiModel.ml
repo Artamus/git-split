@@ -535,6 +535,109 @@ let unselected_added_are_excluded () =
   in
   check diff_testable "same diffs" expected diff
 
+let created_with_unselected_is_created () =
+  let tui_model : NottyTui.model =
+    {
+      cursor = FileCursor 0;
+      files =
+        [
+          {
+            path = FilePath "src/created";
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  lines =
+                    [
+                      Diff ("added-line-1", `added, `included);
+                      Diff ("added-line-2", `added, `included);
+                      Diff ("added-line-3", `added, `notincluded);
+                      Diff ("added-line-4", `added, `notincluded);
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+            hunks_visibility = Collapsed;
+          };
+        ];
+    }
+  in
+
+  let diff = NottyTui.diff_of_model tui_model in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          CreatedFile
+            {
+              path = "src/created";
+              lines = [ `AddedLine "added-line-1"; `AddedLine "added-line-2" ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
+let deleted_with_unselected_is_changed () =
+  let tui_model : NottyTui.model =
+    {
+      cursor = FileCursor 0;
+      files =
+        [
+          {
+            path = FilePath "src/deleted";
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  lines =
+                    [
+                      Diff ("removed-line-1", `removed, `notincluded);
+                      Diff ("removed-line-2", `removed, `notincluded);
+                      Diff ("removed-line-3", `removed, `included);
+                      Diff ("removed-line-4", `removed, `included);
+                    ];
+                  lines_visibility = Expanded;
+                };
+              ];
+            hunks_visibility = Collapsed;
+          };
+        ];
+    }
+  in
+
+  let diff = NottyTui.diff_of_model tui_model in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = "src/deleted";
+              hunks =
+                [
+                  {
+                    starting_line = 1;
+                    context_snippet = None;
+                    lines =
+                      [
+                        `ContextLine "removed-line-1";
+                        `ContextLine "removed-line-2";
+                        `RemovedLine "removed-line-3";
+                        `RemovedLine "removed-line-4";
+                      ];
+                  };
+                ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
 let diff_of_tui_model_suite =
   [
     ("single hunk", `Quick, changed_file_single_hunk);
@@ -548,5 +651,10 @@ let diff_of_tui_model_suite =
       `Quick,
       unselected_removed_become_context );
     ("unselected added lines are excluded from the diff", `Quick, unselected_added_are_excluded);
-    (* Not included lines in created / deleted files still cause those files to be created/deleted? *)
+    ( "created file with some unselected lines remains a created file",
+      `Quick,
+      created_with_unselected_is_created );
+    ( "deleted file with some unselected lines becomes a changed file",
+      `Quick,
+      deleted_with_unselected_is_changed );
   ]
