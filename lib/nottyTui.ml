@@ -608,7 +608,7 @@ let rec ui_loop t state =
   let _, h = Term.size t in
   Term.image t (view state h);
   match Term.event t with
-  | `Key (`ASCII 'c', _) -> Some state
+  | `Key (`ASCII 'c', _) -> (* TODO: Do not allow this if nothing is selected. *) Some state
   | `Key (`Escape, _) | `Key (`ASCII 'q', _) -> None
   | event ->
       let new_state = update event state in
