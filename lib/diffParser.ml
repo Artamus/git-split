@@ -31,7 +31,6 @@ let parse_hunk_context_snippet hunk =
     Some context_snippet
 
 let parse_hunk_diff hunk =
-  print_endline hunk;
   let hunk_first_line_idx =
     hunk |> String.split_on_char ' ' |> List.hd |> String.split_on_char ',' |> List.hd
     |> int_of_string
