@@ -7,11 +7,14 @@ maintainer: ["Artamus"]
 authors: ["Artamus"]
 license: "LICENSE"
 homepage: "https://github.com/Artamus/git-split"
-doc: "https://url/to/documentation"
 bug-reports: "https://github.com/Artamus/git-split/issues"
 depends: [
   "ocaml"
   "dune" {>= "3.15"}
+  "re"
+  "notty"
+  "feather"
+  "re"
   "odoc" {with-doc}
 ]
 build: [
