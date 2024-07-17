@@ -2,3 +2,4 @@
 - [ ] TUI is missing hunk context snippets.
 - [ ] TUI could be using a tree zipper.
 - [ ] Tests for TUI update and view.
+- [ ] Record the chain of commits before the split happens, use Result type more liberally and restore the original situation, if something breaks. I can probably use `reset --hard <original-head>` for this.

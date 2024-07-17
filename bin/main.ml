@@ -29,10 +29,9 @@ let cleanup intermediary_commit =
     ]
   |> run;
   let head_commit_id = process "git" [ "rev-parse"; "--short"; "HEAD" ] |> collect stdout in
-  process "git" [ "branch"; "-f"; intermediary_commit.branch; head_commit_id ] |> run;
-  process "git" [ "switch"; intermediary_commit.branch ] |> run
+  process "git" [ "branch"; "-f"; intermediary_commit.branch; head_commit_id ] |> run
 
-let rec select_changes (split_commit : split_commit) =
+let rec select_changes split_commit =
   let reference_commit =
     match split_commit with
     | HeadCommit { reference_commit; _ } -> reference_commit
@@ -67,14 +66,14 @@ let rec select_changes (split_commit : split_commit) =
         let current_diff_commit =
           process "git" [ "rev-parse"; "--short"; "HEAD" ] |> collect stdout
         in
-        let foo =
+        let new_split_commit =
           match split_commit with
           | HeadCommit head_commit ->
               HeadCommit { head_commit with reference_commit = current_diff_commit }
           | IntermediaryCommit intermediary_commit ->
               IntermediaryCommit { intermediary_commit with reference_commit = current_diff_commit }
         in
-        select_changes foo
+        select_changes new_split_commit
 
 let () =
   Arg.parse speclist anon_fun usage_msg;
@@ -97,13 +96,7 @@ let () =
         }
   in
 
-  let () =
-    match split_commit with
-    | HeadCommit { reference_commit; _ } ->
-        print_endline @@ "Resetting commit " ^ !commit_id;
-        process "git" [ "reset"; "--hard"; reference_commit ] |> run
-    | IntermediaryCommit { reference_commit; _ } ->
-        process "git" [ "-c"; "advice.detachedHead=false"; "checkout"; reference_commit ] |> run
-  in
+  print_endline @@ "Resetting to commit " ^ starting_reference_commit_id;
+  process "git" [ "reset"; "--hard"; starting_reference_commit_id ] |> run;
 
   select_changes split_commit
