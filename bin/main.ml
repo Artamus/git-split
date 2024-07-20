@@ -4,8 +4,14 @@ open Feather.Infix
 
 let usage_msg = "git-split [commit-id]"
 let commit_id = ref "HEAD"
+let example = ref false
 let anon_fun selected_commit = commit_id := selected_commit
-let speclist = [ ("[commit-id]", Arg.Set_string commit_id, "Commit to split. Defaults to HEAD.") ]
+
+let speclist =
+  [
+    ("[commit-id]", Arg.Set_string commit_id, "Commit to split. Defaults to HEAD.");
+    ("--tui-example", Arg.Set example, "Run TUI in example mode without modifying the repo.");
+  ]
 
 type head_commit = { reference_commit : string; target_commit : string }
 
@@ -78,25 +84,30 @@ let rec select_changes split_commit =
 let () =
   Arg.parse speclist anon_fun usage_msg;
 
-  let starting_reference_commit_id =
-    process "git" [ "rev-parse"; "--short"; !commit_id ^ "~1" ] |> collect stdout
-  in
-  let head_commit_id = process "git" [ "rev-parse"; "--short"; "HEAD" ] |> collect stdout in
-  let split_commit =
-    if !commit_id = "HEAD" then
-      HeadCommit { reference_commit = starting_reference_commit_id; target_commit = head_commit_id }
-    else
-      let branch = process "git" [ "rev-parse"; "--abbrev-ref"; "HEAD" ] |> collect stdout in
-      IntermediaryCommit
-        {
-          reference_commit = starting_reference_commit_id;
-          target_commit = !commit_id;
-          original_head = head_commit_id;
-          branch;
-        }
-  in
+  if !example then
+    let _foo = NottyTui.run NottyTui.initial_model in
+    ()
+  else
+    let starting_reference_commit_id =
+      process "git" [ "rev-parse"; "--short"; !commit_id ^ "~1" ] |> collect stdout
+    in
+    let head_commit_id = process "git" [ "rev-parse"; "--short"; "HEAD" ] |> collect stdout in
+    let split_commit =
+      if !commit_id = "HEAD" then
+        HeadCommit
+          { reference_commit = starting_reference_commit_id; target_commit = head_commit_id }
+      else
+        let branch = process "git" [ "rev-parse"; "--abbrev-ref"; "HEAD" ] |> collect stdout in
+        IntermediaryCommit
+          {
+            reference_commit = starting_reference_commit_id;
+            target_commit = !commit_id;
+            original_head = head_commit_id;
+            branch;
+          }
+    in
 
-  print_endline @@ "Resetting to commit " ^ starting_reference_commit_id;
-  process "git" [ "reset"; "--hard"; starting_reference_commit_id ] |> run;
+    print_endline @@ "Resetting to commit " ^ starting_reference_commit_id;
+    process "git" [ "reset"; "--hard"; starting_reference_commit_id ] |> run;
 
-  select_changes split_commit
+    select_changes split_commit
