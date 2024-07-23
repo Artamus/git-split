@@ -247,10 +247,10 @@ let update event model =
             FileCursor 0
         (* Cursor is at some file -> last hunk -> last line. *)
         | LineCursor (c_file_idx, c_hunk_idx, c_line_idx)
-          when c_hunk_idx = last_idx (model.files |> List.rev |> List.hd).hunks
+          when c_hunk_idx = last_idx (List.nth model.files c_file_idx).hunks
                && c_line_idx
                   = last_index
-                      ((model.files |> List.rev |> List.hd).hunks |> List.rev |> List.hd).lines ->
+                      ((List.nth model.files c_file_idx).hunks |> List.rev |> List.hd).lines ->
             FileCursor (c_file_idx + 1)
         (* Cursor is at some file -> some hunk -> last line. *)
         | LineCursor (c_file_idx, c_hunk_idx, c_line_idx)
