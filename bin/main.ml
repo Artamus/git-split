@@ -85,7 +85,7 @@ let () =
   Arg.parse speclist anon_fun usage_msg;
 
   if !example then
-    let _foo = NottyTui.run NottyTui.initial_model in
+    let _result = NottyTui.run NottyTui.initial_model in
     ()
   else
     let starting_reference_commit_id =
