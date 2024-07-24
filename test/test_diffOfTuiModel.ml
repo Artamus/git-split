@@ -4,7 +4,7 @@ open Git_split
 let diff_testable = testable Diff.pp_diff Diff.equal_diff
 
 let changed_file_single_hunk () =
-  let tui_model : NottyTui.model =
+  let tui_model : Tui.model =
     {
       cursor = FileCursor 0;
       files =
@@ -32,7 +32,7 @@ let changed_file_single_hunk () =
     }
   in
 
-  let diff = NottyTui.diff_of_model tui_model in
+  let diff = Tui.diff_of_model tui_model in
 
   let expected : Diff.diff =
     {
@@ -62,7 +62,7 @@ let changed_file_single_hunk () =
   check diff_testable "same diffs" expected diff
 
 let changed_file_multiple_hunks () =
-  let tui_model : NottyTui.model =
+  let tui_model : Tui.model =
     {
       cursor = FileCursor 0;
       files =
@@ -102,7 +102,7 @@ let changed_file_multiple_hunks () =
     }
   in
 
-  let diff = NottyTui.diff_of_model tui_model in
+  let diff = Tui.diff_of_model tui_model in
 
   let expected : Diff.diff =
     {
@@ -143,7 +143,7 @@ let changed_file_multiple_hunks () =
   check diff_testable "same diffs" expected diff
 
 let deleted_file () =
-  let tui_model : NottyTui.model =
+  let tui_model : Tui.model =
     {
       cursor = FileCursor 0;
       files =
@@ -171,7 +171,7 @@ let deleted_file () =
     }
   in
 
-  let diff = NottyTui.diff_of_model tui_model in
+  let diff = Tui.diff_of_model tui_model in
 
   let expected : Diff.diff =
     {
@@ -194,7 +194,7 @@ let deleted_file () =
   check diff_testable "same diffs" expected diff
 
 let created_file () =
-  let tui_model : NottyTui.model =
+  let tui_model : Tui.model =
     {
       cursor = FileCursor 0;
       files =
@@ -222,7 +222,7 @@ let created_file () =
     }
   in
 
-  let diff = NottyTui.diff_of_model tui_model in
+  let diff = Tui.diff_of_model tui_model in
 
   let expected : Diff.diff =
     {
@@ -245,7 +245,7 @@ let created_file () =
   check diff_testable "same diffs" expected diff
 
 let renamed_file_without_content_changes () =
-  let tui_model : NottyTui.model =
+  let tui_model : Tui.model =
     {
       cursor = FileCursor 0;
       files =
@@ -259,7 +259,7 @@ let renamed_file_without_content_changes () =
     }
   in
 
-  let diff = NottyTui.diff_of_model tui_model in
+  let diff = Tui.diff_of_model tui_model in
 
   let expected : Diff.diff =
     { files = [ RenamedFile { old_path = "src/old"; new_path = "src/new"; hunks = [] } ] }
@@ -267,7 +267,7 @@ let renamed_file_without_content_changes () =
   check diff_testable "same diffs" expected diff
 
 let renamed_file_with_content_changes () =
-  let tui_model : NottyTui.model =
+  let tui_model : Tui.model =
     {
       cursor = FileCursor 0;
       files =
@@ -295,7 +295,7 @@ let renamed_file_with_content_changes () =
     }
   in
 
-  let diff = NottyTui.diff_of_model tui_model in
+  let diff = Tui.diff_of_model tui_model in
 
   let expected : Diff.diff =
     {
@@ -326,7 +326,7 @@ let renamed_file_with_content_changes () =
   check diff_testable "same diffs" expected diff
 
 let multiple_files () =
-  let tui_model : NottyTui.model =
+  let tui_model : Tui.model =
     {
       cursor = FileCursor 0;
       files =
@@ -373,7 +373,7 @@ let multiple_files () =
     }
   in
 
-  let diff = NottyTui.diff_of_model tui_model in
+  let diff = Tui.diff_of_model tui_model in
 
   let expected : Diff.diff =
     {
@@ -421,7 +421,7 @@ let multiple_files () =
   check diff_testable "same diffs" expected diff
 
 let unselected_removed_become_context () =
-  let tui_model : NottyTui.model =
+  let tui_model : Tui.model =
     {
       cursor = FileCursor 0;
       files =
@@ -450,7 +450,7 @@ let unselected_removed_become_context () =
     }
   in
 
-  let diff = NottyTui.diff_of_model tui_model in
+  let diff = Tui.diff_of_model tui_model in
 
   let expected : Diff.diff =
     {
@@ -481,7 +481,7 @@ let unselected_removed_become_context () =
   check diff_testable "same diffs" expected diff
 
 let unselected_added_are_excluded () =
-  let tui_model : NottyTui.model =
+  let tui_model : Tui.model =
     {
       cursor = FileCursor 0;
       files =
@@ -509,7 +509,7 @@ let unselected_added_are_excluded () =
     }
   in
 
-  let diff = NottyTui.diff_of_model tui_model in
+  let diff = Tui.diff_of_model tui_model in
 
   let expected : Diff.diff =
     {
@@ -536,7 +536,7 @@ let unselected_added_are_excluded () =
   check diff_testable "same diffs" expected diff
 
 let created_with_unselected_is_created () =
-  let tui_model : NottyTui.model =
+  let tui_model : Tui.model =
     {
       cursor = FileCursor 0;
       files =
@@ -564,7 +564,7 @@ let created_with_unselected_is_created () =
     }
   in
 
-  let diff = NottyTui.diff_of_model tui_model in
+  let diff = Tui.diff_of_model tui_model in
 
   let expected : Diff.diff =
     {
@@ -581,7 +581,7 @@ let created_with_unselected_is_created () =
   check diff_testable "same diffs" expected diff
 
 let deleted_with_unselected_is_changed () =
-  let tui_model : NottyTui.model =
+  let tui_model : Tui.model =
     {
       cursor = FileCursor 0;
       files =
@@ -609,7 +609,7 @@ let deleted_with_unselected_is_changed () =
     }
   in
 
-  let diff = NottyTui.diff_of_model tui_model in
+  let diff = Tui.diff_of_model tui_model in
 
   let expected : Diff.diff =
     {

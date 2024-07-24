@@ -58,11 +58,11 @@ let rec select_changes split_commit =
     print_endline "Job's done!"
   else
     let diff = DiffParser.parse_diff head_diff in
-    let final_model = NottyTui.run @@ NottyTui.model_of_diff diff in
+    let final_model = Tui.run @@ Tui.model_of_diff diff in
     match final_model with
     | None -> print_endline "Aborted"
     | Some model ->
-        let selected_diff = NottyTui.diff_of_model model in
+        let selected_diff = Tui.diff_of_model model in
         let serialized_diff = DiffSerializer.serialize selected_diff in
         let tmp_filename = Printf.sprintf "/tmp/%s.diff" reference_commit in
         echo serialized_diff > tmp_filename |> run;
@@ -85,7 +85,7 @@ let () =
   Arg.parse speclist anon_fun usage_msg;
 
   if !example then
-    let _result = NottyTui.run NottyTui.initial_model in
+    let _result = Tui.run Tui.initial_model in
     ()
   else
     let starting_reference_commit_id =
