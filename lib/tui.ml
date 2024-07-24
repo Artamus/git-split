@@ -5,27 +5,22 @@ let last_item list = List.hd @@ List.rev list
 let last_idx list = List.length list - 1
 
 type visibility = Expanded | Collapsed [@@deriving show, eq]
-type context_line = string [@@deriving show, eq]
-type diff_line = string * [ `added | `removed ] * [ `included | `notincluded ] [@@deriving show, eq]
-type line = Context of context_line | Diff of diff_line
+type context_line = [ `Context of string ] [@@deriving show, eq]
 
-type line_list =
-  | Last of (diff_line * context_line list)
-  | ( :: ) of (context_line list * diff_line) * line_list
+type diff_line = [ `Diff of string * [ `added | `removed ] * [ `included | `notincluded ] ]
 [@@deriving show, eq]
 
-let rec last_index = function Last _ -> 0 | ( :: ) (_, tl) -> 1 + last_index tl
+type line = [ context_line | diff_line ]
 
-let rec nth idx line_list =
-  match line_list with
-  | Last item -> if idx = 0 then Last item else invalid_arg "line_list.nth"
-  | ( :: ) (item, tl) -> if idx = 0 then ( :: ) (item, tl) else nth (idx - 1) tl
+type line_with_context = { context : context_line list; diff_line : diff_line }
+[@@deriving show, eq]
 
 type hunk = {
   starting_line : int;
   context_snippet : string option;
-  lines : line_list;
   lines_visibility : visibility;
+  lines : line_with_context list;
+  post_context : context_line list;
 }
 [@@deriving show, eq]
 
@@ -33,7 +28,7 @@ type path = FilePath of string | ChangedPath of { old_path : string; new_path : 
 [@@deriving show, eq]
 
 (* TODO: Do I want to support separating renaming and changes? If I do, the file itself has to support being included or excluded. *)
-type file = { path : path; hunks : hunk list; hunks_visibility : visibility } [@@deriving show, eq]
+type file = { path : path; hunks_visibility : visibility; hunks : hunk list } [@@deriving show, eq]
 
 type cursor = FileCursor of int | HunkCursor of int * int | LineCursor of int * int * int
 [@@deriving show, eq]
@@ -41,37 +36,34 @@ type cursor = FileCursor of int | HunkCursor of int * int | LineCursor of int * 
 type model = { files : file list; cursor : cursor } [@@deriving show, eq]
 type lines_included = AllLines | SomeLines | NoLines
 
-let rec all_included = function
-  | Last ((_, _, `included), _) -> true
-  | ( :: ) ((_, (_, _, `included)), tl) -> all_included tl
-  | _ -> false
-
-let rec any_included = function
-  | Last ((_, _, `included), _) -> true
-  | Last _ -> false
-  | ( :: ) ((_, (_, _, `included)), _) -> true
-  | ( :: ) (_, tl) -> any_included tl
-
-let hunk_lines_included hunk =
-  let all_lines_included = all_included hunk.lines in
-  let any_line_included = any_included hunk.lines in
-  if all_lines_included then AllLines else if any_line_included then SomeLines else NoLines
+let hunk_diffs_included hunk =
+  let all_diffs_included =
+    hunk.lines
+    |> List.for_all (fun diff ->
+           match diff.diff_line with `Diff (_, _, `included) -> true | _ -> false)
+  in
+  let any_diff_included =
+    hunk.lines
+    |> List.exists (fun diff ->
+           match diff.diff_line with `Diff (_, _, `included) -> true | _ -> false)
+  in
+  if all_diffs_included then AllLines else if any_diff_included then SomeLines else NoLines
 
 let file_lines_included file =
   let all_lines_included =
     file.hunks
-    |> List.map (fun hunk -> hunk_lines_included hunk)
+    |> List.map (fun hunk -> hunk_diffs_included hunk)
     |> List.for_all (fun hunk_lines_inclusion -> hunk_lines_inclusion = AllLines)
   in
   let any_line_included =
     file.hunks
-    |> List.map (fun hunk -> hunk_lines_included hunk)
+    |> List.map (fun hunk -> hunk_diffs_included hunk)
     |> List.exists (fun hunk_lines_inclusion ->
            hunk_lines_inclusion = AllLines || hunk_lines_inclusion = SomeLines)
   in
   if all_lines_included then AllLines else if any_line_included then SomeLines else NoLines
 
-let initial_model =
+let initial_model : model =
   {
     cursor = FileCursor 0;
     files =
@@ -84,18 +76,30 @@ let initial_model =
               {
                 starting_line = 1;
                 context_snippet = None;
-                lines =
-                  ([ "code" ], ("code 2", `removed, `included))
-                  :: Last (("code 3", `added, `included), [ "code 4" ]);
                 lines_visibility = Expanded;
+                lines =
+                  [
+                    {
+                      context = [ `Context "code" ];
+                      diff_line = `Diff ("code 2", `removed, `included);
+                    };
+                    { context = []; diff_line = `Diff ("code 3", `added, `included) };
+                  ];
+                post_context = [ `Context "code 4" ];
               };
               {
                 starting_line = 15;
                 context_snippet = None;
-                lines =
-                  ([ "code 5"; "code 6"; "code 7" ], ("code 7.5", `removed, `included))
-                  :: Last (("code 7.9", `added, `included), [ "code 8" ]);
                 lines_visibility = Expanded;
+                lines =
+                  [
+                    {
+                      context = [ `Context "code 5"; `Context "code 6"; `Context "code 7" ];
+                      diff_line = `Diff ("code 7.5", `removed, `included);
+                    };
+                    { context = []; diff_line = `Diff ("code 7.9", `added, `included) };
+                  ];
+                post_context = [ `Context "code 8" ];
               };
             ];
         };
@@ -107,18 +111,30 @@ let initial_model =
               {
                 starting_line = 1;
                 context_snippet = None;
-                lines =
-                  ([ "code" ], ("code 2", `removed, `included))
-                  :: Last (("code 3", `added, `included), [ "code 4" ]);
                 lines_visibility = Expanded;
+                lines =
+                  [
+                    {
+                      context = [ `Context "code" ];
+                      diff_line = `Diff ("code 2", `removed, `included);
+                    };
+                    { context = []; diff_line = `Diff ("code 3", `added, `included) };
+                  ];
+                post_context = [ `Context "code 4" ];
               };
               {
                 starting_line = 20;
                 context_snippet = None;
-                lines =
-                  ([ "code 5"; "code 6"; "code 7" ], ("code 7.5", `removed, `included))
-                  :: Last (("code 7.9", `added, `included), [ "code 8" ]);
                 lines_visibility = Expanded;
+                lines =
+                  [
+                    {
+                      context = [ `Context "code 5"; `Context "code 6"; `Context "code 7" ];
+                      diff_line = `Diff ("code 7.5", `removed, `included);
+                    };
+                    { context = []; diff_line = `Diff ("code 7.9", `added, `included) };
+                  ];
+                post_context = [ `Context "code 8" ];
               };
             ];
         };
@@ -129,37 +145,46 @@ let initial_model =
             [
               {
                 starting_line = 1;
-                lines =
-                  ([], ("These", `added, `included))
-                  :: ([], ("Are", `added, `included))
-                  :: ([], ("All", `added, `included))
-                  :: ([], ("Added", `added, `included))
-                  :: ([], ("Lines", `added, `included))
-                  :: ([], ("Because", `added, `included))
-                  :: ([], ("This", `added, `included))
-                  :: ([], ("Is", `added, `included))
-                  :: ([], ("A", `added, `included))
-                  :: ([], ("New", `added, `included))
-                  :: Last (("File", `added, `included), []);
-                lines_visibility = Expanded;
                 context_snippet = None;
+                lines_visibility = Expanded;
+                lines =
+                  [
+                    { context = []; diff_line = `Diff ("These", `added, `included) };
+                    { context = []; diff_line = `Diff ("Are", `added, `included) };
+                    { context = []; diff_line = `Diff ("All", `added, `included) };
+                    { context = []; diff_line = `Diff ("Added", `added, `included) };
+                    { context = []; diff_line = `Diff ("Lines", `added, `included) };
+                    { context = []; diff_line = `Diff ("Because", `added, `included) };
+                    { context = []; diff_line = `Diff ("This", `added, `included) };
+                    { context = []; diff_line = `Diff ("Is", `added, `included) };
+                    { context = []; diff_line = `Diff ("A", `added, `included) };
+                    { context = []; diff_line = `Diff ("New", `added, `included) };
+                    { context = []; diff_line = `Diff ("File", `added, `included) };
+                  ];
+                post_context = [];
               };
             ];
         };
         {
           path = ChangedPath { old_path = "lib/nottui_tui.ml"; new_path = "lib/nottuiTui.ml" };
+          hunks_visibility = Collapsed;
           hunks =
             [
               {
                 starting_line = 1;
                 context_snippet = None;
-                lines =
-                  ([ "code" ], ("code 2", `removed, `included))
-                  :: Last (("code 3", `added, `included), [ "code 4" ]);
                 lines_visibility = Expanded;
+                lines =
+                  [
+                    {
+                      context = [ `Context "code" ];
+                      diff_line = `Diff ("code 2", `removed, `included);
+                    };
+                    { context = []; diff_line = `Diff ("code 3", `added, `included) };
+                  ];
+                post_context = [ `Context "code 4" ];
               };
             ];
-          hunks_visibility = Collapsed;
         };
       ];
   }
@@ -182,7 +207,7 @@ let update event model =
                 | Collapsed -> HunkCursor (last_file_idx, last_idx last_file.hunks)
                 | Expanded ->
                     let hunk = last_item last_file.hunks in
-                    let line_idx = last_index hunk.lines in
+                    let line_idx = last_idx hunk.lines in
                     LineCursor (last_file_idx, last_idx last_file.hunks, line_idx)))
         | FileCursor c_file_idx -> (
             let prev_file = List.nth model.files (c_file_idx - 1) in
@@ -193,7 +218,7 @@ let update event model =
                 match last_hunk.lines_visibility with
                 | Collapsed -> HunkCursor (c_file_idx - 1, last_idx prev_file.hunks)
                 | Expanded ->
-                    let line_idx = last_index last_hunk.lines in
+                    let line_idx = last_idx last_hunk.lines in
                     LineCursor (c_file_idx - 1, last_idx prev_file.hunks, line_idx)))
         | HunkCursor (c_file_idx, 0) -> FileCursor c_file_idx
         | HunkCursor (c_file_idx, c_hunk_idx) -> (
@@ -202,7 +227,7 @@ let update event model =
             match prev_hunk.lines_visibility with
             | Collapsed -> HunkCursor (c_file_idx, c_hunk_idx - 1)
             | Expanded ->
-                let line_idx = last_index prev_hunk.lines in
+                let line_idx = last_idx prev_hunk.lines in
                 LineCursor (c_file_idx, c_hunk_idx - 1, line_idx))
         | LineCursor (c_file_idx, c_hunk_idx, 0) -> HunkCursor (c_file_idx, c_hunk_idx)
         | LineCursor (c_file_idx, c_hunk_idx, c_line_idx) ->
@@ -240,23 +265,20 @@ let update event model =
         (* Cursor is at last file -> last hunk -> last line. *)
         | LineCursor (c_file_idx, c_hunk_idx, c_line_idx)
           when c_file_idx = last_file_idx
-               && c_hunk_idx = last_idx (model.files |> List.rev |> List.hd).hunks
+               && c_hunk_idx = last_idx (List.nth model.files c_file_idx).hunks
                && c_line_idx
-                  = last_index
-                      ((model.files |> List.rev |> List.hd).hunks |> List.rev |> List.hd).lines ->
+                  = last_idx (List.nth (List.nth model.files c_file_idx).hunks c_hunk_idx).lines ->
             FileCursor 0
         (* Cursor is at some file -> last hunk -> last line. *)
         | LineCursor (c_file_idx, c_hunk_idx, c_line_idx)
           when c_hunk_idx = last_idx (List.nth model.files c_file_idx).hunks
                && c_line_idx
-                  = last_index
-                      ((List.nth model.files c_file_idx).hunks |> List.rev |> List.hd).lines ->
+                  = last_idx (List.nth (List.nth model.files c_file_idx).hunks c_hunk_idx).lines ->
             FileCursor (c_file_idx + 1)
         (* Cursor is at some file -> some hunk -> last line. *)
         | LineCursor (c_file_idx, c_hunk_idx, c_line_idx)
           when c_line_idx
-               = last_index
-                   ((model.files |> List.rev |> List.hd).hunks |> List.rev |> List.hd).lines ->
+               = last_idx (List.nth (List.nth model.files c_file_idx).hunks c_hunk_idx).lines ->
             HunkCursor (c_file_idx, c_hunk_idx + 1)
         (* Cursor is at some file -> some hunk -> some line. *)
         | LineCursor (c_file_idx, c_hunk_idx, c_line_idx) ->
@@ -322,7 +344,7 @@ let update event model =
           { model with files }
       | LineCursor _ -> model)
   | `Key (`ASCII ' ', _) | `Key (`Enter, _) ->
-      let toggle_included include_status =
+      let toggle_line include_status =
         match include_status with `included -> `notincluded | `notincluded -> `included
       in
 
@@ -330,22 +352,6 @@ let update event model =
         | NoLines -> `included
         | SomeLines -> `included
         | AllLines -> `notincluded
-      in
-
-      let rec toggle_line_inclusion inclusion = function
-        | Last ((content, added, _), context_lines) ->
-            Last ((content, added, inclusion), context_lines)
-        | ( :: ) ((context, (content, added, _)), tl) ->
-            ( :: ) ((context, (content, added, inclusion)), toggle_line_inclusion inclusion tl)
-      in
-
-      let rec toggle_line idx = function
-        | Last ((content, added, included), context_lines) ->
-            if idx = 0 then Last ((content, added, toggle_included included), context_lines)
-            else invalid_arg "fuck_line"
-        | ( :: ) (((context, (content, added, inclusion)) as t), tl) ->
-            if idx = 0 then ( :: ) ((context, (content, added, toggle_included inclusion)), tl)
-            else ( :: ) (t, toggle_line (idx - 1) tl)
       in
 
       let files =
@@ -360,7 +366,17 @@ let update event model =
                        let included_in_diff = toggle_group file_lines_inclusion in
                        file.hunks
                        |> List.map (fun hunk ->
-                              let lines = toggle_line_inclusion included_in_diff hunk.lines in
+                              let lines =
+                                hunk.lines
+                                |> List.map (fun diff ->
+                                       match diff.diff_line with
+                                       | `Diff (content, added, _) ->
+                                           let diff_line =
+                                             `Diff (content, added, included_in_diff)
+                                           in
+                                           { diff with diff_line })
+                              in
+
                               { hunk with lines })
                    in
                    { file with hunks })
@@ -372,11 +388,19 @@ let update event model =
                      else
                        file.hunks
                        |> List.mapi (fun hunk_idx hunk ->
-                              let hunk_lines_inclusion = hunk_lines_included hunk in
+                              let hunk_lines_inclusion = hunk_diffs_included hunk in
                               let included_in_diff = toggle_group hunk_lines_inclusion in
                               let lines =
                                 if hunk_idx <> c_hunk_idx then hunk.lines
-                                else toggle_line_inclusion included_in_diff hunk.lines
+                                else
+                                  hunk.lines
+                                  |> List.map (fun diff ->
+                                         match diff.diff_line with
+                                         | `Diff (content, added, _) ->
+                                             let diff_line =
+                                               `Diff (content, added, included_in_diff)
+                                             in
+                                             { diff with diff_line })
                               in
                               { hunk with lines })
                    in
@@ -391,7 +415,17 @@ let update event model =
                        |> List.mapi (fun hunk_idx hunk ->
                               let lines =
                                 if hunk_idx <> c_hunk_idx then hunk.lines
-                                else toggle_line c_line_idx hunk.lines
+                                else
+                                  hunk.lines
+                                  |> List.mapi (fun line_idx diff ->
+                                         if line_idx = c_line_idx then diff
+                                         else
+                                           let diff_line =
+                                             match diff.diff_line with
+                                             | `Diff (content, added, included) ->
+                                                 `Diff (content, added, toggle_line included)
+                                           in
+                                           { diff with diff_line })
                               in
                               { hunk with lines })
                    in
@@ -400,64 +434,61 @@ let update event model =
       { model with files }
   | _ -> model
 
-let render_line line is_cursor =
+let render_individual_line line is_cursor =
   let style = if is_cursor then A.st A.reverse else A.empty in
 
   let included_prefix =
     match line with
-    | Context _ -> "   "
-    | Diff (_, _, `included) -> "[x]"
-    | Diff (_, _, `notincluded) -> "[ ]"
+    | `Context _ -> "   "
+    | `Diff (_, _, `included) -> "[x]"
+    | `Diff (_, _, `notincluded) -> "[ ]"
   in
 
   let line_kind_prefix =
-    match line with Context _ -> " " | Diff (_, `removed, _) -> "-" | Diff (_, `added, _) -> "+"
+    match line with
+    | `Context _ -> " "
+    | `Diff (_, `removed, _) -> "-"
+    | `Diff (_, `added, _) -> "+"
   in
 
   let line_content =
-    match line with Context content -> content | Diff (content, _, _) -> content
+    match line with `Context content -> content | `Diff (content, _, _) -> content
   in
 
   let colour =
     match line with
-    | Context _ -> A.gray 10
-    | Diff (_, `added, _) -> A.green
-    | Diff (_, `removed, _) -> A.red
+    | `Context _ -> A.gray 10
+    | `Diff (_, `added, _) -> A.green
+    | `Diff (_, `removed, _) -> A.red
   in
 
   I.strf ~attr:A.(fg colour ++ style) "%s %s %s" included_prefix line_kind_prefix line_content
   |> I.hpad 4 0
 
-let rec render_lines line_list cursor file_idx hunk_idx line_idx : image list =
+let render_line_with_context line cursor file_idx hunk_idx line_idx =
   let is_cursor = cursor = LineCursor (file_idx, hunk_idx, line_idx) in
-  match line_list with
-  | Last (diff, context) ->
-      let context_images =
-        context
-        |> List.map (fun c -> Context c)
-        |> List.map (fun context_line -> render_line context_line false)
-      in
-      let diff_image = render_line (Diff diff) is_cursor in
-      diff_image :: context_images
-  | ( :: ) ((context, diff), tl) ->
-      let context_images =
-        context
-        |> List.map (fun c -> Context c)
-        |> List.map (fun context_line -> render_line context_line false)
-      in
-      let diff_image = render_line (Diff diff) is_cursor in
-      context_images @ (diff_image :: render_lines tl cursor file_idx hunk_idx (line_idx + 1))
+
+  let rendered_context_lines =
+    line.context |> List.map (fun line -> render_individual_line line false)
+  in
+  let rendered_line = render_individual_line line.diff_line is_cursor in
+
+  rendered_context_lines @ [ rendered_line ]
 
 let render_hunk hunk cursor file_idx hunk_idx : image list =
   let lines =
     match hunk.lines_visibility with
     | Collapsed -> []
-    | Expanded -> render_lines hunk.lines cursor file_idx hunk_idx 0
+    | Expanded ->
+        hunk.lines
+        |> List.mapi (fun line_idx line_with_context ->
+               render_line_with_context line_with_context cursor file_idx hunk_idx line_idx)
+        |> List.flatten
   in
 
   let style = if cursor = HunkCursor (file_idx, hunk_idx) then A.st A.reverse else A.empty in
   let hunk_included_marker =
-    match hunk_lines_included hunk with AllLines -> "x" | SomeLines -> "~" | NoLines -> " "
+    match hunk_diffs_included hunk with AllLines -> "x" | SomeLines -> "~" | NoLines -> " "
   in
   let hunk_line =
     I.strf ~attr:style "[%s] Hunk %d" hunk_included_marker (hunk_idx + 1) |> I.hpad 2 0
@@ -488,11 +519,6 @@ let render_file file cursor file_idx : image list =
   in
   file_line :: hunk_lines
 
-let rec line_cursor line_list line_idx : int list =
-  match line_list with
-  | Last _ -> [ line_idx ]
-  | ( :: ) (_, tl) -> line_idx :: line_cursor tl (line_idx + 1)
-
 let with_cursor files : cursor list =
   files
   |> List.mapi (fun file_idx file ->
@@ -506,9 +532,9 @@ let with_cursor files : cursor list =
                         match hunk.lines_visibility with
                         | Collapsed -> []
                         | Expanded ->
-                            let fuck = line_cursor hunk.lines 0 in
-                            let foo = List.map (fun a -> LineCursor (file_idx, hunk_idx, a)) fuck in
-                            foo
+                            hunk.lines
+                            |> List.mapi (fun line_idx _ ->
+                                   LineCursor (file_idx, hunk_idx, line_idx))
                       in
                       [ HunkCursor (file_idx, hunk_idx) ] @ lines)
                |> List.flatten
@@ -562,26 +588,30 @@ let run initial_model =
   Term.release term;
   final_model
 
-let tui_lines_of_diff_lines diff_lines =
-  let rec foo diff_lines (diff, context) =
-    match diff_lines with
+let tui_diff_lines diff_lines =
+  let rec diff_lines_with_context context = function
     | [] -> invalid_arg ""
-    | `ContextLine content :: [] ->
-        let tail_context : context_line list = content :: context in
-        Last (Option.get diff, List.rev tail_context)
+    | `ContextLine _ :: [] -> []
     | `RemovedLine content :: [] ->
-        (List.rev context, Option.get diff) :: Last ((content, `removed, `included), [])
-    | `AddedLine content :: [] ->
-        (List.rev context, Option.get diff) :: Last ((content, `added, `included), [])
-    | `ContextLine content :: tl -> foo tl (diff, content :: context)
+        [ { context; diff_line = `Diff (content, `removed, `included) } ]
+    | `AddedLine content :: [] -> [ { context; diff_line = `Diff (content, `added, `included) } ]
+    | `ContextLine content :: tl -> diff_lines_with_context (`Context content :: context) tl
     | `RemovedLine content :: tl ->
-        let item = (List.rev context, (content, `removed, `included)) in
-        item :: foo tl (None, [])
+        let diff_line = { context; diff_line = `Diff (content, `removed, `included) } in
+        diff_line :: diff_lines_with_context [] tl
     | `AddedLine content :: tl ->
-        let item = (List.rev context, (content, `removed, `included)) in
-        item :: foo tl (None, [])
+        let diff_line = { context; diff_line = `Diff (content, `added, `included) } in
+        diff_line :: diff_lines_with_context [] tl
   in
-  foo diff_lines (None, [])
+  diff_lines_with_context [] diff_lines
+
+let tui_dangling_context diff_lines =
+  let rec dangling_context context = function
+    | [] -> context
+    | `AddedLine _ :: _ | `RemovedLine _ :: _ -> context
+    | `ContextLine content :: tl -> dangling_context (`Context content :: context) tl
+  in
+  dangling_context [] (List.rev diff_lines)
 
 let model_of_diff (diff : Diff.diff) =
   let files =
@@ -589,7 +619,7 @@ let model_of_diff (diff : Diff.diff) =
     |> List.map (fun (file : Diff.file) : file ->
            match file with
            | Diff.DeletedFile deleted_file ->
-               let lines = deleted_file.lines |> tui_lines_of_diff_lines in
+               let lines = deleted_file.lines |> tui_diff_lines in
                {
                  path = FilePath deleted_file.path;
                  hunks =
@@ -597,14 +627,15 @@ let model_of_diff (diff : Diff.diff) =
                      {
                        starting_line = 1;
                        context_snippet = None;
-                       lines;
                        lines_visibility = Expanded;
+                       lines;
+                       post_context = [];
                      };
                    ];
                  hunks_visibility = Collapsed;
                }
            | Diff.CreatedFile created_file ->
-               let lines = created_file.lines |> tui_lines_of_diff_lines in
+               let lines = created_file.lines |> tui_diff_lines in
                {
                  path = FilePath created_file.path;
                  hunks =
@@ -612,8 +643,9 @@ let model_of_diff (diff : Diff.diff) =
                      {
                        starting_line = 1;
                        context_snippet = None;
-                       lines;
                        lines_visibility = Expanded;
+                       lines;
+                       post_context = [];
                      };
                    ];
                  hunks_visibility = Collapsed;
@@ -622,12 +654,14 @@ let model_of_diff (diff : Diff.diff) =
                let hunks =
                  changed_file.hunks
                  |> List.map (fun (hunk : Diff.hunk) : hunk ->
-                        let lines = hunk.lines |> tui_lines_of_diff_lines in
+                        let lines = hunk.lines |> tui_diff_lines in
+                        let post_context = tui_dangling_context hunk.lines in
                         {
                           starting_line = hunk.starting_line;
                           context_snippet = hunk.context_snippet;
-                          lines;
                           lines_visibility = Expanded;
+                          lines;
+                          post_context;
                         })
                in
                { path = FilePath changed_file.path; hunks; hunks_visibility = Collapsed }
@@ -635,12 +669,14 @@ let model_of_diff (diff : Diff.diff) =
                let hunks =
                  renamed_file.hunks
                  |> List.map (fun (hunk : Diff.hunk) : hunk ->
-                        let lines = hunk.lines |> tui_lines_of_diff_lines in
+                        let lines = hunk.lines |> tui_diff_lines in
+                        let post_context = tui_dangling_context hunk.lines in
                         {
                           starting_line = hunk.starting_line;
                           context_snippet = hunk.context_snippet;
-                          lines;
                           lines_visibility = Expanded;
+                          lines;
+                          post_context;
                         })
                in
                {
@@ -653,38 +689,20 @@ let model_of_diff (diff : Diff.diff) =
   in
   { files; cursor = FileCursor 0 }
 
-let rec all_lines_add = function
-  | Last ((_, `removed, _), _) -> false
-  | Last _ -> true
-  | (_, (_, `removed, _)) :: _ -> false
-  | _ :: tl -> all_lines_add tl
+let map_diff_line = function
+  | `Diff (content, `added, `included) -> Some (`AddedLine content)
+  | `Diff (_, `added, `notincluded) -> None
+  | `Diff (content, `removed, `included) -> Some (`RemovedLine content)
+  | `Diff (content, `removed, `notincluded) -> Some (`ContextLine content)
 
-let rec all_lines_remove = function
-  | Last ((_, `added, _), _) -> false
-  | Last _ -> true
-  | (_, (_, `added, _)) :: _ -> false
-  | _ :: tl -> all_lines_remove tl
+let map_context = function `Context content -> `ContextLine content
 
-let to_context_line context : Diff.line = `ContextLine context
-
-let rec map_lines line_list : Diff.line list =
-  match line_list with
-  | Last ((content, `added, `included), context) ->
-      let tail_context_lines = List.map to_context_line context in
-      `AddedLine content :: tail_context_lines
-  | Last ((content, `removed, `included), context) ->
-      let tail_context_lines = List.map to_context_line context in
-      `RemovedLine content :: tail_context_lines
-  | Last ((content, `removed, `notincluded), context) ->
-      let tail_context_lines = List.map to_context_line context in
-      `ContextLine content :: tail_context_lines
-  | ( :: ) ((context, (content, `added, `included)), tl) ->
-      let lines = List.map to_context_line context @ [ `AddedLine content ] in
-      lines @ map_lines tl
-  | ( :: ) ((context, (content, `removed, `included)), tl) ->
-      let lines = List.map to_context_line context @ [ `RemovedLine content ] in
-      lines @ map_lines tl
-  | _ -> []
+let map_diff diff =
+  let context_lines = diff.context |> List.map map_context in
+  let diff_line =
+    diff.diff_line |> map_diff_line |> Option.fold ~none:[] ~some:(fun diff_line -> [ diff_line ])
+  in
+  context_lines @ diff_line
 
 let diff_of_model model : Diff.diff =
   let files =
@@ -698,7 +716,9 @@ let diff_of_model model : Diff.diff =
              hunk.starting_line = 1
              &&
              let hunk = List.hd file.hunks in
-             hunk.lines |> all_lines_add
+             hunk.lines
+             |> List.for_all (fun diff ->
+                    match diff.diff_line with `Diff (_, `added, _) -> true | _ -> false)
            in
            let is_deleted_file =
              List.length file.hunks = 1
@@ -707,23 +727,26 @@ let diff_of_model model : Diff.diff =
              hunk.starting_line = 1
              &&
              let hunk = List.hd file.hunks in
-             hunk.lines |> all_lines_remove
+             hunk.lines
+             |> List.for_all (fun diff ->
+                    match diff.diff_line with `Diff (_, `removed, _) -> true | _ -> false)
            in
            let hunks =
              file.hunks
-             |> List.filter (fun hunk -> hunk_lines_included hunk <> NoLines)
+             |> List.filter (fun hunk -> hunk_diffs_included hunk <> NoLines)
              |> List.map (fun (hunk : hunk) : Diff.hunk ->
-                    let lines = hunk.lines |> map_lines in
+                    let diffs_lines = hunk.lines |> List.map map_diff |> List.flatten in
+                    let trailing_context_lines = hunk.post_context |> List.map map_context in
                     {
                       starting_line = hunk.starting_line;
                       context_snippet = hunk.context_snippet;
-                      lines;
+                      lines = diffs_lines @ trailing_context_lines;
                     })
            in
            if is_created_file then
              let hunk = List.hd file.hunks in
              let lines =
-               hunk.lines |> map_lines
+               hunk.lines |> List.map map_diff |> List.flatten
                |> List.filter_map (fun line ->
                       match line with `AddedLine content -> Some (`AddedLine content) | _ -> None)
              in
@@ -736,7 +759,7 @@ let diff_of_model model : Diff.diff =
            else if is_deleted_file then
              let hunk = List.hd file.hunks in
              let lines =
-               hunk.lines |> map_lines
+               hunk.lines |> List.map map_diff |> List.flatten
                |> List.filter_map (fun line ->
                       match line with
                       | `RemovedLine content -> Some (`RemovedLine content)
