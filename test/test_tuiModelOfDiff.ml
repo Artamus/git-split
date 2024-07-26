@@ -1,7 +1,8 @@
 open Alcotest
 open Git_split
+open Git_split.TuiTypes
 
-let tui_model_testable = testable NottyTui.pp_model NottyTui.equal_model
+let tui_model_testable = testable TuiModel.pp_model TuiModel.equal_model
 
 let changed_file_single_hunk () =
   let diff : Diff.diff =
@@ -30,34 +31,32 @@ let changed_file_single_hunk () =
     }
   in
 
-  let tui_model = NottyTui.model_of_diff diff in
+  let tui_model = Tui.model_of_diff diff in
 
-  let expected : NottyTui.model =
-    {
-      cursor = FileCursor 0;
-      files =
-        [
-          {
-            path = FilePath "src/main";
-            hunks =
-              [
-                {
-                  starting_line = 1;
-                  context_snippet = None;
-                  lines =
-                    [
-                      Context "context";
-                      Diff ("removed-line", `removed, `included);
-                      Diff ("added-line", `added, `included);
-                      Context "context";
-                    ];
-                  lines_visibility = Expanded;
-                };
-              ];
-            hunks_visibility = Collapsed;
-          };
-        ];
-    }
+  let expected : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = FilePath "src/main";
+             visibility = Collapsed;
+             hunks =
+               [
+                 {
+                   starting_line = 1;
+                   context_snippet = None;
+                   visibility = Expanded;
+                   lines =
+                     [
+                       Context "context";
+                       Diff ("removed-line", `removed, `included);
+                       Diff ("added-line", `added, `included);
+                       Context "context";
+                     ];
+                 };
+               ];
+           };
+         ])
   in
   check tui_model_testable "same TUI model" expected tui_model
 
@@ -99,46 +98,44 @@ let changed_file_multiple_hunks () =
     }
   in
 
-  let tui_model = NottyTui.model_of_diff diff in
+  let tui_model = Tui.model_of_diff diff in
 
-  let expected : NottyTui.model =
-    {
-      cursor = FileCursor 0;
-      files =
-        [
-          {
-            path = FilePath "src/main";
-            hunks =
-              [
-                {
-                  starting_line = 1;
-                  context_snippet = None;
-                  lines =
-                    [
-                      Context "context";
-                      Diff ("removed-line", `removed, `included);
-                      Diff ("added-line", `added, `included);
-                      Context "context";
-                    ];
-                  lines_visibility = Expanded;
-                };
-                {
-                  starting_line = 15;
-                  context_snippet = Some "context";
-                  lines =
-                    [
-                      Context "context";
-                      Diff ("removed-line", `removed, `included);
-                      Diff ("added-line", `added, `included);
-                      Context "context";
-                    ];
-                  lines_visibility = Expanded;
-                };
-              ];
-            hunks_visibility = Collapsed;
-          };
-        ];
-    }
+  let expected : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = FilePath "src/main";
+             visibility = Collapsed;
+             hunks =
+               [
+                 {
+                   starting_line = 1;
+                   context_snippet = None;
+                   visibility = Expanded;
+                   lines =
+                     [
+                       Context "context";
+                       Diff ("removed-line", `removed, `included);
+                       Diff ("added-line", `added, `included);
+                       Context "context";
+                     ];
+                 };
+                 {
+                   starting_line = 15;
+                   context_snippet = Some "context";
+                   visibility = Expanded;
+                   lines =
+                     [
+                       Context "context";
+                       Diff ("removed-line", `removed, `included);
+                       Diff ("added-line", `added, `included);
+                       Context "context";
+                     ];
+                 };
+               ];
+           };
+         ])
   in
   check tui_model_testable "same TUI model" expected tui_model
 
@@ -162,34 +159,32 @@ let deleted_file () =
     }
   in
 
-  let tui_model = NottyTui.model_of_diff diff in
+  let tui_model = Tui.model_of_diff diff in
 
-  let expected : NottyTui.model =
-    {
-      cursor = FileCursor 0;
-      files =
-        [
-          {
-            path = FilePath "src/main";
-            hunks =
-              [
-                {
-                  starting_line = 1;
-                  context_snippet = None;
-                  lines =
-                    [
-                      Diff ("removed-line-1", `removed, `included);
-                      Diff ("removed-line-2", `removed, `included);
-                      Diff ("removed-line-3", `removed, `included);
-                      Diff ("removed-line-4", `removed, `included);
-                    ];
-                  lines_visibility = Expanded;
-                };
-              ];
-            hunks_visibility = Collapsed;
-          };
-        ];
-    }
+  let expected : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = FilePath "src/main";
+             visibility = Collapsed;
+             hunks =
+               [
+                 {
+                   starting_line = 1;
+                   context_snippet = None;
+                   visibility = Expanded;
+                   lines =
+                     [
+                       Diff ("removed-line-1", `removed, `included);
+                       Diff ("removed-line-2", `removed, `included);
+                       Diff ("removed-line-3", `removed, `included);
+                       Diff ("removed-line-4", `removed, `included);
+                     ];
+                 };
+               ];
+           };
+         ])
   in
   check tui_model_testable "same TUI model" expected tui_model
 
@@ -213,34 +208,32 @@ let created_file () =
     }
   in
 
-  let tui_model = NottyTui.model_of_diff diff in
+  let tui_model = Tui.model_of_diff diff in
 
-  let expected : NottyTui.model =
-    {
-      cursor = FileCursor 0;
-      files =
-        [
-          {
-            path = FilePath "src/main";
-            hunks =
-              [
-                {
-                  starting_line = 1;
-                  context_snippet = None;
-                  lines =
-                    [
-                      Diff ("added-line-1", `added, `included);
-                      Diff ("added-line-2", `added, `included);
-                      Diff ("added-line-3", `added, `included);
-                      Diff ("added-line-4", `added, `included);
-                    ];
-                  lines_visibility = Expanded;
-                };
-              ];
-            hunks_visibility = Collapsed;
-          };
-        ];
-    }
+  let expected : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = FilePath "src/main";
+             visibility = Collapsed;
+             hunks =
+               [
+                 {
+                   starting_line = 1;
+                   context_snippet = None;
+                   visibility = Expanded;
+                   lines =
+                     [
+                       Diff ("added-line-1", `added, `included);
+                       Diff ("added-line-2", `added, `included);
+                       Diff ("added-line-3", `added, `included);
+                       Diff ("added-line-4", `added, `included);
+                     ];
+                 };
+               ];
+           };
+         ])
   in
   check tui_model_testable "same TUI model" expected tui_model
 
@@ -249,21 +242,20 @@ let renamed_file_without_content_changes () =
     { files = [ RenamedFile { old_path = "src/old"; new_path = "src/new"; hunks = [] } ] }
   in
 
-  let tui_model = NottyTui.model_of_diff diff in
+  let tui_model = Tui.model_of_diff diff in
 
-  let expected : NottyTui.model =
-    {
-      cursor = FileCursor 0;
-      files =
-        [
-          {
-            path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
-            hunks = [];
-            hunks_visibility = Collapsed;
-          };
-        ];
-    }
+  let expected : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
+             visibility = Collapsed;
+             hunks = [];
+           };
+         ])
   in
+
   check tui_model_testable "same TUI model" expected tui_model
 
 let renamed_file_with_content_changes () =
@@ -294,35 +286,34 @@ let renamed_file_with_content_changes () =
     }
   in
 
-  let tui_model = NottyTui.model_of_diff diff in
+  let tui_model = Tui.model_of_diff diff in
 
-  let expected : NottyTui.model =
-    {
-      cursor = FileCursor 0;
-      files =
-        [
-          {
-            path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
-            hunks =
-              [
-                {
-                  starting_line = 15;
-                  context_snippet = Some "context";
-                  lines =
-                    [
-                      Context "context";
-                      Diff ("removed-line", `removed, `included);
-                      Diff ("added-line", `added, `included);
-                      Context "context";
-                    ];
-                  lines_visibility = Expanded;
-                };
-              ];
-            hunks_visibility = Collapsed;
-          };
-        ];
-    }
+  let expected : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
+             visibility = Collapsed;
+             hunks =
+               [
+                 {
+                   starting_line = 15;
+                   context_snippet = Some "context";
+                   visibility = Expanded;
+                   lines =
+                     [
+                       Context "context";
+                       Diff ("removed-line", `removed, `included);
+                       Diff ("added-line", `added, `included);
+                       Context "context";
+                     ];
+                 };
+               ];
+           };
+         ])
   in
+
   check tui_model_testable "same TUI model" expected tui_model
 
 let multiple_files () =
@@ -370,53 +361,51 @@ let multiple_files () =
     }
   in
 
-  let tui_model = NottyTui.model_of_diff diff in
+  let tui_model = Tui.model_of_diff diff in
 
-  let expected : NottyTui.model =
-    {
-      cursor = FileCursor 0;
-      files =
-        [
-          {
-            path = FilePath "src/main";
-            hunks =
-              [
-                {
-                  starting_line = 1;
-                  context_snippet = None;
-                  lines =
-                    [
-                      Context "context";
-                      Diff ("removed-line", `removed, `included);
-                      Diff ("added-line", `added, `included);
-                      Context "context";
-                    ];
-                  lines_visibility = Expanded;
-                };
-              ];
-            hunks_visibility = Collapsed;
-          };
-          {
-            path = FilePath "src/other";
-            hunks =
-              [
-                {
-                  starting_line = 15;
-                  context_snippet = Some "context";
-                  lines =
-                    [
-                      Context "context";
-                      Diff ("removed-line", `removed, `included);
-                      Diff ("added-line", `added, `included);
-                      Context "context";
-                    ];
-                  lines_visibility = Expanded;
-                };
-              ];
-            hunks_visibility = Collapsed;
-          };
-        ];
-    }
+  let expected : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = FilePath "src/main";
+             visibility = Collapsed;
+             hunks =
+               [
+                 {
+                   starting_line = 1;
+                   context_snippet = None;
+                   visibility = Expanded;
+                   lines =
+                     [
+                       Context "context";
+                       Diff ("removed-line", `removed, `included);
+                       Diff ("added-line", `added, `included);
+                       Context "context";
+                     ];
+                 };
+               ];
+           };
+           {
+             path = FilePath "src/other";
+             visibility = Collapsed;
+             hunks =
+               [
+                 {
+                   starting_line = 15;
+                   context_snippet = Some "context";
+                   visibility = Expanded;
+                   lines =
+                     [
+                       Context "context";
+                       Diff ("removed-line", `removed, `included);
+                       Diff ("added-line", `added, `included);
+                       Context "context";
+                     ];
+                 };
+               ];
+           };
+         ])
   in
   check tui_model_testable "same TUI model" expected tui_model
 
