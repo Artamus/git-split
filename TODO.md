@@ -1,5 +1,6 @@
-- [ ] Commit de30d91 is buggy in TUI. (The bug is due to having multiple lines with the exact same content)
-- [ ] TUI is missing hunk context snippets.
-- [ ] TUI could be using a tree zipper.
-- [ ] Tests for TUI update and view.
-- [ ] Record the chain of commits before the split happens, use Result type more liberally and restore the original situation, if something breaks. I can probably use `reset --hard <original-head>` for this.
+- Record the chain of commits before the split happens, use Result type more liberally and restore the original situation, if something breaks. I can probably use `reset --hard <original-head>` for this.
+- Migrate all exceptions to Option / Result.
+- Do not accept empty selections.
+- Tests for TUI update and view.
+- Investigate whether the eager update of state when moving the cursor could be made lazy (the view code and the mapping to diff code need checking then).
+- TUI is missing hunk context snippets.
