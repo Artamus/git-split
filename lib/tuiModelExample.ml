@@ -39,39 +39,6 @@ let model : model =
              ];
          };
          {
-           path = FilePath "src/MainFile";
-           visibility = Collapsed;
-           hunks =
-             [
-               {
-                 starting_line = 1;
-                 context_snippet = None;
-                 visibility = Expanded;
-                 lines =
-                   [
-                     Context "code";
-                     Diff ("code 2", `removed, `included);
-                     Diff ("code 3", `added, `included);
-                     Context "code 4";
-                   ];
-               };
-               {
-                 starting_line = 20;
-                 context_snippet = None;
-                 visibility = Expanded;
-                 lines =
-                   [
-                     Context "code 5";
-                     Context "code 6";
-                     Context "code 7";
-                     Diff ("code 7.5", `removed, `included);
-                     Diff ("code 7.9", `added, `included);
-                     Context "code 8";
-                   ];
-               };
-             ];
-         };
-         {
            path = FilePath "src/YetAnotherFile";
            visibility = Collapsed;
            hunks =

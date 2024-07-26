@@ -3,10 +3,10 @@ Output demo.gif
 Set Shell "bash"
 Set Framerate 24
 Set FontSize 24
-Set Width 800
+Set Width 1200
 Set Height 600
 
-Type "dune exec git_split"
+Type "dune exec git_split -- --example"
 Sleep 0.5s
 Enter @2
 Right @0.2
