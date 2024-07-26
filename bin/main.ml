@@ -5,12 +5,14 @@ open Feather.Infix
 let usage_msg = "git-split [commit-id]"
 let commit_id = ref "HEAD"
 let example = ref false
+let view_only = ref false
 let anon_fun selected_commit = commit_id := selected_commit
 
 let speclist =
   [
     ("[commit-id]", Arg.Set_string commit_id, "Commit to split. Defaults to HEAD.");
-    ("--tui-example", Arg.Set example, "Run TUI in example mode without modifying the repo.");
+    ("--example", Arg.Set example, "Run TUI with example code, overrides all other options.");
+    ("--view-only", Arg.Set view_only, "Run TUI in selection mode, but do not make any changes.");
   ]
 
 type head_commit = { reference_commit : string; target_commit : string }
@@ -85,7 +87,12 @@ let () =
   Arg.parse speclist anon_fun usage_msg;
 
   if !example then
-    let _result = Tui.run Tui.initial_model in
+    let _result = Tui.run TuiModelExample.model in
+    ()
+  else if !view_only then
+    let head_diff = process "git" [ "diff"; "HEAD~"; "HEAD" ] |> collect stdout in
+    let diff = DiffParser.parse_diff head_diff in
+    let _result = Tui.run @@ Tui.model_of_diff diff in
     ()
   else
     let starting_reference_commit_id =
