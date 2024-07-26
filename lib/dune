@@ -3,4 +3,4 @@
  (public_name git_split)
  (libraries re notty notty.unix)
  (preprocess
-  (pps ppx_deriving.show ppx_deriving.eq lwt_ppx)))
+  (pps ppx_deriving.show ppx_deriving.eq)))
