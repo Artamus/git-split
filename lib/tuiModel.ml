@@ -12,13 +12,17 @@ let prev = function
       let file = Zipper.cursor prev_file_z in
       match file.visibility with
       | Collapsed -> File prev_file_z
-      | Expanded -> (
-          let hunk_z = Option.get @@ Zipper.from_list_rev file.hunks in
-          let hunk = Zipper.cursor hunk_z in
-          match hunk.visibility with
-          | Collapsed -> Hunk (prev_file_z, hunk_z)
-          | Expanded ->
-              Line (prev_file_z, hunk_z, Result.get_ok @@ LineZipper.from_list_rev hunk.lines)))
+      | Expanded ->
+          Zipper.from_list_rev file.hunks
+          |> Option.map (fun (hunk_z : hunk Zipper.zipper) ->
+                 let hunk = Zipper.cursor hunk_z in
+                 match hunk.visibility with
+                 | Collapsed -> Hunk (prev_file_z, hunk_z)
+                 | Expanded ->
+                     LineZipper.from_list_rev hunk.lines
+                     |> Option.map (fun line_z -> Line (prev_file_z, hunk_z, line_z))
+                     |> Option.value ~default:(Hunk (prev_file_z, hunk_z)))
+          |> Option.value ~default:(File prev_file_z))
   | Hunk (file_z, hunk_z) -> (
       if Zipper.at_begin hunk_z then
         let file = Zipper.cursor file_z in
@@ -29,8 +33,10 @@ let prev = function
         let hunk = Zipper.cursor prev_hunk_z in
         match hunk.visibility with
         | Collapsed -> Hunk (file_z, prev_hunk_z)
-        | Expanded -> Line (file_z, prev_hunk_z, Result.get_ok (LineZipper.from_list_rev hunk.lines))
-      )
+        | Expanded ->
+            LineZipper.from_list_rev hunk.lines
+            |> Option.map (fun line_z -> Line (file_z, prev_hunk_z, line_z))
+            |> Option.value ~default:(Hunk (file_z, prev_hunk_z)))
   | Line (file_z, hunk_z, line_z) ->
       if LineZipper.at_begin line_z then
         let hunk = Zipper.cursor hunk_z in
@@ -46,7 +52,7 @@ let next = function
       | Expanded ->
           Zipper.from_list file.hunks
           |> Option.map (fun hunk_z -> Hunk (file_z, hunk_z))
-          |> Option.value ~default:(File (Zipper.next file_z)))
+          |> Option.value ~default:(File (Zipper.next_wrap file_z)))
   | Hunk (file_z, hunk_z) -> (
       let hunk = Zipper.cursor hunk_z in
       match hunk.visibility with
@@ -56,7 +62,10 @@ let next = function
             let file_z = Zipper.replace { file with hunks = Zipper.to_list hunk_z } file_z in
             File (Zipper.next_wrap file_z)
           else Hunk (file_z, Zipper.next hunk_z)
-      | Expanded -> Line (file_z, hunk_z, Result.get_ok (LineZipper.from_list hunk.lines)))
+      | Expanded ->
+          LineZipper.from_list hunk.lines
+          |> Option.map (fun line_z -> Line (file_z, hunk_z, line_z))
+          |> Option.value ~default:(Hunk (file_z, Zipper.next hunk_z)))
   | Line (file_z, hunk_z, line_z) ->
       if LineZipper.at_end line_z then
         if Zipper.at_end hunk_z then

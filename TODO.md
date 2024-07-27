@@ -1,4 +1,3 @@
-- Record the chain of commits before the split happens, use Result type more liberally and restore the original situation, if something breaks. I can probably use `reset --hard <original-head>` for this.
 - Migrate all exceptions to Option / Result.
 - Do not accept empty selections.
 - Tests for TUI update and view.

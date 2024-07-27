@@ -4,21 +4,25 @@ type zipper = Zip of line list * line * line list [@@deriving show, eq]
 
 let from_list l =
   let rec from_list' left = function
-    | [] -> invalid_arg "list cannot be empty"
+    | [] -> None
     | hd :: tl -> (
-        match hd with Context _ -> from_list' (hd :: left) tl | Diff _ -> Zip (left, hd, tl))
+        match hd with
+        | Context _ -> from_list' (hd :: left) tl
+        | Diff _ -> Some (Zip (left, hd, tl)))
   in
-  if List.length l = 0 then Result.error "list cannot be empty" else Result.ok (from_list' [] l)
+
+  from_list' [] l
 
 let from_list_rev l =
   let rec from_list' left right =
     match left with
-    | [] -> invalid_arg "list cannot be empty"
+    | [] -> None
     | hd :: tl -> (
-        match hd with Context _ -> from_list' tl (hd :: right) | Diff _ -> Zip (tl, hd, right))
+        match hd with
+        | Context _ -> from_list' tl (hd :: right)
+        | Diff _ -> Some (Zip (tl, hd, right)))
   in
-  if List.length l = 0 then Result.error "list cannot be empty"
-  else Result.ok (from_list' (List.rev l) [])
+  from_list' (List.rev l) []
 
 let to_list (Zip (ls, focus, rs)) = List.rev ls @ (focus :: rs)
 

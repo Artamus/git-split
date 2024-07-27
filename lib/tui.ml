@@ -283,8 +283,7 @@ let model_of_diff (diff : Diff.diff) =
                  hunks;
                })
   in
-  let file_zipper = Option.get @@ Zipper.from_list files in
-  TuiModel.File file_zipper
+  Zipper.from_list files |> Option.map (fun file_z -> TuiModel.File file_z)
 
 (* We update the state attached to files eagerly, therefore we can ignore the inner zippers. *)
 let model_files = function
