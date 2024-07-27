@@ -208,11 +208,23 @@ let view model viewport_height =
 
   I.vcat visible_lines
 
+let any_lines_selected file_z =
+  Zipper.to_list file_z
+  |> List.exists (fun file ->
+         match TuiModel.file_lines_included file with AllLines | SomeLines -> true | _ -> false)
+
 let rec ui_loop t state =
   let _, h = Term.size t in
   Term.image t (view state h);
   match Term.event t with
-  | `Key (`ASCII 'c', _) -> (* TODO: Do not allow this if nothing is selected. *) Some state
+  | `Key (`ASCII 'c', _) ->
+      let any_lines_selected =
+        match state with
+        | File file_z -> any_lines_selected file_z
+        | Hunk (file_z, _) -> any_lines_selected file_z
+        | Line (file_z, _, _) -> any_lines_selected file_z
+      in
+      if any_lines_selected then Some state else ui_loop t state
   | `Key (`Escape, _) | `Key (`ASCII 'q', _) -> None
   | event ->
       let new_state = update event state in
