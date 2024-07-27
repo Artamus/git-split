@@ -2,6 +2,7 @@ open Alcotest
 open Git_split
 
 let diff_testable = testable Diff.pp_diff Diff.equal_diff
+let result_diff_testable = Alcotest.result diff_testable Alcotest.string
 
 let test_parses_single_hunk () =
   let raw_diff =
@@ -18,32 +19,33 @@ let test_parses_single_hunk () =
 
   let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : Diff.diff =
-    {
-      files =
-        [
-          ChangedFile
-            {
-              path = "src/main";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = None;
-                    lines =
-                      [
-                        `ContextLine "context";
-                        `RemovedLine "removed-line";
-                        `AddedLine "added-line";
-                        `ContextLine "context";
-                      ];
-                  };
-                ];
-            };
-        ];
-    }
+  let expected : (Diff.diff, string) result =
+    Ok
+      {
+        files =
+          [
+            ChangedFile
+              {
+                path = "src/main";
+                hunks =
+                  [
+                    {
+                      starting_line = 1;
+                      context_snippet = None;
+                      lines =
+                        [
+                          `ContextLine "context";
+                          `RemovedLine "removed-line";
+                          `AddedLine "added-line";
+                          `ContextLine "context";
+                        ];
+                    };
+                  ];
+              };
+          ];
+      }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" expected diff
 
 let test_parses_single_hunk_with_snippet () =
   let raw_diff =
@@ -60,32 +62,33 @@ let test_parses_single_hunk_with_snippet () =
 
   let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : Diff.diff =
-    {
-      files =
-        [
-          ChangedFile
-            {
-              path = "src/main";
-              hunks =
-                [
-                  {
-                    starting_line = 5;
-                    context_snippet = Some "context";
-                    lines =
-                      [
-                        `ContextLine "context";
-                        `RemovedLine "removed-line";
-                        `AddedLine "added-line";
-                        `ContextLine "context";
-                      ];
-                  };
-                ];
-            };
-        ];
-    }
+  let expected : (Diff.diff, string) result =
+    Ok
+      {
+        files =
+          [
+            ChangedFile
+              {
+                path = "src/main";
+                hunks =
+                  [
+                    {
+                      starting_line = 5;
+                      context_snippet = Some "context";
+                      lines =
+                        [
+                          `ContextLine "context";
+                          `RemovedLine "removed-line";
+                          `AddedLine "added-line";
+                          `ContextLine "context";
+                        ];
+                    };
+                  ];
+              };
+          ];
+      }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" expected diff
 
 let test_parses_diff_with_multiple_hunks () =
   let raw_diff =
@@ -107,43 +110,44 @@ let test_parses_diff_with_multiple_hunks () =
 
   let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : Diff.diff =
-    {
-      files =
-        [
-          ChangedFile
-            {
-              path = "src/test";
-              hunks =
-                [
-                  {
-                    starting_line = 4;
-                    context_snippet = Some "fun main() {";
-                    lines =
-                      [
-                        `ContextLine "  hunk-1-unchanged-line";
-                        `RemovedLine "  hunk-1-removed-line";
-                        `RemovedLine "  hunk-1-removed-line";
-                        `AddedLine "  hunk-1-added-line";
-                        `ContextLine "  hunk-1-unchanged-line";
-                      ];
-                  };
-                  {
-                    starting_line = 57;
-                    context_snippet = Some "fun main() {";
-                    lines =
-                      [
-                        `ContextLine "  hunk-2-unchanged-line";
-                        `AddedLine "  hunk-2-added-line";
-                        `ContextLine "  hunk-2-unchanged-line";
-                      ];
-                  };
-                ];
-            };
-        ];
-    }
+  let expected : (Diff.diff, string) result =
+    Ok
+      {
+        files =
+          [
+            ChangedFile
+              {
+                path = "src/test";
+                hunks =
+                  [
+                    {
+                      starting_line = 4;
+                      context_snippet = Some "fun main() {";
+                      lines =
+                        [
+                          `ContextLine "  hunk-1-unchanged-line";
+                          `RemovedLine "  hunk-1-removed-line";
+                          `RemovedLine "  hunk-1-removed-line";
+                          `AddedLine "  hunk-1-added-line";
+                          `ContextLine "  hunk-1-unchanged-line";
+                        ];
+                    };
+                    {
+                      starting_line = 57;
+                      context_snippet = Some "fun main() {";
+                      lines =
+                        [
+                          `ContextLine "  hunk-2-unchanged-line";
+                          `AddedLine "  hunk-2-added-line";
+                          `ContextLine "  hunk-2-unchanged-line";
+                        ];
+                    };
+                  ];
+              };
+          ];
+      }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" expected diff
 
 let test_parses_single_hunk_with_nonconsecutive_changes () =
   let raw_diff =
@@ -167,39 +171,40 @@ let test_parses_single_hunk_with_nonconsecutive_changes () =
 
   let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : Diff.diff =
-    {
-      files =
-        [
-          ChangedFile
-            {
-              path = "src/main";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = None;
-                    lines =
-                      [
-                        `ContextLine "context";
-                        `ContextLine "context";
-                        `RemovedLine "removed-line";
-                        `RemovedLine "removed-line-2";
-                        `AddedLine "added-line";
-                        `ContextLine "context";
-                        `ContextLine "context";
-                        `RemovedLine "removed-line";
-                        `AddedLine "added-line";
-                        `AddedLine "added-line-2";
-                        `ContextLine "context";
-                      ];
-                  };
-                ];
-            };
-        ];
-    }
+  let expected : (Diff.diff, string) result =
+    Ok
+      {
+        files =
+          [
+            ChangedFile
+              {
+                path = "src/main";
+                hunks =
+                  [
+                    {
+                      starting_line = 1;
+                      context_snippet = None;
+                      lines =
+                        [
+                          `ContextLine "context";
+                          `ContextLine "context";
+                          `RemovedLine "removed-line";
+                          `RemovedLine "removed-line-2";
+                          `AddedLine "added-line";
+                          `ContextLine "context";
+                          `ContextLine "context";
+                          `RemovedLine "removed-line";
+                          `AddedLine "added-line";
+                          `AddedLine "added-line-2";
+                          `ContextLine "context";
+                        ];
+                    };
+                  ];
+              };
+          ];
+      }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" expected diff
 
 let test_parses_empty_deleted_file () =
   let raw_diff =
@@ -210,10 +215,10 @@ let test_parses_empty_deleted_file () =
 
   let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : Diff.diff =
-    { files = [ DeletedFile { path = "empty-new-file.md"; lines = [] } ] }
+  let expected : (Diff.diff, string) result =
+    Ok { files = [ DeletedFile { path = "empty-new-file.md"; lines = [] } ] }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" expected diff
 
 let test_parses_deleted_file () =
   let raw_diff =
@@ -231,26 +236,27 @@ let test_parses_deleted_file () =
 
   let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : Diff.diff =
-    {
-      files =
-        [
-          DeletedFile
-            {
-              path = "src/main";
-              lines =
-                [
-                  `RemovedLine "removed-line-1";
-                  `RemovedLine "removed-line-2";
-                  `RemovedLine "removed-line-3";
-                  `RemovedLine "removed-line-4";
-                  `RemovedLine "removed-line-5";
-                ];
-            };
-        ];
-    }
+  let expected : (Diff.diff, string) result =
+    Ok
+      {
+        files =
+          [
+            DeletedFile
+              {
+                path = "src/main";
+                lines =
+                  [
+                    `RemovedLine "removed-line-1";
+                    `RemovedLine "removed-line-2";
+                    `RemovedLine "removed-line-3";
+                    `RemovedLine "removed-line-4";
+                    `RemovedLine "removed-line-5";
+                  ];
+              };
+          ];
+      }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" expected diff
 
 let test_parses_empty_created_file () =
   let raw_diff =
@@ -261,10 +267,10 @@ let test_parses_empty_created_file () =
 
   let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : Diff.diff =
-    { files = [ CreatedFile { path = "empty-new-file.md"; lines = [] } ] }
+  let expected : (Diff.diff, string) result =
+    Ok { files = [ CreatedFile { path = "empty-new-file.md"; lines = [] } ] }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" expected diff
 
 let test_parses_created_file () =
   let raw_diff =
@@ -282,26 +288,27 @@ let test_parses_created_file () =
 
   let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : Diff.diff =
-    {
-      files =
-        [
-          CreatedFile
-            {
-              path = "src/main";
-              lines =
-                [
-                  `AddedLine "added-line-1";
-                  `AddedLine "added-line-2";
-                  `AddedLine "added-line-3";
-                  `AddedLine "added-line-4";
-                  `AddedLine "added-line-5";
-                ];
-            };
-        ];
-    }
+  let expected : (Diff.diff, string) result =
+    Ok
+      {
+        files =
+          [
+            CreatedFile
+              {
+                path = "src/main";
+                lines =
+                  [
+                    `AddedLine "added-line-1";
+                    `AddedLine "added-line-2";
+                    `AddedLine "added-line-3";
+                    `AddedLine "added-line-4";
+                    `AddedLine "added-line-5";
+                  ];
+              };
+          ];
+      }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" expected diff
 
 let test_parses_renamed_file_no_changes () =
   let raw_diff =
@@ -310,10 +317,10 @@ let test_parses_renamed_file_no_changes () =
 
   let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : Diff.diff =
-    { files = [ RenamedFile { old_path = "src/old"; new_path = "src/new"; hunks = [] } ] }
+  let expected : (Diff.diff, string) result =
+    Ok { files = [ RenamedFile { old_path = "src/old"; new_path = "src/new"; hunks = [] } ] }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" expected diff
 
 let test_parses_renamed_file_with_changes () =
   let raw_diff =
@@ -332,33 +339,34 @@ let test_parses_renamed_file_with_changes () =
 
   let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : Diff.diff =
-    {
-      files =
-        [
-          RenamedFile
-            {
-              old_path = "src/old";
-              new_path = "src/new";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = None;
-                    lines =
-                      [
-                        `ContextLine "context";
-                        `RemovedLine "removed-line";
-                        `AddedLine "added-line";
-                        `ContextLine "context";
-                      ];
-                  };
-                ];
-            };
-        ];
-    }
+  let expected : (Diff.diff, string) result =
+    Ok
+      {
+        files =
+          [
+            RenamedFile
+              {
+                old_path = "src/old";
+                new_path = "src/new";
+                hunks =
+                  [
+                    {
+                      starting_line = 1;
+                      context_snippet = None;
+                      lines =
+                        [
+                          `ContextLine "context";
+                          `RemovedLine "removed-line";
+                          `AddedLine "added-line";
+                          `ContextLine "context";
+                        ];
+                    };
+                  ];
+              };
+          ];
+      }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" expected diff
 
 let test_parses_diff_with_multiple_files () =
   let raw_diff =
@@ -382,50 +390,51 @@ let test_parses_diff_with_multiple_files () =
 
   let diff = DiffParser.parse_diff raw_diff in
 
-  let expected : Diff.diff =
-    {
-      files =
-        [
-          ChangedFile
-            {
-              path = "src/first";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = None;
-                    lines =
-                      [
-                        `ContextLine "context";
-                        `RemovedLine "removed-line";
-                        `AddedLine "added-line";
-                        `ContextLine "context";
-                      ];
-                  };
-                ];
-            };
-          ChangedFile
-            {
-              path = "src/second";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = None;
-                    lines =
-                      [
-                        `ContextLine "context";
-                        `RemovedLine "removed-line";
-                        `AddedLine "added-line";
-                        `ContextLine "context";
-                      ];
-                  };
-                ];
-            };
-        ];
-    }
+  let expected : (Diff.diff, string) result =
+    Ok
+      {
+        files =
+          [
+            ChangedFile
+              {
+                path = "src/first";
+                hunks =
+                  [
+                    {
+                      starting_line = 1;
+                      context_snippet = None;
+                      lines =
+                        [
+                          `ContextLine "context";
+                          `RemovedLine "removed-line";
+                          `AddedLine "added-line";
+                          `ContextLine "context";
+                        ];
+                    };
+                  ];
+              };
+            ChangedFile
+              {
+                path = "src/second";
+                hunks =
+                  [
+                    {
+                      starting_line = 1;
+                      context_snippet = None;
+                      lines =
+                        [
+                          `ContextLine "context";
+                          `RemovedLine "removed-line";
+                          `AddedLine "added-line";
+                          `ContextLine "context";
+                        ];
+                    };
+                  ];
+              };
+          ];
+      }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" expected diff
 
 let diff_parser_suite =
   [

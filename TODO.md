@@ -1,4 +1,3 @@
-- Migrate all exceptions to Option / Result.
 - Tests for TUI update and view.
 - Investigate whether the eager update of state when moving the cursor could be made lazy (the view code and the mapping to diff code need checking then).
 - TUI is missing hunk context snippets.

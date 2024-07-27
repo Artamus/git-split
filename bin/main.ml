@@ -44,28 +44,23 @@ let rec select_changes reference_commit target_commit =
   let head_diff = process "git" [ "diff"; reference_commit; target_commit ] |> collect stdout in
   if String.length head_diff = 0 then Result.ok ()
   else
-    let diff = DiffParser.parse_diff head_diff in
+    let* diff = DiffParser.parse_diff head_diff in
     let* tui_model =
       Tui.model_of_diff diff
       |> Option.to_result
            ~none:
              (Format.sprintf "unable to parse diff between %s and %s" reference_commit target_commit)
     in
-    let final_model = Tui.run tui_model in
-    match final_model with
-    | None -> Result.error "aborted by user"
-    | Some model ->
-        let selected_diff = Tui.diff_of_model model in
-        let serialized_diff = DiffSerializer.serialize selected_diff in
-        let tmp_filename = Printf.sprintf "/tmp/%s.diff" reference_commit in
-        echo serialized_diff > tmp_filename |> run;
-        process "git" [ "apply"; tmp_filename ] |> run;
-        process "git" [ "add"; "." ] |> run;
-        process "git" [ "commit" ] |> run;
-        let current_diff_commit =
-          process "git" [ "rev-parse"; "--short"; "HEAD" ] |> collect stdout
-        in
-        select_changes current_diff_commit target_commit
+    let* final_model = Tui.run tui_model |> Option.to_result ~none:"aborted by user" in
+    let selected_diff = Tui.diff_of_model final_model in
+    let serialized_diff = DiffSerializer.serialize selected_diff in
+    let tmp_filename = Printf.sprintf "/tmp/%s.diff" reference_commit in
+    echo serialized_diff > tmp_filename |> run;
+    process "git" [ "apply"; tmp_filename ] |> run;
+    process "git" [ "add"; "." ] |> run;
+    process "git" [ "commit" ] |> run;
+    let current_diff_commit = process "git" [ "rev-parse"; "--short"; "HEAD" ] |> collect stdout in
+    select_changes current_diff_commit target_commit
 
 let () =
   Arg.parse speclist anon_fun usage_msg;
@@ -75,12 +70,20 @@ let () =
     ()
   else if !view_only then
     let head_diff = process "git" [ "diff"; "HEAD~"; "HEAD" ] |> collect stdout in
-    let diff = DiffParser.parse_diff head_diff in
-    match Tui.model_of_diff diff with
-    | None -> print_endline "unable to parse diff of HEAD"
-    | Some model ->
-        let _result = Tui.run model in
-        ()
+    let diff =
+      DiffParser.parse_diff head_diff
+      |> Result.map_error (fun err -> Format.sprintf "Failed to parse diff, %s" err)
+    in
+    let model =
+      Result.bind diff (fun diff ->
+          Tui.model_of_diff diff |> Option.to_result ~none:"Unable to convert diff to TUI model")
+    in
+    model
+    |> Result.fold
+         ~ok:(fun model ->
+           let _result = Tui.run model in
+           ())
+         ~error:(fun err -> print_endline err)
   else
     let starting_reference_commit_id =
       process "git" [ "rev-parse"; "--short"; !commit_id ^ "~1" ] |> collect stdout
