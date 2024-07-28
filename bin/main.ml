@@ -49,7 +49,7 @@ let rec select_changes reference_commit target_commit =
       Tui.model_of_diff diff
       |> Option.to_result
            ~none:
-             (Format.sprintf "unable to parse diff between %s and %s" reference_commit target_commit)
+             (Printf.sprintf "unable to parse diff between %s and %s" reference_commit target_commit)
     in
     let* final_model = Tui.run tui_model |> Option.to_result ~none:"aborted by user" in
     let selected_diff = Tui.diff_of_model final_model in
@@ -72,7 +72,7 @@ let () =
     let head_diff = process "git" [ "diff"; "HEAD~"; "HEAD" ] |> collect stdout in
     let diff =
       DiffParser.parse_diff head_diff
-      |> Result.map_error (fun err -> Format.sprintf "Failed to parse diff, %s" err)
+      |> Result.map_error (fun err -> Printf.sprintf "Failed to parse diff, %s" err)
     in
     let model =
       Result.bind diff (fun diff ->
