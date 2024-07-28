@@ -5,7 +5,7 @@ description:
   "When one commit becomes too large and needs to be split up, the general git workflow that involves resetting the commit and then using interactive staging to generate multiple commits from it can be quite cumbersome. In addition to that, the git interactive staging tool's UX can be quite bad, therefore this tools aims to provide this functionality in a nicer way."
 maintainer: ["Artamus"]
 authors: ["Artamus"]
-license: "LICENSE"
+license: "Apache-2.0"
 homepage: "https://github.com/Artamus/git-split"
 bug-reports: "https://github.com/Artamus/git-split/issues"
 depends: [
