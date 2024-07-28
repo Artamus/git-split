@@ -139,7 +139,7 @@ let render_model = function
       let right_hunks =
         hunks_rs
         |> List.mapi (fun hunk_idx hunk ->
-               render_hunk hunk (List.length ls + 1 + hunk_idx) false None)
+               render_hunk hunk (List.length left_hunks + 1 + hunk_idx) false None)
         |> List.flatten
       in
       let left_lines = ls |> List.rev |> List.map (fun line -> render_line line false) in
