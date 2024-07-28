@@ -11,7 +11,7 @@
 
 (maintainers "Artamus")
 
-(license LICENSE)
+(license Apache-2.0)
 
 (package
  (name git_split)
