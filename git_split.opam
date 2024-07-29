@@ -9,13 +9,14 @@ license: "Apache-2.0"
 homepage: "https://github.com/Artamus/git-split"
 bug-reports: "https://github.com/Artamus/git-split/issues"
 depends: [
-  "ocaml"
+  "ocaml" {>= "5.1"}
   "dune" {>= "3.15"}
   "re"
   "notty"
   "feather"
   "re"
   "ppx_deriving"
+  "alcotest"
   "odoc" {with-doc}
 ]
 build: [
