@@ -1,5 +1,11 @@
 open Diff
 
+module List = struct
+  include List
+
+  let is_empty = function [] -> true | _ :: _ -> false
+end
+
 let serialize_line = function
   | `ContextLine content -> Printf.sprintf " %s" content
   | `RemovedLine content -> Printf.sprintf "-%s" content

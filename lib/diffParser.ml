@@ -11,6 +11,12 @@ module Result = struct
     | Error e :: _ -> Error e
 end
 
+module List = struct
+  include List
+
+  let is_empty = function [] -> true | _ :: _ -> false
+end
+
 let not_empty str = String.length str > 0
 
 let parse_line line =
