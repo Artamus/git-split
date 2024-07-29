@@ -11,12 +11,7 @@ module Result = struct
     | Error e :: _ -> Error e
 end
 
-module List = struct
-  include List
-
-  let is_empty = function [] -> true | _ :: _ -> false
-end
-
+let is_empty = function [] -> true | _ :: _ -> false
 let not_empty str = String.length str > 0
 
 let parse_line line =
@@ -38,7 +33,7 @@ let parse_hunk_context_snippet hunk =
   let context_snippet_elements =
     hunk |> String.split_on_char '\n' |> List.hd |> Re.split hunk_context_snippet_regex |> List.tl
   in
-  if List.is_empty context_snippet_elements then None
+  if is_empty context_snippet_elements then None
   else
     let snippet = List.hd context_snippet_elements in
     let context_snippet = String.sub snippet 1 (String.length snippet - 1) in

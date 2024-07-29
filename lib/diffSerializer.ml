@@ -1,10 +1,6 @@
 open Diff
 
-module List = struct
-  include List
-
-  let is_empty = function [] -> true | _ :: _ -> false
-end
+let is_empty = function [] -> true | _ :: _ -> false
 
 let serialize_line = function
   | `ContextLine content -> Printf.sprintf " %s" content
@@ -115,7 +111,7 @@ rename to %s|}
          0
   in
   let foo =
-    if List.is_empty hunks then ""
+    if is_empty hunks then ""
     else
       Printf.sprintf "\n--- a/%s\n+++ b/%s\n%s" file.old_path file.new_path
         (String.concat "\n" hunks)
