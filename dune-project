@@ -20,16 +20,13 @@
   "When one commit becomes too large and needs to be split up, the general git workflow that involves resetting the commit and then using interactive staging to generate multiple commits from it can be quite cumbersome. In addition to that, the git interactive staging tool's UX can be quite bad, therefore this tools aims to provide this functionality in a nicer way.")
  (depends
   (ocaml
-   (>= 4.13))
+   (>= 4.14))
   dune
   re
   notty
   (feather
    (>= 0.3.0))
   ppx_deriving
-  (alcotest :with-test))
- (conflicts
-  (result
-   (< 1.5))))
+  (alcotest :with-test)))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project
