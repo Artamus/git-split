@@ -27,6 +27,9 @@
   (feather
    (>= 0.3.0))
   ppx_deriving
-  (alcotest :with-test)))
+  (alcotest :with-test))
+ (conflicts
+  (result
+   (< 1.5))))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project
