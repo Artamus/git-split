@@ -24,7 +24,8 @@
   dune
   re
   notty
-  feather
+  (feather
+   (>= 0.3.0))
   re
   ppx_deriving
   (alcotest :with-test)))
