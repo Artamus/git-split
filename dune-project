@@ -1,6 +1,6 @@
 (lang dune 3.15)
 
-(name git_split)
+(name git-split)
 
 (generate_opam_files true)
 
@@ -14,7 +14,7 @@
 (license Apache-2.0)
 
 (package
- (name git_split)
+ (name git-split)
  (synopsis "A tool to split a git commit into multiple")
  (description
   "When one commit becomes too large and needs to be split up, the general git workflow that involves resetting the commit and then using interactive staging to generate multiple commits from it can be quite cumbersome. In addition to that, the git interactive staging tool's UX can be quite bad, therefore this tools aims to provide this functionality in a nicer way.")
