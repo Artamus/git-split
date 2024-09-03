@@ -1,0 +1,56 @@
+# Attach binaries to a release.
+name: release
+
+# Run only on new releases.
+on:
+  release:
+    types:
+      - created
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+
+      # Do not cancel other jobs when one fails
+      fail-fast: false
+
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset: git-split-linux-amd64
+            ocaml-version: ocaml-variants.4.14+options,ocaml-option-flambda
+          - os: macos-latest
+            asset: git-split-macos-amd64
+            ocaml-version: ocaml-variants.4.14+options,ocaml-option-flambda
+
+    env:
+      # Ensure opam will not stop because it waits on some user input.
+      OPAMYES: "true"
+
+    steps:
+    - name: Checkout the repo
+      uses: actions/checkout@v4
+
+    - name: Setup ocaml/opam
+      uses: avsm/setup-ocaml@v3
+      with:
+        ocaml-compiler: ${{ matrix.ocaml-version }}
+
+    - name: Update opam repo
+      run: opam update
+
+    - name: Install deps
+      run: opam install . --deps-only --with-test --with-doc
+
+    - name: Build the package
+      run: opam exec -- dune build --profile=release @install
+
+    - name: Upload binary to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: _build/install/default/bin/git-split
+        asset_name: ${{ matrix.asset }}
+        tag: ${{ github.ref }}
