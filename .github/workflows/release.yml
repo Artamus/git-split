@@ -20,10 +20,10 @@ jobs:
         include:
           - os: ubuntu-latest
             asset: git-split-linux-amd64
-            ocaml-version: ocaml-variants.4.14+options,ocaml-option-flambda
+            ocaml-version: ocaml-variants.4.14.2+options,ocaml-option-flambda
           - os: macos-latest
             asset: git-split-macos-amd64
-            ocaml-version: ocaml-variants.4.14+options,ocaml-option-flambda
+            ocaml-version: ocaml-variants.4.14.2+options,ocaml-option-flambda
 
     env:
       # Ensure opam will not stop because it waits on some user input.
