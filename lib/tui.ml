@@ -6,7 +6,8 @@ let update event model =
   match event with
   | `Key (`Arrow `Up, _) | `Key (`ASCII 'k', _) -> TuiModel.prev model
   | `Key (`Arrow `Down, _) | `Key (`ASCII 'j', _) -> TuiModel.next model
-  | `Key (`Arrow `Left, _) | `Key (`ASCII 'h', _) -> TuiModel.collapse model
+  | `Key (`Arrow `Left, _) | `Key (`ASCII 'h', _) ->
+      if TuiModel.is_expanded model then TuiModel.collapse model else TuiModel.up model
   | `Key (`Arrow `Right, _) | `Key (`ASCII 'l', _) -> TuiModel.expand model
   | `Key (`ASCII ' ', _) | `Key (`Enter, _) -> TuiModel.toggle_inclusion model
   | _ -> model

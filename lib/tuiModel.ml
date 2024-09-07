@@ -6,6 +6,15 @@ type model =
   | Line of file Zipper.zipper * hunk Zipper.zipper * LineZipper.zipper
 [@@deriving show, eq]
 
+let is_expanded = function
+  | File file_z ->
+      let current_file = Zipper.cursor file_z in
+      current_file.visibility = Expanded
+  | Hunk (_, hunk_z) ->
+      let current_hunk = Zipper.cursor hunk_z in
+      current_hunk.visibility = Expanded
+  | Line _ -> false
+
 let prev = function
   | File file_z -> (
       let prev_file_z = Zipper.prev_wrap file_z in
@@ -80,6 +89,14 @@ let next = function
           Hunk (file_z, Zipper.next hunk_z)
       else Line (file_z, hunk_z, LineZipper.next line_z)
 
+let up = function
+  | File file_z -> File file_z
+  | Hunk (file_z, hunk_z) ->
+      let file = Zipper.cursor file_z in
+      let asd = Zipper.replace { file with hunks = Zipper.to_list hunk_z } file_z in
+      File asd
+  | Line (file_z, hunk_z, _) -> Hunk (file_z, hunk_z)
+
 let collapse = function
   | File file_z ->
       let file = Zipper.cursor file_z in
@@ -94,6 +111,10 @@ let collapse = function
 let expand = function
   | File file_z ->
       let file = Zipper.cursor file_z in
+      let expanded_hunks =
+        file.hunks |> List.map (fun hunk : hunk -> { hunk with visibility = Expanded })
+      in
+      let file = { file with hunks = expanded_hunks } in
       let file_z = Zipper.replace { file with visibility = Expanded } file_z in
       File file_z
   | Hunk (file_z, hunk_z) ->
