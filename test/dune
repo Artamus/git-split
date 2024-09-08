@@ -5,5 +5,6 @@
   test_diffParser
   test_diffSerializer
   test_tuiModelOfDiff
-  test_diffOfTuiModel)
+  test_diffOfTuiModel
+  test_tuiModel_prev)
  (libraries alcotest git_split))
