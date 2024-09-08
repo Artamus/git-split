@@ -104,7 +104,12 @@ let collapse = function
       File file_z
   | Hunk (file_z, hunk_z) ->
       let hunk = Zipper.cursor hunk_z in
-      let hunk_z = Zipper.replace { hunk with visibility = Collapsed } hunk_z in
+      let hunk = { hunk with visibility = Collapsed } in
+      let hunk_z = Zipper.replace hunk hunk_z in
+
+      let file = Zipper.cursor file_z in
+      let file = { file with hunks = Zipper.to_list hunk_z } in
+      let file_z = Zipper.replace file file_z in
       Hunk (file_z, hunk_z)
   | z -> z
 
