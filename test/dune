@@ -7,5 +7,6 @@
   test_tuiModelOfDiff
   test_diffOfTuiModel
   test_tuiModel_prev
-  test_tuiModel_next)
+  test_tuiModel_next
+  test_tuiModel_up)
  (libraries alcotest git_split))

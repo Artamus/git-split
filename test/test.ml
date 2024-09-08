@@ -7,4 +7,5 @@ let () =
       ("Converts TUI model to Diff", Test_diffOfTuiModel.diff_of_tui_model_suite);
       ("TuiModel.prev", Test_tuiModel_prev.prev_suite);
       ("TuiModel.next", Test_tuiModel_next.next_suite);
+      ("TuiModel.up", Test_tuiModel_up.up_suite);
     ]
