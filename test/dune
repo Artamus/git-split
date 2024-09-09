@@ -10,5 +10,6 @@
   test_tuiModel_next
   test_tuiModel_up
   test_tuiModel_collapse
-  test_tuiModel_expand)
+  test_tuiModel_expand
+  test_tuiModel_toggleInclusion)
  (libraries alcotest git_split))

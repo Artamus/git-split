@@ -10,4 +10,5 @@ let () =
       ("TuiModel.up", Test_tuiModel_up.up_suite);
       ("TuiModel.collapse", Test_tuiModel_collapse.collapse_suite);
       ("TuiModel.expand", Test_tuiModel_expand.expand_suite);
+      ("TuiModel.toggle_inclusion", Test_tuiModel_toggleInclusion.toggle_inclusion_suite);
     ]
