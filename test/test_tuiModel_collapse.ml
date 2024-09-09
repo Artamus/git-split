@@ -7,47 +7,27 @@ let tui_model_testable = testable TuiModel.pp_model TuiModel.equal_model
    This is necessary because the way the zippers are used creates data duplication and this prevents mismatches between the raw data and the one in zippers. *)
 
 let test_file () =
-  let model : TuiModel.model =
-    TuiModel.File
-      (Zipper.Zip
-         ( [],
-           {
-             path = FilePath "src/main";
-             visibility = Expanded;
-             hunks =
-               [
-                 {
-                   starting_line = 1;
-                   context_snippet = None;
-                   visibility = Expanded;
-                   lines = [ Diff ("code", `added, `included) ];
-                 };
-               ];
-           },
-           [] ))
+  let file : TuiTypes.file =
+    {
+      path = FilePath "src/main";
+      visibility = Expanded;
+      hunks =
+        [
+          {
+            starting_line = 1;
+            context_snippet = None;
+            visibility = Expanded;
+            lines = [ Diff ("code", `added, `included) ];
+          };
+        ];
+    }
   in
+  let model : TuiModel.model = TuiModel.File (Zipper.Zip ([], file, [])) in
 
   let collapse_model = TuiModel.collapse model in
 
-  let expected =
-    TuiModel.File
-      (Zipper.Zip
-         ( [],
-           {
-             path = FilePath "src/main";
-             visibility = Collapsed;
-             hunks =
-               [
-                 {
-                   starting_line = 1;
-                   context_snippet = None;
-                   visibility = Expanded;
-                   lines = [ Diff ("code", `added, `included) ];
-                 };
-               ];
-           },
-           [] ))
-  in
+  let expected_file = { file with visibility = Collapsed } in
+  let expected = TuiModel.File (Zipper.Zip ([], expected_file, [])) in
   check tui_model_testable "same TUI models" expected collapse_model
 
 let test_hunk () =
@@ -63,9 +43,7 @@ let test_hunk () =
 
   let collapse_model = TuiModel.collapse model in
 
-  let expected_hunk : TuiTypes.hunk =
-    { starting_line = 1; context_snippet = None; visibility = Collapsed; lines = [ line ] }
-  in
+  let expected_hunk : TuiTypes.hunk = { hunk with visibility = Collapsed } in
   let expected =
     TuiModel.Hunk
       ( Zipper.Zip
