@@ -3,6 +3,9 @@ open Git_split
 
 let tui_model_testable = testable TuiModel.pp_model TuiModel.equal_model
 
+(* These tests define the raw model types in variables so that they are easily reusable in the zippers.
+   This is necessary because the way the zippers are used creates data duplication and this prevents mismatches between the raw data and the one in zippers. *)
+
 let test_file () =
   let model : TuiModel.model =
     TuiModel.File
@@ -24,7 +27,7 @@ let test_file () =
            [] ))
   in
 
-  let up_model = TuiModel.collapse model in
+  let collapse_model = TuiModel.collapse model in
 
   let expected =
     TuiModel.File
@@ -45,7 +48,7 @@ let test_file () =
            },
            [] ))
   in
-  check tui_model_testable "same TUI models" expected up_model
+  check tui_model_testable "same TUI models" expected collapse_model
 
 let test_hunk () =
   let line : TuiTypes.line = Diff ("code", `added, `included) in
@@ -58,7 +61,7 @@ let test_hunk () =
         Zipper.Zip ([], hunk, []) )
   in
 
-  let up_model = TuiModel.collapse model in
+  let collapse_model = TuiModel.collapse model in
 
   let expected_hunk : TuiTypes.hunk =
     { starting_line = 1; context_snippet = None; visibility = Collapsed; lines = [ line ] }
@@ -69,7 +72,7 @@ let test_hunk () =
           ([], { path = FilePath "src/main"; visibility = Expanded; hunks = [ expected_hunk ] }, []),
         Zipper.Zip ([], expected_hunk, []) )
   in
-  check tui_model_testable "same TUI models" expected up_model
+  check tui_model_testable "same TUI models" expected collapse_model
 
 let test_line_noop () =
   let line : TuiTypes.line = Diff ("code", `added, `included) in
@@ -83,9 +86,9 @@ let test_line_noop () =
         LineZipper.Zip ([], line, []) )
   in
 
-  let up_model = TuiModel.collapse model in
+  let collapse_model = TuiModel.collapse model in
 
-  check tui_model_testable "same TUI models" model up_model
+  check tui_model_testable "same TUI models" model collapse_model
 
 let collapse_suite =
   [
