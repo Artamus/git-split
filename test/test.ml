@@ -9,4 +9,5 @@ let () =
       ("TuiModel.next", Test_tuiModel_next.next_suite);
       ("TuiModel.up", Test_tuiModel_up.up_suite);
       ("TuiModel.collapse", Test_tuiModel_collapse.collapse_suite);
+      ("TuiModel.expand", Test_tuiModel_expand.expand_suite);
     ]
