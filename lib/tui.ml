@@ -189,6 +189,14 @@ let cursor_index = function
       pre_files_line_count + pre_hunks_line_count + pre_lines_count + 1
 
 let view model viewport_height =
+  let help_style = A.fg (A.rgb_888 ~r:98 ~g:98 ~b:98) in
+  let help_line =
+    I.string help_style "↑/k:up ↓/j:down ←/h:collapse →/l:expand ↵/space:toggle c:confirm q:quit"
+  in
+
+  (* The top help line will always be visible. *)
+  let viewport_height = viewport_height - 1 in
+
   let terminal_lines = render_model model in
   let cursor_index = cursor_index model in
 
@@ -208,7 +216,7 @@ let view model viewport_height =
     terminal_lines |> List.filteri (fun idx _ -> idx >= start_line && idx < end_line)
   in
 
-  I.vcat visible_lines
+  I.vcat (help_line :: visible_lines)
 
 let any_lines_selected file_z =
   Zipper.to_list file_z
