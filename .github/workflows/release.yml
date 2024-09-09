@@ -22,7 +22,7 @@ jobs:
             asset: git-split-linux-amd64
             ocaml-version: ocaml-variants.4.14.2+options,ocaml-option-flambda
           - os: macos-latest
-            asset: git-split-macos-amd64
+            asset: git-split-macos-arm64
             ocaml-version: ocaml-variants.4.14.2+options,ocaml-option-flambda
 
     env:
