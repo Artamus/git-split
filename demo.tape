@@ -6,7 +6,7 @@ Set FontSize 24
 Set Width 1200
 Set Height 600
 
-Type "dune exec git_split -- --example"
+Type "dune exec git-split -- --example"
 Sleep 0.5s
 Enter @2
 Right @0.2
