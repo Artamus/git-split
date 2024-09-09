@@ -1,4 +1,2 @@
-- Combine TUI code in its own subdirectory.
-- Tests for TUI update and view.
-- Investigate whether the eager update of state when moving the cursor could be made lazy (the view code and the mapping to diff code need checking then).
-- Maybe add context snippets to TUI hunk lines?
+- Improve error response checking for command line operations, so that they could be turned to Err results.
+- Maybe add context snippets if they exist into the TUI.
