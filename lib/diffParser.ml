@@ -131,7 +131,7 @@ let parse_file_diff file_diff =
     parse_renamed_file file_diff |> Result.map (fun file -> RenamedFile file)
   else parse_changed_file file_diff |> Result.map (fun file -> ChangedFile file)
 
-let parse_diff raw_diff =
+let parse raw_diff =
   let file_split_regex = Re.Perl.re ~opts:[ `Multiline ] "^diff --git a/" |> Re.Perl.compile in
   let file_diffs = Re.split file_split_regex raw_diff in
   let* files = file_diffs |> List.map parse_file_diff |> Result.all in

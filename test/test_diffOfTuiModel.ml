@@ -314,7 +314,7 @@ let renamed_file_with_content_changes () =
   in
   check diff_testable "same diffs" expected diff
 
-let multiple_files () =
+let multiple_changed_files () =
   let tui_model : TuiModel.model =
     File
       (Zipper.from_list_exn
@@ -619,21 +619,21 @@ let deleted_with_unselected_is_changed () =
 
 let diff_of_tui_model_suite =
   [
-    ("single hunk", `Quick, changed_file_single_hunk);
-    ("multiple hunks", `Quick, changed_file_multiple_hunks);
-    ("deleted file", `Quick, deleted_file);
-    ("created file", `Quick, created_file);
-    ("renamed file without content", `Quick, renamed_file_without_content_changes);
-    ("renamed file with content changes", `Quick, renamed_file_with_content_changes);
-    ("multiple files", `Quick, multiple_files);
+    ("with a single changed hunk", `Quick, changed_file_single_hunk);
+    ("with multiple changed hunks", `Quick, changed_file_multiple_hunks);
+    ("with a deleted file", `Quick, deleted_file);
+    ("with a created file", `Quick, created_file);
+    ("with a renamed file without content", `Quick, renamed_file_without_content_changes);
+    ("with a renamed file with content changes", `Quick, renamed_file_with_content_changes);
+    ("with multiple changed files", `Quick, multiple_changed_files);
     ( "unselected removed lines become context lines in the diff",
       `Quick,
       unselected_removed_become_context );
-    ("unselected added lines are excluded from the diff", `Quick, unselected_added_are_excluded);
-    ( "created file with some unselected lines remains a created file",
+    ("excludes unselected added lines from the diff", `Quick, unselected_added_are_excluded);
+    ( "keeps a created file with some unselected lines a created file",
       `Quick,
       created_with_unselected_is_created );
-    ( "deleted file with some unselected lines becomes a changed file",
+    ( "changes a deleted file with some unselected lines to a changed file",
       `Quick,
       deleted_with_unselected_is_changed );
   ]

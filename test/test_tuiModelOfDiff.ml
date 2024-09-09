@@ -419,11 +419,11 @@ let multiple_files () =
 
 let tui_model_of_diff_suite =
   [
-    ("single hunk", `Quick, changed_file_single_hunk);
-    ("multiple hunks", `Quick, changed_file_multiple_hunks);
-    ("deleted file", `Quick, deleted_file);
-    ("created file", `Quick, created_file);
-    ("renamed file without content", `Quick, renamed_file_without_content_changes);
-    ("renamed file with content", `Quick, renamed_file_with_content_changes);
-    ("multiple files", `Quick, multiple_files);
+    ("containing a single hunk", `Quick, changed_file_single_hunk);
+    ("containing multiple hunks", `Quick, changed_file_multiple_hunks);
+    ("containing deleted file", `Quick, deleted_file);
+    ("containing created file", `Quick, created_file);
+    ("containing renamed file without content", `Quick, renamed_file_without_content_changes);
+    ("containing renamed file with content", `Quick, renamed_file_with_content_changes);
+    ("containing multiple files", `Quick, multiple_files);
   ]

@@ -44,7 +44,7 @@ let rec select_changes reference_commit target_commit =
   let head_diff = process "git" [ "diff"; reference_commit; target_commit ] |> collect stdout in
   if String.length head_diff = 0 then Result.ok ()
   else
-    let* diff = DiffParser.parse_diff head_diff in
+    let* diff = DiffParser.parse head_diff in
     let* tui_model =
       Tui.model_of_diff diff
       |> Option.to_result
@@ -71,7 +71,7 @@ let () =
   else if !view_only then
     let head_diff = process "git" [ "diff"; "HEAD~"; "HEAD" ] |> collect stdout in
     let diff =
-      DiffParser.parse_diff head_diff
+      DiffParser.parse head_diff
       |> Result.map_error (fun err -> Printf.sprintf "Failed to parse diff, %s" err)
     in
     let model =

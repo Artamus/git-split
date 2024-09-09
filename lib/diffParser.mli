@@ -1,1 +1,1 @@
-val parse_diff : string -> (Diff.diff, string) result
+val parse : string -> (Diff.diff, string) result

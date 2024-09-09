@@ -17,7 +17,7 @@ let test_parses_single_hunk () =
     \ context"
   in
 
-  let diff = DiffParser.parse_diff raw_diff in
+  let diff = DiffParser.parse raw_diff in
 
   let expected : (Diff.diff, string) result =
     Ok
@@ -60,7 +60,7 @@ let test_parses_single_hunk_with_snippet () =
     \ context"
   in
 
-  let diff = DiffParser.parse_diff raw_diff in
+  let diff = DiffParser.parse raw_diff in
 
   let expected : (Diff.diff, string) result =
     Ok
@@ -108,7 +108,7 @@ let test_parses_diff_with_multiple_hunks () =
     \   hunk-2-unchanged-line"
   in
 
-  let diff = DiffParser.parse_diff raw_diff in
+  let diff = DiffParser.parse raw_diff in
 
   let expected : (Diff.diff, string) result =
     Ok
@@ -169,7 +169,7 @@ let test_parses_single_hunk_with_nonconsecutive_changes () =
     \ context"
   in
 
-  let diff = DiffParser.parse_diff raw_diff in
+  let diff = DiffParser.parse raw_diff in
 
   let expected : (Diff.diff, string) result =
     Ok
@@ -213,7 +213,7 @@ let test_parses_empty_deleted_file () =
      index e69de29..0000000"
   in
 
-  let diff = DiffParser.parse_diff raw_diff in
+  let diff = DiffParser.parse raw_diff in
 
   let expected : (Diff.diff, string) result =
     Ok { files = [ DeletedFile { path = "empty-new-file.md"; lines = [] } ] }
@@ -234,7 +234,7 @@ let test_parses_deleted_file () =
      -removed-line-5"
   in
 
-  let diff = DiffParser.parse_diff raw_diff in
+  let diff = DiffParser.parse raw_diff in
 
   let expected : (Diff.diff, string) result =
     Ok
@@ -265,7 +265,7 @@ let test_parses_empty_created_file () =
      index 0000000..e69de29"
   in
 
-  let diff = DiffParser.parse_diff raw_diff in
+  let diff = DiffParser.parse raw_diff in
 
   let expected : (Diff.diff, string) result =
     Ok { files = [ CreatedFile { path = "empty-new-file.md"; lines = [] } ] }
@@ -286,7 +286,7 @@ let test_parses_created_file () =
      +added-line-5"
   in
 
-  let diff = DiffParser.parse_diff raw_diff in
+  let diff = DiffParser.parse raw_diff in
 
   let expected : (Diff.diff, string) result =
     Ok
@@ -315,7 +315,7 @@ let test_parses_renamed_file_no_changes () =
     "diff --git a/src/old b/src/new\nsimilarity index 100%\nrename from src/old\nrename to src/new"
   in
 
-  let diff = DiffParser.parse_diff raw_diff in
+  let diff = DiffParser.parse raw_diff in
 
   let expected : (Diff.diff, string) result =
     Ok { files = [ RenamedFile { old_path = "src/old"; new_path = "src/new"; hunks = [] } ] }
@@ -337,7 +337,7 @@ let test_parses_renamed_file_with_changes () =
     \ context"
   in
 
-  let diff = DiffParser.parse_diff raw_diff in
+  let diff = DiffParser.parse raw_diff in
 
   let expected : (Diff.diff, string) result =
     Ok
@@ -388,7 +388,7 @@ let test_parses_diff_with_multiple_files () =
     \ context"
   in
 
-  let diff = DiffParser.parse_diff raw_diff in
+  let diff = DiffParser.parse raw_diff in
 
   let expected : (Diff.diff, string) result =
     Ok
@@ -438,19 +438,17 @@ let test_parses_diff_with_multiple_files () =
 
 let diff_parser_suite =
   [
-    ("containing a single hunk", `Quick, test_parses_single_hunk);
-    ( "containing a single hunk that has a context snippet",
-      `Quick,
-      test_parses_single_hunk_with_snippet );
-    ("containing multiple hunks", `Quick, test_parses_diff_with_multiple_hunks);
-    ( "containing a hunk made up of nonconsecutive changes",
+    ("with single hunk", `Quick, test_parses_single_hunk);
+    ("with a single hunk that has a context snippet", `Quick, test_parses_single_hunk_with_snippet);
+    ("with multiple hunks", `Quick, test_parses_diff_with_multiple_hunks);
+    ( "with a hunk made up of nonconsecutive changes",
       `Quick,
       test_parses_single_hunk_with_nonconsecutive_changes );
-    ("containing an empty deleted file", `Quick, test_parses_empty_deleted_file);
-    ("containing a deleted file", `Quick, test_parses_deleted_file);
-    ("containing an empty created file", `Quick, test_parses_empty_created_file);
-    ("containing a created file", `Quick, test_parses_created_file);
-    ("containing a file rename", `Quick, test_parses_renamed_file_no_changes);
-    ("containing a file rename that also has changes", `Quick, test_parses_renamed_file_with_changes);
-    ("containing changes for multiple files", `Quick, test_parses_diff_with_multiple_files);
+    ("with an empty deleted file", `Quick, test_parses_empty_deleted_file);
+    ("with a deleted file", `Quick, test_parses_deleted_file);
+    ("with an empty created file", `Quick, test_parses_empty_created_file);
+    ("with a created file", `Quick, test_parses_created_file);
+    ("with a file rename", `Quick, test_parses_renamed_file_no_changes);
+    ("with a file rename that also has changes", `Quick, test_parses_renamed_file_with_changes);
+    ("with changes for multiple files", `Quick, test_parses_diff_with_multiple_files);
   ]
