@@ -1,2 +1,4 @@
 - Improve error response checking for command line operations, so that they could be turned to Err results.
+- Handle binary file changes somehow.
+- Previous commit message as a template.
 - Maybe add context snippets if they exist into the TUI.
