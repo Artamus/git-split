@@ -56,11 +56,18 @@ let rec select_changes reference_commit target_commit =
     let serialized_diff = DiffSerializer.serialize selected_diff in
     let tmp_filename = Printf.sprintf "/tmp/%s.diff" reference_commit in
     echo serialized_diff > tmp_filename |> run;
-    process "git" [ "apply"; tmp_filename ] |> run;
-    process "git" [ "add"; "." ] |> run;
-    process "git" [ "commit" ] |> run;
-    let current_diff_commit = process "git" [ "rev-parse"; "--short"; "HEAD" ] |> collect stdout in
-    select_changes current_diff_commit target_commit
+    let apply_error, apply_status =
+      process "git" [ "apply"; tmp_filename ] |> collect stderr_and_status
+    in
+    if apply_status <> 0 then
+      Error ("Failed to apply selected diff with error \"" ^ apply_error ^ "\"")
+    else (
+      process "git" [ "add"; "." ] |> run;
+      process "git" [ "commit" ] |> run;
+      let current_diff_commit =
+        process "git" [ "rev-parse"; "--short"; "HEAD" ] |> collect stdout
+      in
+      select_changes current_diff_commit target_commit)
 
 let () =
   Arg.parse speclist anon_fun usage_msg;
