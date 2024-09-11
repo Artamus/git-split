@@ -69,7 +69,7 @@ let parse_deleted_file file_diff : deleted_file =
     if List.length file_elements < 3 then []
     else
       let lines_content = List.nth file_elements 2 in
-      lines_content |> String.split_on_char '\n' |> List.tl
+      lines_content |> String.split_on_char '\n' |> List.tl |> List.filter not_empty
       (* TODO: See if it would be better to throw it to the general line parsing function. *)
       |> List.map (fun line -> `RemovedLine (String.sub line 1 (String.length line - 1)))
   in
@@ -84,7 +84,7 @@ let parse_created_file file_diff : created_file =
     if List.length file_elements < 3 then []
     else
       let lines_content = List.nth file_elements 2 in
-      lines_content |> String.split_on_char '\n' |> List.tl
+      lines_content |> String.split_on_char '\n' |> List.tl |> List.filter not_empty
       (* TODO: See if it would be better to throw it to the general line parsing function. *)
       |> List.map (fun line -> `AddedLine (String.sub line 1 (String.length line - 1)))
   in
