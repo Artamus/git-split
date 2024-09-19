@@ -254,56 +254,67 @@ let tui_line_of_diff_line = function
 let model_of_diff (diff : Diff.diff) =
   let files =
     diff.files
-    |> List.map (fun (file : Diff.file) : file ->
+    |> List.filter_map (fun (file : Diff.file) : file option ->
            match file with
-           | Diff.DeletedFile deleted_file ->
-               let lines = deleted_file.lines |> List.map tui_line_of_diff_line in
-               {
-                 path = FilePath deleted_file.path;
-                 visibility = Collapsed;
-                 hunks =
-                   [ { starting_line = 1; context_snippet = None; visibility = Expanded; lines } ];
-               }
-           | Diff.CreatedFile created_file ->
-               let lines = created_file.lines |> List.map tui_line_of_diff_line in
-               {
-                 path = FilePath created_file.path;
-                 visibility = Collapsed;
-                 hunks =
-                   [ { starting_line = 1; context_snippet = None; visibility = Expanded; lines } ];
-               }
-           | Diff.ChangedFile changed_file ->
-               let hunks =
-                 changed_file.hunks
-                 |> List.map (fun (hunk : Diff.hunk) : hunk ->
-                        let lines = hunk.lines |> List.map tui_line_of_diff_line in
-                        {
-                          starting_line = hunk.starting_line;
-                          context_snippet = hunk.context_snippet;
-                          visibility = Expanded;
-                          lines;
-                        })
-               in
-               { path = FilePath changed_file.path; visibility = Collapsed; hunks }
-           | Diff.RenamedFile renamed_file ->
-               let hunks =
-                 renamed_file.hunks
-                 |> List.map (fun (hunk : Diff.hunk) : hunk ->
-                        let lines = hunk.lines |> List.map tui_line_of_diff_line in
-                        {
-                          starting_line = hunk.starting_line;
-                          context_snippet = hunk.context_snippet;
-                          visibility = Expanded;
-                          lines;
-                        })
-               in
-               {
-                 path =
-                   ChangedPath
-                     { old_path = renamed_file.old_path; new_path = renamed_file.new_path };
-                 visibility = Collapsed;
-                 hunks;
-               })
+           | DeletedFile deleted_file -> (
+               match deleted_file.content with
+               | `Binary _ -> None
+               | `Text removed_lines ->
+                   let lines = removed_lines |> List.map tui_line_of_diff_line in
+                   Some
+                     {
+                       path = FilePath deleted_file.path;
+                       visibility = Collapsed;
+                       hunks =
+                         [
+                           {
+                             starting_line = 1;
+                             context_snippet = None;
+                             visibility = Expanded;
+                             lines;
+                           };
+                         ];
+                     })
+           | CreatedFile created_file -> (
+               match created_file.content with
+               | `Binary _ -> None
+               | `Text added_lines ->
+                   let lines = added_lines |> List.map tui_line_of_diff_line in
+                   Some
+                     {
+                       path = FilePath created_file.path;
+                       visibility = Collapsed;
+                       hunks =
+                         [
+                           {
+                             starting_line = 1;
+                             context_snippet = None;
+                             visibility = Expanded;
+                             lines;
+                           };
+                         ];
+                     })
+           | ChangedFile changed_file -> (
+               match changed_file.content with
+               | `Binary _ -> None
+               | `Text changed_hunks ->
+                   let hunks =
+                     changed_hunks
+                     |> List.map (fun (hunk : Diff.hunk) : hunk ->
+                            let lines = hunk.lines |> List.map tui_line_of_diff_line in
+                            {
+                              starting_line = hunk.starting_line;
+                              context_snippet = hunk.context_snippet;
+                              visibility = Expanded;
+                              lines;
+                            })
+                   in
+                   let path =
+                     match changed_file.path with
+                     | Path path -> FilePath path
+                     | ChangedPath { src; dst } -> ChangedPath { old_path = src; new_path = dst }
+                   in
+                   Some { path; visibility = Collapsed; hunks }))
   in
   Zipper.from_list files |> Option.map (fun file_z -> TuiModel.File file_z)
 
@@ -371,7 +382,7 @@ let diff_of_model model =
                | FilePath path -> path
                | _ -> failwith "created file cannot have changed path"
              in
-             Diff.CreatedFile { path; lines }
+             Diff.CreatedFile { path; content = `Text lines }
            else if is_deleted_file then
              let hunk = List.hd file.hunks in
              let lines =
@@ -387,12 +398,14 @@ let diff_of_model model =
                | FilePath path -> path
                | _ -> failwith "deleted file cannot have changed path"
              in
-             Diff.DeletedFile { path; lines }
+             Diff.DeletedFile { path; content = `Text lines }
            else
-             match file.path with
-             | FilePath path -> Diff.ChangedFile { path; hunks }
-             | ChangedPath changed_path ->
-                 Diff.RenamedFile
-                   { old_path = changed_path.old_path; new_path = changed_path.new_path; hunks })
+             let path =
+               match file.path with
+               | FilePath path -> Diff.Path path
+               | ChangedPath changed_path ->
+                   Diff.ChangedPath { src = changed_path.old_path; dst = changed_path.new_path }
+             in
+             Diff.ChangedFile { path; content = `Text hunks })
   in
   Diff.{ files }

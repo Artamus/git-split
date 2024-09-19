@@ -12,21 +12,22 @@ let changed_file_single_hunk () =
         [
           ChangedFile
             {
-              path = "src/main";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = None;
-                    lines =
-                      [
-                        `ContextLine "context";
-                        `RemovedLine "removed-line";
-                        `AddedLine "added-line";
-                        `ContextLine "context";
-                      ];
-                  };
-                ];
+              path = Path "src/main";
+              content =
+                `Text
+                  [
+                    {
+                      starting_line = 1;
+                      context_snippet = None;
+                      lines =
+                        [
+                          `ContextLine "context";
+                          `RemovedLine "removed-line";
+                          `AddedLine "added-line";
+                          `ContextLine "context";
+                        ];
+                    };
+                  ];
             };
         ];
     }
@@ -69,32 +70,33 @@ let changed_file_multiple_hunks () =
         [
           ChangedFile
             {
-              path = "src/main";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = None;
-                    lines =
-                      [
-                        `ContextLine "context";
-                        `RemovedLine "removed-line";
-                        `AddedLine "added-line";
-                        `ContextLine "context";
-                      ];
-                  };
-                  {
-                    starting_line = 15;
-                    context_snippet = Some "context";
-                    lines =
-                      [
-                        `ContextLine "context";
-                        `RemovedLine "removed-line";
-                        `AddedLine "added-line";
-                        `ContextLine "context";
-                      ];
-                  };
-                ];
+              path = Path "src/main";
+              content =
+                `Text
+                  [
+                    {
+                      starting_line = 1;
+                      context_snippet = None;
+                      lines =
+                        [
+                          `ContextLine "context";
+                          `RemovedLine "removed-line";
+                          `AddedLine "added-line";
+                          `ContextLine "context";
+                        ];
+                    };
+                    {
+                      starting_line = 15;
+                      context_snippet = Some "context";
+                      lines =
+                        [
+                          `ContextLine "context";
+                          `RemovedLine "removed-line";
+                          `AddedLine "added-line";
+                          `ContextLine "context";
+                        ];
+                    };
+                  ];
             };
         ];
     }
@@ -150,13 +152,14 @@ let deleted_file () =
           DeletedFile
             {
               path = "src/main";
-              lines =
-                [
-                  `RemovedLine "removed-line-1";
-                  `RemovedLine "removed-line-2";
-                  `RemovedLine "removed-line-3";
-                  `RemovedLine "removed-line-4";
-                ];
+              content =
+                `Text
+                  [
+                    `RemovedLine "removed-line-1";
+                    `RemovedLine "removed-line-2";
+                    `RemovedLine "removed-line-3";
+                    `RemovedLine "removed-line-4";
+                  ];
             };
         ];
     }
@@ -200,13 +203,14 @@ let created_file () =
           CreatedFile
             {
               path = "src/main";
-              lines =
-                [
-                  `AddedLine "added-line-1";
-                  `AddedLine "added-line-2";
-                  `AddedLine "added-line-3";
-                  `AddedLine "added-line-4";
-                ];
+              content =
+                `Text
+                  [
+                    `AddedLine "added-line-1";
+                    `AddedLine "added-line-2";
+                    `AddedLine "added-line-3";
+                    `AddedLine "added-line-4";
+                  ];
             };
         ];
     }
@@ -244,7 +248,13 @@ let created_file () =
 
 let renamed_file_without_content_changes () =
   let diff : Diff.diff =
-    { files = [ RenamedFile { old_path = "src/old"; new_path = "src/new"; hunks = [] } ] }
+    {
+      files =
+        [
+          ChangedFile
+            { path = ChangedPath { src = "src/old"; dst = "src/new" }; content = `Text [] };
+        ];
+    }
   in
 
   let tui_model = Tui.model_of_diff diff in
@@ -269,24 +279,24 @@ let renamed_file_with_content_changes () =
     {
       files =
         [
-          RenamedFile
+          ChangedFile
             {
-              old_path = "src/old";
-              new_path = "src/new";
-              hunks =
-                [
-                  {
-                    starting_line = 15;
-                    context_snippet = Some "context";
-                    lines =
-                      [
-                        `ContextLine "context";
-                        `RemovedLine "removed-line";
-                        `AddedLine "added-line";
-                        `ContextLine "context";
-                      ];
-                  };
-                ];
+              path = ChangedPath { src = "src/old"; dst = "src/new" };
+              content =
+                `Text
+                  [
+                    {
+                      starting_line = 15;
+                      context_snippet = Some "context";
+                      lines =
+                        [
+                          `ContextLine "context";
+                          `RemovedLine "removed-line";
+                          `AddedLine "added-line";
+                          `ContextLine "context";
+                        ];
+                    };
+                  ];
             };
         ];
     }
@@ -330,39 +340,41 @@ let multiple_files () =
         [
           ChangedFile
             {
-              path = "src/main";
-              hunks =
-                [
-                  {
-                    starting_line = 1;
-                    context_snippet = None;
-                    lines =
-                      [
-                        `ContextLine "context";
-                        `RemovedLine "removed-line";
-                        `AddedLine "added-line";
-                        `ContextLine "context";
-                      ];
-                  };
-                ];
+              path = Path "src/main";
+              content =
+                `Text
+                  [
+                    {
+                      starting_line = 1;
+                      context_snippet = None;
+                      lines =
+                        [
+                          `ContextLine "context";
+                          `RemovedLine "removed-line";
+                          `AddedLine "added-line";
+                          `ContextLine "context";
+                        ];
+                    };
+                  ];
             };
           ChangedFile
             {
-              path = "src/other";
-              hunks =
-                [
-                  {
-                    starting_line = 15;
-                    context_snippet = Some "context";
-                    lines =
-                      [
-                        `ContextLine "context";
-                        `RemovedLine "removed-line";
-                        `AddedLine "added-line";
-                        `ContextLine "context";
-                      ];
-                  };
-                ];
+              path = Path "src/other";
+              content =
+                `Text
+                  [
+                    {
+                      starting_line = 15;
+                      context_snippet = Some "context";
+                      lines =
+                        [
+                          `ContextLine "context";
+                          `RemovedLine "removed-line";
+                          `AddedLine "added-line";
+                          `ContextLine "context";
+                        ];
+                    };
+                  ];
             };
         ];
     }
