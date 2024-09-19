@@ -30,15 +30,13 @@ let parse_line line : (line option, string) result =
     parsed_line |> Result.map (fun line -> Some line)
 
 let get_lines lines_diff =
-  print_endline @@ "Loins: " ^ lines_diff;
   String.split_on_char '\n' lines_diff
   |> List.filter not_empty |> List.map parse_line |> Result.all
   |> Result.map (fun lines -> lines |> List.filter_map Fun.id)
 
 let parse_hunk hunk =
-  print_endline @@ "honka: " ^ hunk;
   let honka_regex =
-    Re.Perl.re ~opts:[ `Multiline ] "^-(\d+),\d+ \+\d+,\d+ @@(.*)$([.\s\S]*)" |> Re.compile
+    Re.Perl.re ~opts:[ `Multiline ] {|^-(\d+),\d+ \+\d+,\d+ @@(.*)$([.\s\S]*)|} |> Re.compile
   in
   let foo = Re.exec honka_regex hunk in
 
@@ -56,15 +54,13 @@ let parse_hunk hunk =
   { starting_line; context_snippet; lines = Result.get_ok lines }
 
 let parse_text_content (file_diff : string) =
-  print_endline file_diff;
-
   let hunk_split_regex = Re.Perl.re ~opts:[ `Multiline ] "^@@ " |> Re.compile in
   let raw_hunks = Re.split hunk_split_regex file_diff |> List.tl in
   raw_hunks |> List.map parse_hunk
 
 let parse_binary_content file_diff =
   let binary_content_regex =
-    Re.Perl.re ~opts:[ `Multiline ] "^GIT binary patch\n([.\s\S]*)" |> Re.Perl.compile
+    Re.Perl.re ~opts:[ `Multiline ] {|^GIT binary patch\n([.\s\S]*)|} |> Re.Perl.compile
   in
   let+ binary_content_grp = Re.exec_opt binary_content_regex file_diff in
   Re.Group.get_opt binary_content_grp 1
