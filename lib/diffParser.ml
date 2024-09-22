@@ -35,13 +35,13 @@ let get_lines lines_diff =
   |> Result.map (fun lines -> lines |> List.filter_map Fun.id)
 
 let parse_hunk hunk =
-  let honka_regex =
-    Re.Perl.re ~opts:[ `Multiline ] {|^-(\d+),\d+ \+\d+,\d+ @@(.*)$([.\s\S]*)|} |> Re.compile
+  let hunk_regex =
+    Re.Perl.re ~opts:[ `Multiline ] {|^-(\d+),?\d* \+\d+,?\d* @@(.*)$([.\s\S]*)|} |> Re.compile
   in
-  let foo = Re.exec honka_regex hunk in
+  let hunk_groups = Re.exec hunk_regex hunk in
 
-  let starting_line = int_of_string @@ Re.Group.get foo 1 in
-  let raw_context_snippet = Re.Group.get foo 2 in
+  let starting_line = int_of_string @@ Re.Group.get hunk_groups 1 in
+  let raw_context_snippet = Re.Group.get hunk_groups 2 in
   let context_snippet =
     if not_empty raw_context_snippet then
       Some (String.sub raw_context_snippet 1 (String.length raw_context_snippet - 1))
@@ -49,7 +49,7 @@ let parse_hunk hunk =
   in
 
   (* TODO: Propagate errors. *)
-  let lines = get_lines @@ Re.Group.get foo 3 in
+  let lines = get_lines @@ Re.Group.get hunk_groups 3 in
 
   { starting_line; context_snippet; lines = Result.get_ok lines }
 
