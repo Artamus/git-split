@@ -115,7 +115,7 @@ let parse_file_diff file_diff =
             let added_lines = filter_flatten_hunks_lines hunks select_added_line in
             Ok (`Text added_lines)
     in
-    Ok (CreatedFile { path; content })
+    Ok (CreatedFile { path; mode = 100644; content })
   else if was_file_deleted then
     let path, _ = diff_paths in
     let* content =
@@ -127,11 +127,11 @@ let parse_file_diff file_diff =
             let removed_lines = filter_flatten_hunks_lines hunks select_removed_line in
             Ok (`Text removed_lines)
     in
-    Ok (DeletedFile { path; content })
+    Ok (DeletedFile { path; mode = 100644; content })
   else
     let src, dst = diff_paths in
     let path = if src = dst then Path src else ChangedPath { src; dst } in
-    Ok (ChangedFile { path; content = diff_content })
+    Ok (ChangedFile { path; mode_change = None; content = diff_content })
 
 let parse raw_diff =
   let file_split_regex = Re.Perl.re ~opts:[ `Multiline ] "^diff --git " |> Re.Perl.compile in

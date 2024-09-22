@@ -382,7 +382,7 @@ let diff_of_model model =
                | FilePath path -> path
                | _ -> failwith "created file cannot have changed path"
              in
-             Diff.CreatedFile { path; content = `Text lines }
+             Diff.CreatedFile { path; mode = 100644; content = `Text lines }
            else if is_deleted_file then
              let hunk = List.hd file.hunks in
              let lines =
@@ -398,7 +398,7 @@ let diff_of_model model =
                | FilePath path -> path
                | _ -> failwith "deleted file cannot have changed path"
              in
-             Diff.DeletedFile { path; content = `Text lines }
+             Diff.DeletedFile { path; mode = 100644; content = `Text lines }
            else
              let path =
                match file.path with
@@ -406,6 +406,6 @@ let diff_of_model model =
                | ChangedPath changed_path ->
                    Diff.ChangedPath { src = changed_path.old_path; dst = changed_path.new_path }
              in
-             Diff.ChangedFile { path; content = `Text hunks })
+             Diff.ChangedFile { path; mode_change = None; content = `Text hunks })
   in
   Diff.{ files }

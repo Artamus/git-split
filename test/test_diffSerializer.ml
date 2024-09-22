@@ -9,6 +9,7 @@ let test_serializes_changed_file_text_content () =
           ChangedFile
             {
               path = Path "src/test";
+              mode_change = None;
               content =
                 `Text
                   [
@@ -67,6 +68,7 @@ let test_serializes_changed_file_binary_content () =
           ChangedFile
             {
               path = Path "test-font.ttf";
+              mode_change = None;
               content =
                 `Binary
                   "literal 94372\n\
@@ -92,7 +94,11 @@ let test_serializes_changed_file_renamed () =
       files =
         [
           ChangedFile
-            { path = ChangedPath { src = "src/old"; dst = "src/new" }; content = `Text [] };
+            {
+              path = ChangedPath { src = "src/old"; dst = "src/new" };
+              mode_change = None;
+              content = `Text [];
+            };
         ];
     }
   in
@@ -112,6 +118,7 @@ let test_serializes_changed_file_renamed_with_text_content () =
           ChangedFile
             {
               path = ChangedPath { src = "src/old"; dst = "src/new" };
+              mode_change = None;
               content =
                 `Text
                   [
@@ -157,7 +164,7 @@ let test_serializes_changed_file_renamed_with_text_content () =
 
 let test_serializes_empty_created_file () =
   let diff : Diff.diff =
-    { files = [ CreatedFile { path = "empty-new-file.md"; content = `Text [] } ] }
+    { files = [ CreatedFile { path = "empty-new-file.md"; mode = 100644; content = `Text [] } ] }
   in
 
   let git_diff = DiffSerializer.serialize diff in
@@ -173,6 +180,7 @@ let test_serializes_created_file_text_content () =
           CreatedFile
             {
               path = "src/main";
+              mode = 100644;
               content =
                 `Text
                   [
@@ -205,7 +213,7 @@ let test_serializes_created_file_text_content () =
 
 let test_serializes_created_file_binary_content () =
   let diff : Diff.diff =
-    { files = [ CreatedFile { path = "foo.bin"; content = `Binary "literal 18" } ] }
+    { files = [ CreatedFile { path = "foo.bin"; mode = 100644; content = `Binary "literal 18" } ] }
   in
 
   let git_diff = DiffSerializer.serialize diff in
@@ -218,7 +226,7 @@ let test_serializes_created_file_binary_content () =
 
 let test_serializes_empty_deleted_file () =
   let diff : Diff.diff =
-    { files = [ DeletedFile { path = "empty-new-file.md"; content = `Text [] } ] }
+    { files = [ DeletedFile { path = "empty-new-file.md"; mode = 100644; content = `Text [] } ] }
   in
 
   let git_diff = DiffSerializer.serialize diff in
@@ -234,6 +242,7 @@ let test_serializes_deleted_file_text_content () =
           DeletedFile
             {
               path = "src/main";
+              mode = 100644;
               content =
                 `Text
                   [
@@ -267,7 +276,13 @@ let test_serializes_deleted_file_text_content () =
 (* TODO: Should have "new file mode 100755" implementing file modes. *)
 let test_serializes_deleted_file_binary_content () =
   let diff : Diff.diff =
-    { files = [ DeletedFile { path = "foo.bin"; content = `Binary "literal 0\nHcmV?d00001" } ] }
+    {
+      files =
+        [
+          DeletedFile
+            { path = "foo.bin"; mode = 100644; content = `Binary "literal 0\nHcmV?d00001" };
+        ];
+    }
   in
 
   let git_diff = DiffSerializer.serialize diff in
@@ -289,6 +304,7 @@ let test_serializes_diff_with_multiple_files () =
           ChangedFile
             {
               path = Path "src/first";
+              mode_change = None;
               content =
                 `Text
                   [
@@ -308,6 +324,7 @@ let test_serializes_diff_with_multiple_files () =
           ChangedFile
             {
               path = Path "src/second";
+              mode_change = None;
               content =
                 `Text
                   [
@@ -359,6 +376,7 @@ let test_serializes_multiple_hunks_with_asymmetric_change_counts () =
           ChangedFile
             {
               path = Path "src/main";
+              mode_change = None;
               content =
                 `Text
                   [

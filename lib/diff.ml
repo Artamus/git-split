@@ -8,14 +8,27 @@ type hunk = { starting_line : int; context_snippet : string option; lines : line
 
 type binary_content = [ `Binary of string ] [@@deriving show, eq]
 type path = Path of string | ChangedPath of { src : string; dst : string } [@@deriving show, eq]
+type mode_change = { prev : int; next : int } [@@deriving show, eq]
 
-type changed_file = { path : path; content : [ `Text of hunk list | binary_content ] }
+type changed_file = {
+  path : path;
+  mode_change : mode_change option;
+  content : [ `Text of hunk list | binary_content ];
+}
 [@@deriving show, eq]
 
-type created_file = { path : string; content : [ `Text of added_line list | binary_content ] }
+type created_file = {
+  path : string;
+  mode : int;
+  content : [ `Text of added_line list | binary_content ];
+}
 [@@deriving show, eq]
 
-type deleted_file = { path : string; content : [ `Text of removed_line list | binary_content ] }
+type deleted_file = {
+  path : string;
+  mode : int;
+  content : [ `Text of removed_line list | binary_content ];
+}
 [@@deriving show, eq]
 
 type file =

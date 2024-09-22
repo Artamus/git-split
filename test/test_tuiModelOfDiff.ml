@@ -13,6 +13,7 @@ let changed_file_single_hunk () =
           ChangedFile
             {
               path = Path "src/main";
+              mode_change = None;
               content =
                 `Text
                   [
@@ -71,6 +72,7 @@ let changed_file_multiple_hunks () =
           ChangedFile
             {
               path = Path "src/main";
+              mode_change = None;
               content =
                 `Text
                   [
@@ -152,6 +154,7 @@ let deleted_file () =
           DeletedFile
             {
               path = "src/main";
+              mode = 100644;
               content =
                 `Text
                   [
@@ -203,6 +206,7 @@ let created_file () =
           CreatedFile
             {
               path = "src/main";
+              mode = 100644;
               content =
                 `Text
                   [
@@ -252,7 +256,11 @@ let renamed_file_without_content_changes () =
       files =
         [
           ChangedFile
-            { path = ChangedPath { src = "src/old"; dst = "src/new" }; content = `Text [] };
+            {
+              path = ChangedPath { src = "src/old"; dst = "src/new" };
+              mode_change = None;
+              content = `Text [];
+            };
         ];
     }
   in
@@ -282,6 +290,7 @@ let renamed_file_with_content_changes () =
           ChangedFile
             {
               path = ChangedPath { src = "src/old"; dst = "src/new" };
+              mode_change = None;
               content =
                 `Text
                   [
@@ -341,6 +350,7 @@ let multiple_files () =
           ChangedFile
             {
               path = Path "src/main";
+              mode_change = None;
               content =
                 `Text
                   [
@@ -360,6 +370,7 @@ let multiple_files () =
           ChangedFile
             {
               path = Path "src/other";
+              mode_change = None;
               content =
                 `Text
                   [

@@ -31,6 +31,7 @@ let test_parses_changed_file_text_content () =
           ChangedFile
             {
               path = Path "src/test";
+              mode_change = None;
               content =
                 `Text
                   [
@@ -81,6 +82,7 @@ let test_parses_changed_file_binary_content () =
           ChangedFile
             {
               path = Path "test-font.ttf";
+              mode_change = None;
               content =
                 `Binary
                   "literal 94372\n\
@@ -103,7 +105,11 @@ let test_parses_changed_file_renamed () =
       files =
         [
           ChangedFile
-            { path = ChangedPath { src = "src/old"; dst = "src/new" }; content = `Text [] };
+            {
+              path = ChangedPath { src = "src/old"; dst = "src/new" };
+              mode_change = None;
+              content = `Text [];
+            };
         ];
     }
   in
@@ -133,6 +139,7 @@ let test_parses_changed_file_renamed_with_text_content () =
           ChangedFile
             {
               path = ChangedPath { src = "src/old"; dst = "src/new" };
+              mode_change = None;
               content =
                 `Text
                   [
@@ -160,7 +167,7 @@ let test_parses_file_mode_change () =
   let diff = DiffParser.parse raw_diff in
 
   let expected : Diff.diff =
-    { files = [ ChangedFile { path = Path "script"; content = `Text [] } ] }
+    { files = [ ChangedFile { path = Path "script"; mode_change = None; content = `Text [] } ] }
   in
   check result_diff_testable "same diffs" (Ok expected) diff
 
@@ -188,6 +195,7 @@ let test_parses_file_mode_change_with_text_content () =
           ChangedFile
             {
               path = Path "script";
+              mode_change = None;
               content =
                 `Text
                   [
@@ -217,7 +225,10 @@ let test_parses_file_mode_change_with_binary_content () =
   let diff = DiffParser.parse raw_diff in
 
   let expected : Diff.diff =
-    { files = [ ChangedFile { path = Path "test2.bin"; content = `Binary "delta 6" } ] }
+    {
+      files =
+        [ ChangedFile { path = Path "test2.bin"; mode_change = None; content = `Binary "delta 6" } ];
+    }
   in
   check result_diff_testable "same diffs" (Ok expected) diff
 
@@ -231,7 +242,7 @@ let test_parses_empty_created_file () =
   let diff = DiffParser.parse raw_diff in
 
   let expected : Diff.diff =
-    { files = [ CreatedFile { path = "empty-new-file.md"; content = `Text [] } ] }
+    { files = [ CreatedFile { path = "empty-new-file.md"; mode = 100644; content = `Text [] } ] }
   in
   check result_diff_testable "same diffs" (Ok expected) diff
 
@@ -258,6 +269,7 @@ let test_parses_created_file_text_content () =
           CreatedFile
             {
               path = "src/main";
+              mode = 100644;
               content =
                 `Text
                   [
@@ -285,7 +297,7 @@ let test_parses_created_file_binary_content () =
   let diff = DiffParser.parse raw_diff in
 
   let expected : Diff.diff =
-    { files = [ CreatedFile { path = "foo.bin"; content = `Binary "literal 18" } ] }
+    { files = [ CreatedFile { path = "foo.bin"; mode = 100644; content = `Binary "literal 18" } ] }
   in
   check result_diff_testable "same diffs" (Ok expected) diff
 
@@ -299,7 +311,7 @@ let test_parses_empty_deleted_file () =
   let diff = DiffParser.parse raw_diff in
 
   let expected : Diff.diff =
-    { files = [ DeletedFile { path = "empty-new-file.md"; content = `Text [] } ] }
+    { files = [ DeletedFile { path = "empty-new-file.md"; mode = 100644; content = `Text [] } ] }
   in
   check result_diff_testable "same diffs" (Ok expected) diff
 
@@ -326,6 +338,7 @@ let test_parses_deleted_file_text_content () =
           DeletedFile
             {
               path = "src/main";
+              mode = 100644;
               content =
                 `Text
                   [
@@ -354,7 +367,13 @@ let test_parses_deleted_file_binary_content () =
   let diff = DiffParser.parse raw_diff in
 
   let expected : Diff.diff =
-    { files = [ DeletedFile { path = "foo.bin"; content = `Binary "literal 0\nHcmV?d00001" } ] }
+    {
+      files =
+        [
+          DeletedFile
+            { path = "foo.bin"; mode = 100644; content = `Binary "literal 0\nHcmV?d00001" };
+        ];
+    }
   in
   check result_diff_testable "same diffs" (Ok expected) diff
 
@@ -387,6 +406,7 @@ let test_parses_diff_with_multiple_files () =
           ChangedFile
             {
               path = Path "src/first";
+              mode_change = None;
               content =
                 `Text
                   [
@@ -406,6 +426,7 @@ let test_parses_diff_with_multiple_files () =
           ChangedFile
             {
               path = Path "src/second";
+              mode_change = None;
               content =
                 `Text
                   [
