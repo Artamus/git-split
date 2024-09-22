@@ -14,18 +14,17 @@ new file mode 100644|} file.path file.path
   in
   let content =
     match file.content with
-    | `Binary binary_content -> serialize_binary_content binary_content
+    | `Binary binary_content -> [ serialize_binary_content binary_content ]
     | `Text added_lines ->
         let lines = added_lines |> List.map serialize_line in
-        if List.length lines = 0 then ""
+        if List.length lines = 0 then []
         else
-          let file_path_header = Printf.sprintf {|
---- /dev/null
+          let file_path_header = Printf.sprintf {|--- /dev/null
 +++ b/%s|} file.path in
           let hunk_header = Printf.sprintf "@@ -0,0 +1,%d @@" (List.length lines) in
-          file_path_header :: hunk_header :: lines |> String.concat "\n"
+          file_path_header :: hunk_header :: lines
   in
-  diff_header ^ content
+  diff_header :: content |> String.concat "\n"
 
 let serialize_deleted_file (file : deleted_file) =
   let diff_header =
@@ -34,18 +33,17 @@ deleted file mode 100644|} file.path file.path
   in
   let content =
     match file.content with
-    | `Binary binary_content -> serialize_binary_content binary_content
+    | `Binary binary_content -> [ serialize_binary_content binary_content ]
     | `Text removed_lines ->
         let lines = removed_lines |> List.map serialize_line in
-        if List.length lines = 0 then ""
+        if List.length lines = 0 then []
         else
-          let file_path_header = Printf.sprintf {|
---- a/%s
+          let file_path_header = Printf.sprintf {|--- a/%s
 +++ /dev/null|} file.path in
           let hunk_header = Printf.sprintf "@@ -1,%d +0,0 @@" (List.length lines) in
-          file_path_header :: hunk_header :: lines |> String.concat "\n"
+          file_path_header :: hunk_header :: lines
   in
-  diff_header ^ content
+  diff_header :: content |> String.concat "\n"
 
 let count_left_lines lines =
   lines
