@@ -10,13 +10,13 @@ let test_parses_changed_file_text_content () =
      index 5ca75dc..b20f9ac 100644\n\
      --- a/src/test\n\
      +++ b/src/test\n\
-     @@ -4,8 +4,7 @@ fun main() {\n\
+     @@ -4,4 +4,3 @@ fun main() {\n\
     \   hunk-1-unchanged-line\n\
      -  hunk-1-removed-line\n\
      -  hunk-1-removed-line\n\
      +  hunk-1-added-line\n\
     \   hunk-1-unchanged-line\n\
-     @@ -57,5 +56,6 @@\n\
+     @@ -57,2 +56,3 @@\n\
     \   hunk-2-unchanged-line\n\
      +  hunk-2-added-line\n\
     \   hunk-2-unchanged-line"
@@ -298,10 +298,10 @@ let test_parses_empty_deleted_file () =
 
   let diff = DiffParser.parse raw_diff in
 
-  let expected : (Diff.diff, string) result =
-    Ok { files = [ DeletedFile { path = "empty-new-file.md"; content = `Text [] } ] }
+  let expected : Diff.diff =
+    { files = [ DeletedFile { path = "empty-new-file.md"; content = `Text [] } ] }
   in
-  check result_diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let test_parses_deleted_file_text_content () =
   let raw_diff =

@@ -1,7 +1,7 @@
 open Alcotest
 open Git_split
 
-let test_serializes_multiple_hunks () =
+let test_serializes_changed_file_text_content () =
   let diff : Diff.diff =
     {
       files =
@@ -18,6 +18,7 @@ let test_serializes_multiple_hunks () =
                       lines =
                         [
                           `ContextLine "  hunk-1-unchanged-line";
+                          `RemovedLine "  hunk-1-removed-line";
                           `RemovedLine "  hunk-1-removed-line";
                           `AddedLine "  hunk-1-added-line";
                           `ContextLine "  hunk-1-unchanged-line";
@@ -45,58 +46,31 @@ let test_serializes_multiple_hunks () =
     "diff --git a/src/test b/src/test\n\
      --- a/src/test\n\
      +++ b/src/test\n\
-     @@ -4,3 +4,3 @@ fun main() {\n\
+     @@ -4,4 +4,3 @@ fun main() {\n\
     \   hunk-1-unchanged-line\n\
+     -  hunk-1-removed-line\n\
      -  hunk-1-removed-line\n\
      +  hunk-1-added-line\n\
     \   hunk-1-unchanged-line\n\
-     @@ -57,2 +57,3 @@\n\
+     @@ -57,2 +56,3 @@\n\
     \   hunk-2-unchanged-line\n\
      +  hunk-2-added-line\n\
     \   hunk-2-unchanged-line"
   in
   check string "same git diffs" expected git_diff
 
-let test_serializes_multiple_hunks_with_asymmetric_change_counts () =
+let test_serializes_changed_file_binary_content () =
   let diff : Diff.diff =
     {
       files =
         [
           ChangedFile
             {
-              path = Path "src/main";
+              path = Path "test-font.ttf";
               content =
-                `Text
-                  [
-                    {
-                      starting_line = 1;
-                      context_snippet = None;
-                      lines =
-                        [
-                          `ContextLine "context";
-                          `RemovedLine "removed-line";
-                          `RemovedLine "removed-line-2";
-                          `ContextLine "context";
-                        ];
-                    };
-                    {
-                      starting_line = 8;
-                      context_snippet = None;
-                      lines =
-                        [ `ContextLine "context"; `AddedLine "added-line"; `ContextLine "context" ];
-                    };
-                    {
-                      starting_line = 15;
-                      context_snippet = None;
-                      lines =
-                        [
-                          `ContextLine "context";
-                          `RemovedLine "removed-line";
-                          `AddedLine "added-line";
-                          `ContextLine "context";
-                        ];
-                    };
-                  ];
+                `Binary
+                  "literal 94372\n\
+                   zcmcG$2Ur|O(g50F134|Qz%H=M!tTNnHZK{L3<7~bD4@g=B#;mwf+blwpa{yzN|r1+";
             };
         ];
     }
@@ -105,27 +79,14 @@ let test_serializes_multiple_hunks_with_asymmetric_change_counts () =
   let git_diff = DiffSerializer.serialize diff in
 
   let expected =
-    "diff --git a/src/main b/src/main\n\
-     --- a/src/main\n\
-     +++ b/src/main\n\
-     @@ -1,4 +1,2 @@\n\
-    \ context\n\
-     -removed-line\n\
-     -removed-line-2\n\
-    \ context\n\
-     @@ -8,2 +6,3 @@\n\
-    \ context\n\
-     +added-line\n\
-    \ context\n\
-     @@ -15,3 +14,3 @@\n\
-    \ context\n\
-     -removed-line\n\
-     +added-line\n\
-    \ context"
+    "diff --git a/test-font.ttf b/test-font.ttf\n\
+     GIT binary patch\n\
+     literal 94372\n\
+     zcmcG$2Ur|O(g50F134|Qz%H=M!tTNnHZK{L3<7~bD4@g=B#;mwf+blwpa{yzN|r1+"
   in
   check string "same git diffs" expected git_diff
 
-let test_serializes_rename () =
+let test_serializes_changed_file_renamed () =
   let diff : Diff.diff =
     {
       files =
@@ -143,7 +104,7 @@ let test_serializes_rename () =
   in
   check string "same git diffs" expected git_diff
 
-let test_serializes_rename_with_changes () =
+let test_serializes_changed_file_renamed_with_text_content () =
   let diff : Diff.diff =
     {
       files =
@@ -188,15 +149,23 @@ let test_serializes_rename_with_changes () =
   in
   check string "same git diffs" expected git_diff
 
-let test_serializes_empty_created () =
-  let diff : Diff.diff = { files = [ CreatedFile { path = "src/main"; content = `Text [] } ] } in
+(* TODO: test_serializes_file_mode_change *)
+
+(* TODO: test_parses_file_mode_change_with_text_content *)
+
+(* TODO: test_parses_file_mode_change_with_binary_content *)
+
+let test_serializes_empty_created_file () =
+  let diff : Diff.diff =
+    { files = [ CreatedFile { path = "empty-new-file.md"; content = `Text [] } ] }
+  in
 
   let git_diff = DiffSerializer.serialize diff in
 
-  let expected = "diff --git a/src/main b/src/main\nnew file mode 100644" in
+  let expected = "diff --git a/empty-new-file.md b/empty-new-file.md\nnew file mode 100644" in
   check string "same git diffs" expected git_diff
 
-let test_serializes_created () =
+let test_serializes_created_file_text_content () =
   let diff : Diff.diff =
     {
       files =
@@ -204,7 +173,15 @@ let test_serializes_created () =
           CreatedFile
             {
               path = "src/main";
-              content = `Text [ `AddedLine "added-line-1"; `AddedLine "added-line-2" ];
+              content =
+                `Text
+                  [
+                    `AddedLine "added-line-1";
+                    `AddedLine "added-line-2";
+                    `AddedLine "added-line-3";
+                    `AddedLine "added-line-4";
+                    `AddedLine "added-line-5";
+                  ];
             };
         ];
     }
@@ -217,21 +194,39 @@ let test_serializes_created () =
      new file mode 100644\n\
      --- /dev/null\n\
      +++ b/src/main\n\
-     @@ -0,0 +1,2 @@\n\
+     @@ -0,0 +1,5 @@\n\
      +added-line-1\n\
-     +added-line-2"
+     +added-line-2\n\
+     +added-line-3\n\
+     +added-line-4\n\
+     +added-line-5"
   in
   check string "same git diffs" expected git_diff
 
-let test_serializes_empty_deleted () =
-  let diff : Diff.diff = { files = [ DeletedFile { path = "src/main"; content = `Text [] } ] } in
+let test_serializes_created_file_binary_content () =
+  let diff : Diff.diff =
+    { files = [ CreatedFile { path = "foo.bin"; content = `Binary "literal 18" } ] }
+  in
 
   let git_diff = DiffSerializer.serialize diff in
 
-  let expected = "diff --git a/src/main b/src/main\ndeleted file mode 100644" in
+  (* TODO: Should have "new file mode 100755" implementing file modes. *)
+  let expected =
+    "diff --git a/foo.bin b/foo.bin\nnew file mode 100644\nGIT binary patch\nliteral 18"
+  in
   check string "same git diffs" expected git_diff
 
-let test_serializes_deleted () =
+let test_serializes_empty_deleted_file () =
+  let diff : Diff.diff =
+    { files = [ DeletedFile { path = "empty-new-file.md"; content = `Text [] } ] }
+  in
+
+  let git_diff = DiffSerializer.serialize diff in
+
+  let expected = "diff --git a/empty-new-file.md b/empty-new-file.md\ndeleted file mode 100644" in
+  check string "same git diffs" expected git_diff
+
+let test_serializes_deleted_file_text_content () =
   let diff : Diff.diff =
     {
       files =
@@ -239,7 +234,15 @@ let test_serializes_deleted () =
           DeletedFile
             {
               path = "src/main";
-              content = `Text [ `RemovedLine "removed-line-1"; `RemovedLine "removed-line-2" ];
+              content =
+                `Text
+                  [
+                    `RemovedLine "removed-line-1";
+                    `RemovedLine "removed-line-2";
+                    `RemovedLine "removed-line-3";
+                    `RemovedLine "removed-line-4";
+                    `RemovedLine "removed-line-5";
+                  ];
             };
         ];
     }
@@ -252,26 +255,33 @@ let test_serializes_deleted () =
      deleted file mode 100644\n\
      --- a/src/main\n\
      +++ /dev/null\n\
-     @@ -1,2 +0,0 @@\n\
+     @@ -1,5 +0,0 @@\n\
      -removed-line-1\n\
-     -removed-line-2"
+     -removed-line-2\n\
+     -removed-line-3\n\
+     -removed-line-4\n\
+     -removed-line-5"
   in
   check string "same git diffs" expected git_diff
 
-let test_serializes_binary () =
+(* TODO: Should have "new file mode 100755" implementing file modes. *)
+let test_serializes_deleted_file_binary_content () =
   let diff : Diff.diff =
-    {
-      files =
-        [ ChangedFile { path = Path "src/main"; content = `Binary "jusdt\nsome\ntest\ncontent" } ];
-    }
+    { files = [ DeletedFile { path = "foo.bin"; content = `Binary "literal 0\nHcmV?d00001" } ] }
   in
 
   let git_diff = DiffSerializer.serialize diff in
 
-  let expected = "diff --git a/src/main b/src/main\nGIT binary patch\njusdt\nsome\ntest\ncontent" in
+  let expected =
+    "diff --git a/foo.bin b/foo.bin\n\
+     deleted file mode 100644\n\
+     GIT binary patch\n\
+     literal 0\n\
+     HcmV?d00001"
+  in
   check string "same git diffs" expected git_diff
 
-let test_serializes_multiple_files () =
+let test_serializes_diff_with_multiple_files () =
   let diff : Diff.diff =
     {
       files =
@@ -340,18 +350,92 @@ let test_serializes_multiple_files () =
   in
   check string "same git diffs" expected git_diff
 
+(** The purpose of this test is to cover potential regressions to calculating the starting line on the added part, as we actually calculate this from the information we have. *)
+let test_serializes_multiple_hunks_with_asymmetric_change_counts () =
+  let diff : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = Path "src/main";
+              content =
+                `Text
+                  [
+                    {
+                      starting_line = 1;
+                      context_snippet = None;
+                      lines =
+                        [
+                          `ContextLine "context";
+                          `RemovedLine "removed-line";
+                          `RemovedLine "removed-line-2";
+                          `ContextLine "context";
+                        ];
+                    };
+                    {
+                      starting_line = 8;
+                      context_snippet = None;
+                      lines =
+                        [ `ContextLine "context"; `AddedLine "added-line"; `ContextLine "context" ];
+                    };
+                    {
+                      starting_line = 15;
+                      context_snippet = None;
+                      lines =
+                        [
+                          `ContextLine "context";
+                          `RemovedLine "removed-line";
+                          `AddedLine "added-line";
+                          `ContextLine "context";
+                        ];
+                    };
+                  ];
+            };
+        ];
+    }
+  in
+
+  let git_diff = DiffSerializer.serialize diff in
+
+  let expected =
+    "diff --git a/src/main b/src/main\n\
+     --- a/src/main\n\
+     +++ b/src/main\n\
+     @@ -1,4 +1,2 @@\n\
+    \ context\n\
+     -removed-line\n\
+     -removed-line-2\n\
+    \ context\n\
+     @@ -8,2 +6,3 @@\n\
+    \ context\n\
+     +added-line\n\
+    \ context\n\
+     @@ -15,3 +14,3 @@\n\
+    \ context\n\
+     -removed-line\n\
+     +added-line\n\
+    \ context"
+  in
+  check string "same git diffs" expected git_diff
+
 let diff_serializer_suite =
   [
-    ("containing a changed file with multiple hunks", `Quick, test_serializes_multiple_hunks);
-    ( "containing multiple hunks with asymmetric number of changes per hunk",
+    ("of changed with text content", `Quick, test_serializes_changed_file_text_content);
+    ("of changed file with binary content", `Quick, test_serializes_changed_file_binary_content);
+    ("of renamed file", `Quick, test_serializes_changed_file_renamed);
+    ( "of renamed file with text content",
+      `Quick,
+      test_serializes_changed_file_renamed_with_text_content );
+    (* It is not possible to have a renamed file with changed binary content. *)
+    ("of empty created file", `Quick, test_serializes_empty_created_file);
+    ("of created file with text content", `Quick, test_serializes_created_file_text_content);
+    ("of created file with binary content", `Quick, test_serializes_created_file_binary_content);
+    ("of empty deleted file", `Quick, test_serializes_empty_deleted_file);
+    ("of deleted file with text content", `Quick, test_serializes_deleted_file_text_content);
+    ("of deleted file with binary content", `Quick, test_serializes_deleted_file_binary_content);
+    ("of multiple files", `Quick, test_serializes_diff_with_multiple_files);
+    ( "of a changed file with asymmetric change counts between hunks",
       `Quick,
       test_serializes_multiple_hunks_with_asymmetric_change_counts );
-    ("containing a simply renamed file", `Quick, test_serializes_rename);
-    ("containing a renamed file with changes", `Quick, test_serializes_rename_with_changes);
-    ("containing an empty created file", `Quick, test_serializes_empty_created);
-    ("containing a non-empty created file", `Quick, test_serializes_created);
-    ("containing an empty deleted file", `Quick, test_serializes_empty_deleted);
-    ("containing a non-empty deleted file", `Quick, test_serializes_deleted);
-    ("containing a changed file with binary content", `Quick, test_serializes_binary);
-    ("containing multiple files", `Quick, test_serializes_multiple_files);
   ]
