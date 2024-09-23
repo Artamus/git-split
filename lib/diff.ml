@@ -11,7 +11,7 @@ type binary_content = [ `Binary of string ] [@@deriving show, eq]
 type path = Path of string | ChangedPath of { old_path : string; new_path : string }
 [@@deriving show, eq]
 
-type mode_change = { prev : int; next : int } [@@deriving show, eq]
+type mode_change = { old_mode : int; new_mode : int } [@@deriving show, eq]
 
 type changed_file = {
   path : path;

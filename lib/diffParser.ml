@@ -96,7 +96,7 @@ let parse_mode_change file_diff =
   let+ new_mode =
     Re.Group.get_opt mode_change_groups 2 |> Option.map int_of_string_opt |> Option.join
   in
-  Some { prev = old_mode; next = new_mode }
+  Some { old_mode; new_mode }
 
 let filter_flatten_hunks_lines hunks filter =
   hunks |> List.map (fun hunk -> hunk.lines) |> List.flatten |> List.filter_map filter

@@ -97,8 +97,8 @@ let serialize_changed_file (changed_file : changed_file) =
     | None -> []
     | Some mode_change ->
         [
-          Printf.sprintf "old mode %d" mode_change.prev;
-          Printf.sprintf "new mode %d" mode_change.next;
+          Printf.sprintf "old mode %d" mode_change.old_mode;
+          Printf.sprintf "new mode %d" mode_change.new_mode;
         ]
   in
 

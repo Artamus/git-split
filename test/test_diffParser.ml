@@ -173,7 +173,7 @@ let test_parses_file_mode_change () =
           ChangedFile
             {
               path = Path "script";
-              mode_change = Some { prev = 100644; next = 100755 };
+              mode_change = Some { old_mode = 100644; new_mode = 100755 };
               content = `Text [];
             };
         ];
@@ -205,7 +205,7 @@ let test_parses_file_mode_change_with_text_content () =
           ChangedFile
             {
               path = Path "script";
-              mode_change = Some { prev = 100755; next = 100644 };
+              mode_change = Some { old_mode = 100755; new_mode = 100644 };
               content =
                 `Text
                   [
@@ -241,7 +241,7 @@ let test_parses_file_mode_change_with_binary_content () =
           ChangedFile
             {
               path = Path "test2.bin";
-              mode_change = Some { prev = 100755; next = 100644 };
+              mode_change = Some { old_mode = 100755; new_mode = 100644 };
               content = `Binary "delta 6";
             };
         ];
@@ -275,7 +275,7 @@ let test_parses_changed_file_renamed_with_mode_change () =
           ChangedFile
             {
               path = ChangedPath { old_path = "script"; new_path = "scriptt" };
-              mode_change = Some { prev = 100644; next = 100755 };
+              mode_change = Some { old_mode = 100644; new_mode = 100755 };
               content =
                 `Text
                   [
