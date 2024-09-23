@@ -249,6 +249,48 @@ let test_parses_file_mode_change_with_binary_content () =
   in
   check result_diff_testable "same diffs" (Ok expected) diff
 
+let test_parses_changed_file_renamed_with_mode_change () =
+  let raw_diff =
+    "diff --git a/script b/scriptt\n\
+     old mode 100644\n\
+     new mode 100755\n\
+     similarity index 87%\n\
+     rename from script\n\
+     rename to scriptt\n\
+     index afa86b4..509c98e\n\
+     --- a/script\n\
+     +++ b/scriptt\n\
+     @@ -1,2 +1,2 @@\n\
+    \ hello\n\
+     -\n\
+     +e"
+  in
+
+  let diff = DiffParser.parse raw_diff in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = ChangedPath { src = "script"; dst = "scriptt" };
+              mode_change = Some { prev = 100644; next = 100755 };
+              content =
+                `Text
+                  [
+                    {
+                      starting_line = 1;
+                      context_snippet = None;
+                      lines = [ `ContextLine "hello"; `RemovedLine ""; `AddedLine "e" ];
+                    };
+                  ];
+            };
+        ];
+    }
+  in
+  check result_diff_testable "same diffs" (Ok expected) diff
+
 let test_parses_empty_created_file () =
   let raw_diff =
     "diff --git a/empty-new-file.md b/empty-new-file.md\n\
@@ -491,6 +533,7 @@ let diff_parser_suite =
     ( "of changed file with mode change and binary content",
       `Quick,
       test_parses_file_mode_change_with_binary_content );
+    ("of renamed file with mode change", `Quick, test_parses_changed_file_renamed_with_mode_change);
     ("of empty created file", `Quick, test_parses_empty_created_file);
     ("of created file with text content", `Quick, test_parses_created_file_text_content);
     ("of created file with binary content", `Quick, test_parses_created_file_binary_content);

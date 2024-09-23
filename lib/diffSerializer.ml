@@ -8,10 +8,8 @@ let serialize_line = function
 let serialize_binary_content binary_content = Printf.sprintf "GIT binary patch\n%s" binary_content
 
 let serialize_created_file (file : created_file) =
-  let diff_header =
-    Printf.sprintf {|diff --git a/%s b/%s
-new file mode 100644|} file.path file.path
-  in
+  let diff_header = Printf.sprintf "diff --git a/%s b/%s" file.path file.path in
+  let file_mode = Printf.sprintf "new file mode %d" file.mode in
   let content =
     match file.content with
     | `Binary binary_content -> [ serialize_binary_content binary_content ]
@@ -24,13 +22,11 @@ new file mode 100644|} file.path file.path
           let hunk_header = Printf.sprintf "@@ -0,0 +1,%d @@" (List.length lines) in
           file_path_header :: hunk_header :: lines
   in
-  diff_header :: content |> String.concat "\n"
+  diff_header :: file_mode :: content |> String.concat "\n"
 
 let serialize_deleted_file (file : deleted_file) =
-  let diff_header =
-    Printf.sprintf {|diff --git a/%s b/%s
-deleted file mode 100644|} file.path file.path
-  in
+  let diff_header = Printf.sprintf "diff --git a/%s b/%s" file.path file.path in
+  let file_mode = Printf.sprintf "deleted file mode %d" file.mode in
   let content =
     match file.content with
     | `Binary binary_content -> [ serialize_binary_content binary_content ]
@@ -43,7 +39,7 @@ deleted file mode 100644|} file.path file.path
           let hunk_header = Printf.sprintf "@@ -1,%d +0,0 @@" (List.length lines) in
           file_path_header :: hunk_header :: lines
   in
-  diff_header :: content |> String.concat "\n"
+  diff_header :: file_mode :: content |> String.concat "\n"
 
 let count_left_lines lines =
   lines
@@ -92,13 +88,27 @@ let serialize_changed_file (changed_file : changed_file) =
   let src_path, dst_path =
     match changed_file.path with Path path -> (path, path) | ChangedPath { src; dst } -> (src, dst)
   in
-  let diff_header = Printf.sprintf "diff --git a/%s b/%s" src_path dst_path in
+  let diff_header = [ Printf.sprintf "diff --git a/%s b/%s" src_path dst_path ] in
 
-  let renamed_file =
+  let mode_change =
+    match changed_file.mode_change with
+    | None -> []
+    | Some mode_change ->
+        [
+          Printf.sprintf "old mode %d" mode_change.prev;
+          Printf.sprintf "new mode %d" mode_change.next;
+        ]
+  in
+
+  let rename =
     match changed_file.path with
-    | Path _ -> ""
+    | Path _ -> []
     | ChangedPath { src; dst } ->
-        Printf.sprintf "\nsimilarity index 100%%\nrename from %s\nrename to %s" src dst
+        [
+          "similarity index 100%";
+          Printf.sprintf "rename from %s" src;
+          Printf.sprintf "rename to %s" dst;
+        ]
   in
 
   let content =
@@ -120,11 +130,11 @@ let serialize_changed_file (changed_file : changed_file) =
         if List.length hunks > 0 then changed_file_header :: hunk_lines else []
   in
 
-  (diff_header ^ renamed_file) :: content |> String.concat "\n"
+  List.concat [ diff_header; mode_change; rename; content ] |> String.concat "\n"
 
 let serialize_file = function
-  | DeletedFile file -> serialize_deleted_file file
   | CreatedFile file -> serialize_created_file file
+  | DeletedFile file -> serialize_deleted_file file
   | ChangedFile file -> serialize_changed_file file
 
 let serialize diff = diff.files |> List.map serialize_file |> String.concat "\n"

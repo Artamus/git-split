@@ -156,11 +156,132 @@ let test_serializes_changed_file_renamed_with_text_content () =
   in
   check string "same git diffs" expected git_diff
 
-(* TODO: test_serializes_file_mode_change *)
+let test_serializes_file_mode_change () =
+  let diff : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = Path "script";
+              mode_change = Some { prev = 100644; next = 100755 };
+              content = `Text [];
+            };
+        ];
+    }
+  in
 
-(* TODO: test_parses_file_mode_change_with_text_content *)
+  let git_diff = DiffSerializer.serialize diff in
 
-(* TODO: test_parses_file_mode_change_with_binary_content *)
+  let expected = "diff --git a/script b/script\nold mode 100644\nnew mode 100755" in
+  check string "same git diffs" expected git_diff
+
+let test_serializes_file_mode_change_with_text_content () =
+  let diff : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = Path "script";
+              mode_change = Some { prev = 100755; next = 100644 };
+              content =
+                `Text
+                  [
+                    {
+                      starting_line = 1;
+                      context_snippet = None;
+                      lines =
+                        [ `ContextLine "hello"; `AddedLine ""; `AddedLine "asd"; `AddedLine "asd" ];
+                    };
+                  ];
+            };
+        ];
+    }
+  in
+
+  let git_diff = DiffSerializer.serialize diff in
+
+  let expected =
+    "diff --git a/script b/script\n\
+     old mode 100755\n\
+     new mode 100644\n\
+     --- a/script\n\
+     +++ b/script\n\
+     @@ -1 +1,4 @@\n\
+    \ hello\n\
+     +\n\
+     +asd\n\
+     +asd"
+  in
+  check string "same git diffs" expected git_diff
+
+let test_serializes_file_mode_change_with_binary_content () =
+  let diff : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = Path "test2.bin";
+              mode_change = Some { prev = 100755; next = 100644 };
+              content = `Binary "delta 6";
+            };
+        ];
+    }
+  in
+
+  let git_diff = DiffSerializer.serialize diff in
+
+  let expected =
+    "diff --git a/test2.bin b/test2.bin\n\
+     old mode 100755\n\
+     new mode 100644\n\
+     GIT binary patch\n\
+     delta 6"
+  in
+  check string "same git diffs" expected git_diff
+
+let test_serializes_changed_file_renamed_with_mode_change () =
+  let diff : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = ChangedPath { src = "script"; dst = "scriptt" };
+              mode_change = Some { prev = 100644; next = 100755 };
+              content =
+                `Text
+                  [
+                    {
+                      starting_line = 1;
+                      context_snippet = None;
+                      lines = [ `ContextLine "hello"; `RemovedLine ""; `AddedLine "e" ];
+                    };
+                  ];
+            };
+        ];
+    }
+  in
+
+  let git_diff = DiffSerializer.serialize diff in
+
+  let expected =
+    "diff --git a/script b/scriptt\n\
+     old mode 100644\n\
+     new mode 100755\n\
+     similarity index 100%\n\
+     rename from script\n\
+     rename to scriptt\n\
+     --- a/script\n\
+     +++ b/scriptt\n\
+     @@ -1,2 +1,2 @@\n\
+    \ hello\n\
+     -\n\
+     +e"
+  in
+  check string "same git diffs" expected git_diff
 
 let test_serializes_empty_created_file () =
   let diff : Diff.diff =
@@ -213,14 +334,13 @@ let test_serializes_created_file_text_content () =
 
 let test_serializes_created_file_binary_content () =
   let diff : Diff.diff =
-    { files = [ CreatedFile { path = "foo.bin"; mode = 100644; content = `Binary "literal 18" } ] }
+    { files = [ CreatedFile { path = "foo.bin"; mode = 100755; content = `Binary "literal 18" } ] }
   in
 
   let git_diff = DiffSerializer.serialize diff in
 
-  (* TODO: Should have "new file mode 100755" implementing file modes. *)
   let expected =
-    "diff --git a/foo.bin b/foo.bin\nnew file mode 100644\nGIT binary patch\nliteral 18"
+    "diff --git a/foo.bin b/foo.bin\nnew file mode 100755\nGIT binary patch\nliteral 18"
   in
   check string "same git diffs" expected git_diff
 
@@ -273,14 +393,13 @@ let test_serializes_deleted_file_text_content () =
   in
   check string "same git diffs" expected git_diff
 
-(* TODO: Should have "new file mode 100755" implementing file modes. *)
 let test_serializes_deleted_file_binary_content () =
   let diff : Diff.diff =
     {
       files =
         [
           DeletedFile
-            { path = "foo.bin"; mode = 100644; content = `Binary "literal 0\nHcmV?d00001" };
+            { path = "foo.bin"; mode = 100755; content = `Binary "literal 0\nHcmV?d00001" };
         ];
     }
   in
@@ -289,7 +408,7 @@ let test_serializes_deleted_file_binary_content () =
 
   let expected =
     "diff --git a/foo.bin b/foo.bin\n\
-     deleted file mode 100644\n\
+     deleted file mode 100755\n\
      GIT binary patch\n\
      literal 0\n\
      HcmV?d00001"
@@ -446,6 +565,16 @@ let diff_serializer_suite =
       `Quick,
       test_serializes_changed_file_renamed_with_text_content );
     (* It is not possible to have a renamed file with changed binary content. *)
+    ("of changed file with mode change", `Quick, test_serializes_file_mode_change);
+    ( "of changed file with mode change and text content",
+      `Quick,
+      test_serializes_file_mode_change_with_text_content );
+    ( "of changed file with mode change and binary content",
+      `Quick,
+      test_serializes_file_mode_change_with_binary_content );
+    ( "of renamed file with mode change",
+      `Quick,
+      test_serializes_changed_file_renamed_with_mode_change );
     ("of empty created file", `Quick, test_serializes_empty_created_file);
     ("of created file with text content", `Quick, test_serializes_created_file_text_content);
     ("of created file with binary content", `Quick, test_serializes_created_file_binary_content);
