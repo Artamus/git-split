@@ -66,10 +66,10 @@ let parse_binary_content file_diff =
   Re.Group.get_opt binary_content_grp 1
 
 let parse_content file_diff =
-  let regex_incomplete_binary =
+  let incomplete_binary_regex =
     Re.Perl.re ~opts:[ `Multiline ] "^Binary files(.*) differ$" |> Re.Perl.compile
   in
-  let is_incomplete_binary = Re.execp regex_incomplete_binary file_diff in
+  let is_incomplete_binary = Re.execp incomplete_binary_regex file_diff in
 
   if is_incomplete_binary then Error "cannot parse diff of binary file without its content"
   else
@@ -85,6 +85,19 @@ let parse_path file_diff =
   let+ dst = Re.Group.get_opt paths_grp 2 in
   Some (src, dst)
 
+let parse_mode_change file_diff =
+  let mode_change_regex =
+    Re.Perl.re ~opts:[ `Multiline ] {|^old mode (\d+)\nnew mode (\d+)$|} |> Re.Perl.compile
+  in
+  let+ mode_change_groups = Re.exec_opt mode_change_regex file_diff in
+  let+ old_mode =
+    Re.Group.get_opt mode_change_groups 1 |> Option.map int_of_string_opt |> Option.join
+  in
+  let+ new_mode =
+    Re.Group.get_opt mode_change_groups 2 |> Option.map int_of_string_opt |> Option.join
+  in
+  Some { prev = old_mode; next = new_mode }
+
 let filter_flatten_hunks_lines hunks filter =
   hunks |> List.map (fun hunk -> hunk.lines) |> List.flatten |> List.filter_map filter
 
@@ -97,15 +110,22 @@ let parse_file_diff file_diff =
   in
   let* diff_content = parse_content file_diff in
 
-  let regex_deleted_file =
-    Re.Perl.re ~opts:[ `Multiline ] "^deleted file mode" |> Re.Perl.compile
+  let created_file_regex =
+    Re.Perl.re ~opts:[ `Multiline ] {|^new file mode (\d+)$|} |> Re.Perl.compile
   in
-  let was_file_deleted = Re.execp regex_deleted_file file_diff in
-  let regex_created_file = Re.Perl.re ~opts:[ `Multiline ] "^new file mode" |> Re.Perl.compile in
-  let was_file_created = Re.execp regex_created_file file_diff in
+  let file_created = Re.exec_opt created_file_regex file_diff in
+  let deleted_file_regex =
+    Re.Perl.re ~opts:[ `Multiline ] {|^deleted file mode (\d+)$|} |> Re.Perl.compile
+  in
+  let file_deleted = Re.exec_opt deleted_file_regex file_diff in
 
-  if was_file_created then
+  if Option.is_some file_created then
+    let created_file_group = Option.get file_created in
     let path, _ = diff_paths in
+    let* created_mode =
+      Re.Group.get_opt created_file_group 1
+      |> Option.to_result ~none:"created file must specify mode"
+    in
     let* content =
       match diff_content with
       | `Binary content -> Ok (`Binary content)
@@ -115,9 +135,14 @@ let parse_file_diff file_diff =
             let added_lines = filter_flatten_hunks_lines hunks select_added_line in
             Ok (`Text added_lines)
     in
-    Ok (CreatedFile { path; mode = 100644; content })
-  else if was_file_deleted then
+    Ok (CreatedFile { path; mode = int_of_string created_mode; content })
+  else if Option.is_some file_deleted then
+    let deleted_file_group = Option.get file_deleted in
     let path, _ = diff_paths in
+    let* deleted_mode =
+      Re.Group.get_opt deleted_file_group 1
+      |> Option.to_result ~none:"deleted file must specify mode"
+    in
     let* content =
       match diff_content with
       | `Binary content -> Ok (`Binary content)
@@ -127,11 +152,12 @@ let parse_file_diff file_diff =
             let removed_lines = filter_flatten_hunks_lines hunks select_removed_line in
             Ok (`Text removed_lines)
     in
-    Ok (DeletedFile { path; mode = 100644; content })
+    Ok (DeletedFile { path; mode = int_of_string deleted_mode; content })
   else
     let src, dst = diff_paths in
     let path = if src = dst then Path src else ChangedPath { src; dst } in
-    Ok (ChangedFile { path; mode_change = None; content = diff_content })
+    let mode_change = parse_mode_change file_diff in
+    Ok (ChangedFile { path; mode_change; content = diff_content })
 
 let parse raw_diff =
   let file_split_regex = Re.Perl.re ~opts:[ `Multiline ] "^diff --git " |> Re.Perl.compile in

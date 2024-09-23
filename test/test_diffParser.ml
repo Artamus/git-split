@@ -167,7 +167,17 @@ let test_parses_file_mode_change () =
   let diff = DiffParser.parse raw_diff in
 
   let expected : Diff.diff =
-    { files = [ ChangedFile { path = Path "script"; mode_change = None; content = `Text [] } ] }
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = Path "script";
+              mode_change = Some { prev = 100644; next = 100755 };
+              content = `Text [];
+            };
+        ];
+    }
   in
   check result_diff_testable "same diffs" (Ok expected) diff
 
@@ -195,7 +205,7 @@ let test_parses_file_mode_change_with_text_content () =
           ChangedFile
             {
               path = Path "script";
-              mode_change = None;
+              mode_change = Some { prev = 100755; next = 100644 };
               content =
                 `Text
                   [
@@ -227,7 +237,14 @@ let test_parses_file_mode_change_with_binary_content () =
   let expected : Diff.diff =
     {
       files =
-        [ ChangedFile { path = Path "test2.bin"; mode_change = None; content = `Binary "delta 6" } ];
+        [
+          ChangedFile
+            {
+              path = Path "test2.bin";
+              mode_change = Some { prev = 100755; next = 100644 };
+              content = `Binary "delta 6";
+            };
+        ];
     }
   in
   check result_diff_testable "same diffs" (Ok expected) diff
@@ -297,7 +314,7 @@ let test_parses_created_file_binary_content () =
   let diff = DiffParser.parse raw_diff in
 
   let expected : Diff.diff =
-    { files = [ CreatedFile { path = "foo.bin"; mode = 100644; content = `Binary "literal 18" } ] }
+    { files = [ CreatedFile { path = "foo.bin"; mode = 100755; content = `Binary "literal 18" } ] }
   in
   check result_diff_testable "same diffs" (Ok expected) diff
 
@@ -371,7 +388,7 @@ let test_parses_deleted_file_binary_content () =
       files =
         [
           DeletedFile
-            { path = "foo.bin"; mode = 100644; content = `Binary "literal 0\nHcmV?d00001" };
+            { path = "foo.bin"; mode = 100755; content = `Binary "literal 0\nHcmV?d00001" };
         ];
     }
   in
