@@ -154,8 +154,8 @@ let parse_file_diff file_diff =
     in
     Ok (DeletedFile { path; mode = int_of_string deleted_mode; content })
   else
-    let src, dst = diff_paths in
-    let path = if src = dst then Path src else ChangedPath { src; dst } in
+    let old_path, new_path = diff_paths in
+    let path = if old_path = new_path then Path old_path else ChangedPath { old_path; new_path } in
     let mode_change = parse_mode_change file_diff in
     Ok (ChangedFile { path; mode_change; content = diff_content })
 

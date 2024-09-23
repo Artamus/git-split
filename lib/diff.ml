@@ -7,7 +7,10 @@ type hunk = { starting_line : int; context_snippet : string option; lines : line
 [@@deriving show, eq]
 
 type binary_content = [ `Binary of string ] [@@deriving show, eq]
-type path = Path of string | ChangedPath of { src : string; dst : string } [@@deriving show, eq]
+
+type path = Path of string | ChangedPath of { old_path : string; new_path : string }
+[@@deriving show, eq]
+
 type mode_change = { prev : int; next : int } [@@deriving show, eq]
 
 type changed_file = {

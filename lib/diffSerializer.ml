@@ -86,7 +86,9 @@ let serialize_hunk hunk right_offset =
 
 let serialize_changed_file (changed_file : changed_file) =
   let src_path, dst_path =
-    match changed_file.path with Path path -> (path, path) | ChangedPath { src; dst } -> (src, dst)
+    match changed_file.path with
+    | Path path -> (path, path)
+    | ChangedPath { old_path; new_path } -> (old_path, new_path)
   in
   let diff_header = [ Printf.sprintf "diff --git a/%s b/%s" src_path dst_path ] in
 
@@ -103,11 +105,11 @@ let serialize_changed_file (changed_file : changed_file) =
   let rename =
     match changed_file.path with
     | Path _ -> []
-    | ChangedPath { src; dst } ->
+    | ChangedPath { old_path; new_path } ->
         [
           "similarity index 100%";
-          Printf.sprintf "rename from %s" src;
-          Printf.sprintf "rename to %s" dst;
+          Printf.sprintf "rename from %s" old_path;
+          Printf.sprintf "rename to %s" new_path;
         ]
   in
 

@@ -106,7 +106,7 @@ let test_parses_changed_file_renamed () =
         [
           ChangedFile
             {
-              path = ChangedPath { src = "src/old"; dst = "src/new" };
+              path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
               mode_change = None;
               content = `Text [];
             };
@@ -138,7 +138,7 @@ let test_parses_changed_file_renamed_with_text_content () =
         [
           ChangedFile
             {
-              path = ChangedPath { src = "src/old"; dst = "src/new" };
+              path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
               mode_change = None;
               content =
                 `Text
@@ -274,7 +274,7 @@ let test_parses_changed_file_renamed_with_mode_change () =
         [
           ChangedFile
             {
-              path = ChangedPath { src = "script"; dst = "scriptt" };
+              path = ChangedPath { old_path = "script"; new_path = "scriptt" };
               mode_change = Some { prev = 100644; next = 100755 };
               content =
                 `Text

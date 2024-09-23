@@ -312,7 +312,7 @@ let model_of_diff (diff : Diff.diff) =
                    let path =
                      match changed_file.path with
                      | Path path -> FilePath path
-                     | ChangedPath { src; dst } -> ChangedPath { old_path = src; new_path = dst }
+                     | ChangedPath { old_path; new_path } -> ChangedPath { old_path; new_path }
                    in
                    Some { path; visibility = Collapsed; hunks }))
   in
@@ -404,7 +404,8 @@ let diff_of_model model =
                match file.path with
                | FilePath path -> Diff.Path path
                | ChangedPath changed_path ->
-                   Diff.ChangedPath { src = changed_path.old_path; dst = changed_path.new_path }
+                   Diff.ChangedPath
+                     { old_path = changed_path.old_path; new_path = changed_path.new_path }
              in
              Diff.ChangedFile { path; mode_change = None; content = `Text hunks })
   in

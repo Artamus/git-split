@@ -257,7 +257,7 @@ let renamed_file_without_content_changes () =
         [
           ChangedFile
             {
-              path = ChangedPath { src = "src/old"; dst = "src/new" };
+              path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
               mode_change = None;
               content = `Text [];
             };
@@ -289,7 +289,7 @@ let renamed_file_with_content_changes () =
         [
           ChangedFile
             {
-              path = ChangedPath { src = "src/old"; dst = "src/new" };
+              path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
               mode_change = None;
               content =
                 `Text
