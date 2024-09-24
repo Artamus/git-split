@@ -10,9 +10,9 @@ let changed_file_single_hunk () =
       (Zipper.from_list_exn
          [
            {
-             path = FilePath "src/main";
+             path = Path "src/main";
              visibility = Collapsed;
-             hunks =
+             content =
                [
                  {
                    starting_line = 1;
@@ -68,9 +68,9 @@ let changed_file_multiple_hunks () =
       (Zipper.from_list_exn
          [
            {
-             path = FilePath "src/main";
+             path = Path "src/main";
              visibility = Collapsed;
-             hunks =
+             content =
                [
                  {
                    starting_line = 1;
@@ -149,9 +149,9 @@ let deleted_file () =
       (Zipper.from_list_exn
          [
            {
-             path = FilePath "src/deleted";
+             path = Path "src/deleted";
              visibility = Collapsed;
-             hunks =
+             content =
                [
                  {
                    starting_line = 1;
@@ -200,9 +200,9 @@ let created_file () =
       (Zipper.from_list_exn
          [
            {
-             path = FilePath "src/created";
+             path = Path "src/created";
              visibility = Collapsed;
-             hunks =
+             content =
                [
                  {
                    starting_line = 1;
@@ -253,7 +253,7 @@ let renamed_file_without_content_changes () =
            {
              path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
              visibility = Collapsed;
-             hunks = [];
+             content = [];
            };
          ])
   in
@@ -283,7 +283,7 @@ let renamed_file_with_content_changes () =
            {
              path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
              visibility = Collapsed;
-             hunks =
+             content =
                [
                  {
                    starting_line = 15;
@@ -339,9 +339,9 @@ let multiple_changed_files () =
       (Zipper.from_list_exn
          [
            {
-             path = FilePath "src/main";
+             path = Path "src/main";
              visibility = Collapsed;
-             hunks =
+             content =
                [
                  {
                    starting_line = 1;
@@ -358,9 +358,9 @@ let multiple_changed_files () =
                ];
            };
            {
-             path = FilePath "src/other";
+             path = Path "src/other";
              visibility = Collapsed;
-             hunks =
+             content =
                [
                  {
                    starting_line = 15;
@@ -436,9 +436,9 @@ let unselected_removed_become_context () =
       (Zipper.from_list_exn
          [
            {
-             path = FilePath "src/main";
+             path = Path "src/main";
              visibility = Collapsed;
-             hunks =
+             content =
                [
                  {
                    starting_line = 1;
@@ -496,9 +496,9 @@ let unselected_added_are_excluded () =
       (Zipper.from_list_exn
          [
            {
-             path = FilePath "src/main";
+             path = Path "src/main";
              visibility = Collapsed;
-             hunks =
+             content =
                [
                  {
                    starting_line = 1;
@@ -553,9 +553,9 @@ let created_with_unselected_is_created () =
       (Zipper.from_list_exn
          [
            {
-             path = FilePath "src/created";
+             path = Path "src/created";
              visibility = Collapsed;
-             hunks =
+             content =
                [
                  {
                    starting_line = 1;
@@ -597,9 +597,9 @@ let deleted_with_unselected_is_changed () =
       (Zipper.from_list_exn
          [
            {
-             path = FilePath "src/deleted";
+             path = Path "src/deleted";
              visibility = Collapsed;
-             hunks =
+             content =
                [
                  {
                    starting_line = 1;

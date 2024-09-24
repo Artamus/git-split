@@ -69,7 +69,7 @@ let render_file (file : file) is_cursor hunk_lines : image list =
         (match file.visibility with
         | Collapsed -> []
         | Expanded ->
-            file.hunks
+            file.content
             |> List.mapi (fun hunk_idx hunk -> render_hunk hunk hunk_idx false None)
             |> List.flatten)
   in
@@ -84,7 +84,7 @@ let render_file (file : file) is_cursor hunk_lines : image list =
   in
   let file_line =
     match file.path with
-    | FilePath path -> I.strf ~attr:style "[%s] %s" file_included_marker path
+    | Path path -> I.strf ~attr:style "[%s] %s" file_included_marker path
     | ChangedPath changed_path ->
         I.strf
           ~attr:A.(fg yellow ++ style)
@@ -165,7 +165,7 @@ let count_hunk_visible_lines (hunk : hunk) =
 let count_file_visible_lines file =
   match file.visibility with
   | Collapsed -> 0
-  | Expanded -> List.fold_left (fun acc hunk -> acc + count_hunk_visible_lines hunk) 1 file.hunks
+  | Expanded -> List.fold_left (fun acc hunk -> acc + count_hunk_visible_lines hunk) 1 file.content
 
 let cursor_index = function
   | TuiModel.File (Zip (ls, _, _)) ->
@@ -263,9 +263,9 @@ let model_of_diff (diff : Diff.diff) =
                    let lines = removed_lines |> List.map tui_line_of_diff_line in
                    Some
                      {
-                       path = FilePath deleted_file.path;
+                       path = Path deleted_file.path;
                        visibility = Collapsed;
-                       hunks =
+                       content =
                          [
                            {
                              starting_line = 1;
@@ -282,9 +282,9 @@ let model_of_diff (diff : Diff.diff) =
                    let lines = added_lines |> List.map tui_line_of_diff_line in
                    Some
                      {
-                       path = FilePath created_file.path;
+                       path = Path created_file.path;
                        visibility = Collapsed;
-                       hunks =
+                       content =
                          [
                            {
                              starting_line = 1;
@@ -311,10 +311,10 @@ let model_of_diff (diff : Diff.diff) =
                    in
                    let path =
                      match changed_file.path with
-                     | Path path -> FilePath path
+                     | Path path -> Path path
                      | ChangedPath { old_path; new_path } -> ChangedPath { old_path; new_path }
                    in
-                   Some { path; visibility = Collapsed; hunks }))
+                   Some { path; visibility = Collapsed; content = hunks }))
   in
   Zipper.from_list files |> Option.map (fun file_z -> TuiModel.File file_z)
 
@@ -337,29 +337,29 @@ let diff_of_model model =
     |> List.filter (fun file -> TuiModel.file_lines_included file <> NoLines)
     |> List.map (fun file ->
            let is_created_file =
-             List.length file.hunks = 1
+             List.length file.content = 1
              &&
-             let hunk = List.hd file.hunks in
+             let hunk = List.hd file.content in
              hunk.starting_line = 1
              &&
-             let hunk = List.hd file.hunks in
+             let hunk = List.hd file.content in
              hunk.lines
              |> List.for_all (fun line ->
                     match line with Diff (_, `added, _) -> true | _ -> false)
            in
            let is_deleted_file =
-             List.length file.hunks = 1
+             List.length file.content = 1
              &&
-             let hunk = List.hd file.hunks in
+             let hunk = List.hd file.content in
              hunk.starting_line = 1
              &&
-             let hunk = List.hd file.hunks in
+             let hunk = List.hd file.content in
              hunk.lines
              |> List.for_all (fun line ->
                     match line with Diff (_, `removed, `included) -> true | _ -> false)
            in
            let hunks =
-             file.hunks
+             file.content
              |> List.filter (fun hunk -> TuiModel.hunk_lines_included hunk <> NoLines)
              |> List.map (fun (hunk : hunk) : Diff.hunk ->
                     let lines = hunk.lines |> List.filter_map diff_line_of_model_line in
@@ -370,7 +370,7 @@ let diff_of_model model =
                     })
            in
            if is_created_file then
-             let hunk = List.hd file.hunks in
+             let hunk = List.hd file.content in
              let lines =
                hunk.lines
                |> List.filter_map diff_line_of_model_line
@@ -379,12 +379,12 @@ let diff_of_model model =
              in
              let path =
                match file.path with
-               | FilePath path -> path
+               | Path path -> path
                | _ -> failwith "created file cannot have changed path"
              in
              Diff.CreatedFile { path; mode = 100644; content = `Text lines }
            else if is_deleted_file then
-             let hunk = List.hd file.hunks in
+             let hunk = List.hd file.content in
              let lines =
                hunk.lines
                |> List.filter_map diff_line_of_model_line
@@ -395,14 +395,14 @@ let diff_of_model model =
              in
              let path =
                match file.path with
-               | FilePath path -> path
+               | Path path -> path
                | _ -> failwith "deleted file cannot have changed path"
              in
              Diff.DeletedFile { path; mode = 100644; content = `Text lines }
            else
              let path =
                match file.path with
-               | FilePath path -> Diff.Path path
+               | Path path -> Diff.Path path
                | ChangedPath changed_path ->
                    Diff.ChangedPath
                      { old_path = changed_path.old_path; new_path = changed_path.new_path }

@@ -18,7 +18,7 @@ let test_toggle_selected_line () =
     }
   in
   let file : TuiTypes.file =
-    { path = FilePath "src/main"; visibility = Expanded; hunks = [ hunk ] }
+    { path = Path "src/main"; visibility = Expanded; content = [ hunk ] }
   in
   let model : TuiModel.model =
     TuiModel.Line
@@ -34,7 +34,7 @@ let test_toggle_selected_line () =
   let expected =
     TuiModel.Line
       ( Zipper.Zip
-          ([], { path = FilePath "src/main"; visibility = Expanded; hunks = [ expected_hunk ] }, []),
+          ([], { path = Path "src/main"; visibility = Expanded; content = [ expected_hunk ] }, []),
         Zipper.Zip ([], expected_hunk, []),
         LineZipper.Zip ([], unselected_line, [ second_line ]) )
   in
@@ -52,7 +52,7 @@ let test_toggle_unselected_line () =
     }
   in
   let file : TuiTypes.file =
-    { path = FilePath "src/main"; visibility = Expanded; hunks = [ hunk ] }
+    { path = Path "src/main"; visibility = Expanded; content = [ hunk ] }
   in
   let model : TuiModel.model =
     TuiModel.Line
@@ -68,7 +68,7 @@ let test_toggle_unselected_line () =
   let expected =
     TuiModel.Line
       ( Zipper.Zip
-          ([], { path = FilePath "src/main"; visibility = Expanded; hunks = [ expected_hunk ] }, []),
+          ([], { path = Path "src/main"; visibility = Expanded; content = [ expected_hunk ] }, []),
         Zipper.Zip ([], expected_hunk, []),
         LineZipper.Zip ([], selected_line, [ second_line ]) )
   in
@@ -84,7 +84,7 @@ let test_toggle_selected_hunk () =
     }
   in
   let file : TuiTypes.file =
-    { path = FilePath "src/main"; visibility = Expanded; hunks = [ hunk ] }
+    { path = Path "src/main"; visibility = Expanded; content = [ hunk ] }
   in
   let model : TuiModel.model =
     TuiModel.Hunk (Zipper.Zip ([], file, []), Zipper.Zip ([], hunk, []))
@@ -101,7 +101,7 @@ let test_toggle_selected_hunk () =
   let expected =
     TuiModel.Hunk
       ( Zipper.Zip
-          ([], { path = FilePath "src/main"; visibility = Expanded; hunks = [ expected_hunk ] }, []),
+          ([], { path = Path "src/main"; visibility = Expanded; content = [ expected_hunk ] }, []),
         Zipper.Zip ([], expected_hunk, []) )
   in
   check tui_model_testable "same TUI models" expected toggle_model
@@ -116,7 +116,7 @@ let test_toggle_unselected_hunk () =
     }
   in
   let file : TuiTypes.file =
-    { path = FilePath "src/main"; visibility = Expanded; hunks = [ hunk ] }
+    { path = Path "src/main"; visibility = Expanded; content = [ hunk ] }
   in
   let model : TuiModel.model =
     TuiModel.Hunk (Zipper.Zip ([], file, []), Zipper.Zip ([], hunk, []))
@@ -130,7 +130,7 @@ let test_toggle_unselected_hunk () =
   let expected =
     TuiModel.Hunk
       ( Zipper.Zip
-          ([], { path = FilePath "src/main"; visibility = Expanded; hunks = [ expected_hunk ] }, []),
+          ([], { path = Path "src/main"; visibility = Expanded; content = [ expected_hunk ] }, []),
         Zipper.Zip ([], expected_hunk, []) )
   in
   check tui_model_testable "same TUI models" expected toggle_model
@@ -145,7 +145,7 @@ let test_toggle_partially_selected_hunk () =
     }
   in
   let file : TuiTypes.file =
-    { path = FilePath "src/main"; visibility = Expanded; hunks = [ hunk ] }
+    { path = Path "src/main"; visibility = Expanded; content = [ hunk ] }
   in
   let model : TuiModel.model =
     TuiModel.Hunk (Zipper.Zip ([], file, []), Zipper.Zip ([], hunk, []))
@@ -159,7 +159,7 @@ let test_toggle_partially_selected_hunk () =
   let expected =
     TuiModel.Hunk
       ( Zipper.Zip
-          ([], { path = FilePath "src/main"; visibility = Expanded; hunks = [ expected_hunk ] }, []),
+          ([], { path = Path "src/main"; visibility = Expanded; content = [ expected_hunk ] }, []),
         Zipper.Zip ([], expected_hunk, []) )
   in
   check tui_model_testable "same TUI models" expected toggle_model
@@ -167,9 +167,9 @@ let test_toggle_partially_selected_hunk () =
 let test_toggle_selected_file () =
   let file : TuiTypes.file =
     {
-      path = FilePath "src/main";
+      path = Path "src/main";
       visibility = Expanded;
-      hunks =
+      content =
         [
           {
             starting_line = 1;
@@ -195,9 +195,9 @@ let test_toggle_selected_file () =
       (Zipper.Zip
          ( [],
            {
-             path = FilePath "src/main";
+             path = Path "src/main";
              visibility = Expanded;
-             hunks =
+             content =
                [
                  {
                    starting_line = 1;
@@ -220,9 +220,9 @@ let test_toggle_selected_file () =
 let test_toggle_unselected_file () =
   let file : TuiTypes.file =
     {
-      path = FilePath "src/main";
+      path = Path "src/main";
       visibility = Expanded;
-      hunks =
+      content =
         [
           {
             starting_line = 1;
@@ -248,9 +248,9 @@ let test_toggle_unselected_file () =
       (Zipper.Zip
          ( [],
            {
-             path = FilePath "src/main";
+             path = Path "src/main";
              visibility = Expanded;
-             hunks =
+             content =
                [
                  {
                    starting_line = 1;
@@ -273,9 +273,9 @@ let test_toggle_unselected_file () =
 let test_toggle_partially_selected_file () =
   let file : TuiTypes.file =
     {
-      path = FilePath "src/main";
+      path = Path "src/main";
       visibility = Expanded;
-      hunks =
+      content =
         [
           {
             starting_line = 1;
@@ -301,9 +301,9 @@ let test_toggle_partially_selected_file () =
       (Zipper.Zip
          ( [],
            {
-             path = FilePath "src/main";
+             path = Path "src/main";
              visibility = Expanded;
-             hunks =
+             content =
                [
                  {
                    starting_line = 1;

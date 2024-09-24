@@ -12,9 +12,9 @@ let test_file () =
       (Zipper.Zip
          ( [],
            {
-             path = FilePath "src/main";
+             path = Path "src/main";
              visibility = Collapsed;
-             hunks =
+             content =
                [
                  {
                    starting_line = 1;
@@ -34,9 +34,9 @@ let test_file () =
       (Zipper.Zip
          ( [],
            {
-             path = FilePath "src/main";
+             path = Path "src/main";
              visibility = Expanded;
-             hunks =
+             content =
                [
                  {
                    starting_line = 1;
@@ -61,7 +61,7 @@ let test_hunk () =
   in
   let model : TuiModel.model =
     TuiModel.Hunk
-      ( Zipper.Zip ([], { path = FilePath "src/main"; visibility = Expanded; hunks = [ hunk ] }, []),
+      ( Zipper.Zip ([], { path = Path "src/main"; visibility = Expanded; content = [ hunk ] }, []),
         Zipper.Zip ([], hunk, []) )
   in
 
@@ -71,7 +71,7 @@ let test_hunk () =
   let expected =
     TuiModel.Hunk
       ( Zipper.Zip
-          ([], { path = FilePath "src/main"; visibility = Expanded; hunks = [ expected_hunk ] }, []),
+          ([], { path = Path "src/main"; visibility = Expanded; content = [ expected_hunk ] }, []),
         Zipper.Zip ([], expected_hunk, []) )
   in
   check tui_model_testable "same TUI models" expected expand_model
@@ -83,7 +83,7 @@ let test_line_noop () =
   in
   let model : TuiModel.model =
     TuiModel.Line
-      ( Zipper.Zip ([], { path = FilePath "src/main"; visibility = Expanded; hunks = [ hunk ] }, []),
+      ( Zipper.Zip ([], { path = Path "src/main"; visibility = Expanded; content = [ hunk ] }, []),
         Zipper.Zip ([], hunk, []),
         LineZipper.Zip ([], line, []) )
   in

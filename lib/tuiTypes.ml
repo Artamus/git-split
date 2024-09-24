@@ -13,7 +13,7 @@ type hunk = {
 }
 [@@deriving show, eq]
 
-type path = FilePath of string | ChangedPath of { old_path : string; new_path : string }
+type path = Path of string | ChangedPath of { old_path : string; new_path : string }
 [@@deriving show, eq]
 
-type file = { path : path; visibility : visibility; hunks : hunk list } [@@deriving show, eq]
+type file = { path : path; visibility : visibility; content : hunk list } [@@deriving show, eq]

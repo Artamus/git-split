@@ -6,9 +6,9 @@ let tui_model_testable = testable TuiModel.pp_model TuiModel.equal_model
 let test_file_noop () =
   let file : TuiTypes.file =
     {
-      path = FilePath "src/main";
+      path = Path "src/main";
       visibility = Collapsed;
-      hunks =
+      content =
         [
           {
             starting_line = 1;
@@ -43,7 +43,7 @@ let test_hunk_to_file () =
     }
   in
   let file : TuiTypes.file =
-    { path = FilePath "src/main"; visibility = Collapsed; hunks = [ first_hunk; second_hunk ] }
+    { path = Path "src/main"; visibility = Collapsed; content = [ first_hunk; second_hunk ] }
   in
   let model : TuiModel.model =
     TuiModel.Hunk (Zipper.Zip ([], file, []), Zipper.Zip ([ first_hunk ], second_hunk, []))
@@ -66,7 +66,7 @@ let test_line_to_hunk () =
     }
   in
   let file : TuiTypes.file =
-    { path = FilePath "src/main"; visibility = Collapsed; hunks = [ hunk ] }
+    { path = Path "src/main"; visibility = Collapsed; content = [ hunk ] }
   in
   let model : TuiModel.model =
     TuiModel.Line

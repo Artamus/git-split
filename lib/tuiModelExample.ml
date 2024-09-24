@@ -6,9 +6,9 @@ let model : model =
     (Zipper.from_list_exn
        [
          {
-           path = FilePath "src/TestMain";
+           path = Path "src/TestMain";
            visibility = Collapsed;
-           hunks =
+           content =
              [
                {
                  starting_line = 1;
@@ -39,9 +39,9 @@ let model : model =
              ];
          };
          {
-           path = FilePath "src/YetAnotherFile";
+           path = Path "src/YetAnotherFile";
            visibility = Collapsed;
-           hunks =
+           content =
              [
                {
                  starting_line = 1;
@@ -67,7 +67,7 @@ let model : model =
          {
            path = ChangedPath { old_path = "lib/nottui_tui.ml"; new_path = "lib/nottuiTui.ml" };
            visibility = Collapsed;
-           hunks =
+           content =
              [
                {
                  starting_line = 1;
