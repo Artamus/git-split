@@ -12,14 +12,18 @@ let test_file () =
       path = Path "src/main";
       visibility = Expanded;
       content =
-        [
+        Text
           {
-            starting_line = 1;
-            context_snippet = None;
-            visibility = Expanded;
-            lines = [ Diff ("code", `added, `included) ];
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  visibility = Expanded;
+                  lines = [ Diff ("code", `added, `included) ];
+                };
+              ];
           };
-        ];
     }
   in
   let model : TuiModel.model = TuiModel.File (Zipper.Zip ([], file, [])) in
@@ -37,7 +41,10 @@ let test_hunk () =
   in
   let model : TuiModel.model =
     TuiModel.Hunk
-      ( Zipper.Zip ([], { path = Path "src/main"; visibility = Expanded; content = [ hunk ] }, []),
+      ( Zipper.Zip
+          ( [],
+            { path = Path "src/main"; visibility = Expanded; content = Text { hunks = [ hunk ] } },
+            [] ),
         Zipper.Zip ([], hunk, []) )
   in
 
@@ -47,7 +54,13 @@ let test_hunk () =
   let expected =
     TuiModel.Hunk
       ( Zipper.Zip
-          ([], { path = Path "src/main"; visibility = Expanded; content = [ expected_hunk ] }, []),
+          ( [],
+            {
+              path = Path "src/main";
+              visibility = Expanded;
+              content = Text { hunks = [ expected_hunk ] };
+            },
+            [] ),
         Zipper.Zip ([], expected_hunk, []) )
   in
   check tui_model_testable "same TUI models" expected collapse_model
@@ -59,7 +72,10 @@ let test_line_noop () =
   in
   let model : TuiModel.model =
     TuiModel.Line
-      ( Zipper.Zip ([], { path = Path "src/main"; visibility = Expanded; content = [ hunk ] }, []),
+      ( Zipper.Zip
+          ( [],
+            { path = Path "src/main"; visibility = Expanded; content = Text { hunks = [ hunk ] } },
+            [] ),
         Zipper.Zip ([], hunk, []),
         LineZipper.Zip ([], line, []) )
   in

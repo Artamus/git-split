@@ -9,14 +9,18 @@ let test_file_noop () =
       path = Path "src/main";
       visibility = Collapsed;
       content =
-        [
+        Text
           {
-            starting_line = 1;
-            context_snippet = None;
-            visibility = Collapsed;
-            lines = [ Diff ("code", `added, `included) ];
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  visibility = Collapsed;
+                  lines = [ Diff ("code", `added, `included) ];
+                };
+              ];
           };
-        ];
     }
   in
   let model : TuiModel.model = TuiModel.File (Zipper.Zip ([], file, [])) in
@@ -43,7 +47,11 @@ let test_hunk_to_file () =
     }
   in
   let file : TuiTypes.file =
-    { path = Path "src/main"; visibility = Collapsed; content = [ first_hunk; second_hunk ] }
+    {
+      path = Path "src/main";
+      visibility = Collapsed;
+      content = Text { hunks = [ first_hunk; second_hunk ] };
+    }
   in
   let model : TuiModel.model =
     TuiModel.Hunk (Zipper.Zip ([], file, []), Zipper.Zip ([ first_hunk ], second_hunk, []))
@@ -66,7 +74,7 @@ let test_line_to_hunk () =
     }
   in
   let file : TuiTypes.file =
-    { path = Path "src/main"; visibility = Collapsed; content = [ hunk ] }
+    { path = Path "src/main"; visibility = Collapsed; content = Text { hunks = [ hunk ] } }
   in
   let model : TuiModel.model =
     TuiModel.Line

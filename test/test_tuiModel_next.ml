@@ -12,14 +12,18 @@ let test_file_to_next_file () =
       path = Path "src/main";
       visibility = Collapsed;
       content =
-        [
+        Text
           {
-            starting_line = 1;
-            context_snippet = None;
-            visibility = Collapsed;
-            lines = [ Diff ("code", `added, `included) ];
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  visibility = Collapsed;
+                  lines = [ Diff ("code", `added, `included) ];
+                };
+              ];
           };
-        ];
     }
   in
   let second_file : TuiTypes.file =
@@ -27,14 +31,18 @@ let test_file_to_next_file () =
       path = Path "src/test";
       visibility = Collapsed;
       content =
-        [
+        Text
           {
-            starting_line = 1;
-            context_snippet = None;
-            visibility = Collapsed;
-            lines = [ Diff ("code", `added, `included) ];
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  visibility = Collapsed;
+                  lines = [ Diff ("code", `added, `included) ];
+                };
+              ];
           };
-        ];
     }
   in
   let model : TuiModel.model = TuiModel.File (Zipper.Zip ([], first_file, [ second_file ])) in
@@ -54,7 +62,7 @@ let test_file_to_hunk () =
     }
   in
   let file : TuiTypes.file =
-    { path = Path "src/main"; visibility = Expanded; content = [ hunk ] }
+    { path = Path "src/main"; visibility = Expanded; content = Text { hunks = [ hunk ] } }
   in
   let model : TuiModel.model = TuiModel.File (Zipper.Zip ([], file, [])) in
 
@@ -81,7 +89,11 @@ let test_hunk_to_next_hunk () =
     }
   in
   let file : TuiTypes.file =
-    { path = Path "src/main"; visibility = Expanded; content = [ first_hunk; second_hunk ] }
+    {
+      path = Path "src/main";
+      visibility = Expanded;
+      content = Text { hunks = [ first_hunk; second_hunk ] };
+    }
   in
   let model : TuiModel.model =
     TuiModel.Hunk (Zipper.Zip ([], file, []), Zipper.Zip ([], first_hunk, [ second_hunk ]))
@@ -100,7 +112,7 @@ let test_hunk_to_line () =
     { starting_line = 1; context_snippet = None; visibility = Expanded; lines = [ line ] }
   in
   let file : TuiTypes.file =
-    { path = Path "src/main"; visibility = Expanded; content = [ hunk ] }
+    { path = Path "src/main"; visibility = Expanded; content = Text { hunks = [ hunk ] } }
   in
   let model : TuiModel.model =
     TuiModel.Hunk (Zipper.Zip ([], file, []), Zipper.Zip ([], hunk, []))
@@ -126,7 +138,7 @@ let test_line_to_next_line () =
     }
   in
   let file : TuiTypes.file =
-    { path = Path "src/main"; visibility = Expanded; content = [ hunk ] }
+    { path = Path "src/main"; visibility = Expanded; content = Text { hunks = [ hunk ] } }
   in
   let model : TuiModel.model =
     TuiModel.Line
@@ -154,7 +166,11 @@ let test_hunk_last_line_to_next_hunk () =
     { starting_line = 15; context_snippet = None; visibility = Collapsed; lines = [] }
   in
   let file : TuiTypes.file =
-    { path = Path "src/main"; visibility = Expanded; content = [ first_hunk; second_hunk ] }
+    {
+      path = Path "src/main";
+      visibility = Expanded;
+      content = Text { hunks = [ first_hunk; second_hunk ] };
+    }
   in
   let model : TuiModel.model =
     TuiModel.Line
@@ -181,10 +197,14 @@ let test_last_hunk_last_line_to_next_file () =
     }
   in
   let first_file : TuiTypes.file =
-    { path = Path "src/main"; visibility = Expanded; content = [ first_file_hunk ] }
+    {
+      path = Path "src/main";
+      visibility = Expanded;
+      content = Text { hunks = [ first_file_hunk ] };
+    }
   in
   let second_file : TuiTypes.file =
-    { path = Path "src/test"; visibility = Collapsed; content = [] }
+    { path = Path "src/test"; visibility = Collapsed; content = Text { hunks = [] } }
   in
   let model : TuiModel.model =
     TuiModel.Line
@@ -200,10 +220,10 @@ let test_last_hunk_last_line_to_next_file () =
 
 let test_last_file_to_first_file () =
   let first_file : TuiTypes.file =
-    { path = Path "src/main"; visibility = Expanded; content = [] }
+    { path = Path "src/main"; visibility = Expanded; content = Text { hunks = [] } }
   in
   let last_file : TuiTypes.file =
-    { path = Path "src/test"; visibility = Collapsed; content = [] }
+    { path = Path "src/test"; visibility = Collapsed; content = Text { hunks = [] } }
   in
   let model : TuiModel.model = TuiModel.File (Zipper.Zip ([ first_file ], last_file, [])) in
 
@@ -214,7 +234,7 @@ let test_last_file_to_first_file () =
 
 let test_last_file_last_hunk_to_first_file () =
   let first_file : TuiTypes.file =
-    { path = Path "src/main"; visibility = Expanded; content = [] }
+    { path = Path "src/main"; visibility = Expanded; content = Text { hunks = [] } }
   in
   let last_file_hunk : TuiTypes.hunk =
     {
@@ -225,7 +245,11 @@ let test_last_file_last_hunk_to_first_file () =
     }
   in
   let last_file : TuiTypes.file =
-    { path = Path "src/test"; visibility = Collapsed; content = [ last_file_hunk ] }
+    {
+      path = Path "src/test";
+      visibility = Collapsed;
+      content = Text { hunks = [ last_file_hunk ] };
+    }
   in
   let model : TuiModel.model =
     TuiModel.Hunk (Zipper.Zip ([ first_file ], last_file, []), Zipper.Zip ([], last_file_hunk, []))
@@ -238,7 +262,7 @@ let test_last_file_last_hunk_to_first_file () =
 
 let test_last_file_last_hunk_last_line_to_first_file () =
   let first_file : TuiTypes.file =
-    { path = Path "src/main"; visibility = Expanded; content = [] }
+    { path = Path "src/main"; visibility = Expanded; content = Text { hunks = [] } }
   in
   let last_file_hunk_line : TuiTypes.line = Diff ("code", `added, `included) in
   let last_file_hunk : TuiTypes.hunk =
@@ -250,7 +274,11 @@ let test_last_file_last_hunk_last_line_to_first_file () =
     }
   in
   let last_file : TuiTypes.file =
-    { path = Path "src/test"; visibility = Collapsed; content = [ last_file_hunk ] }
+    {
+      path = Path "src/test";
+      visibility = Collapsed;
+      content = Text { hunks = [ last_file_hunk ] };
+    }
   in
   let model : TuiModel.model =
     TuiModel.Line

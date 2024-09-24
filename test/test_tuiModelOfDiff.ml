@@ -45,20 +45,24 @@ let changed_file_single_hunk () =
                 path = Path "src/main";
                 visibility = Collapsed;
                 content =
-                  [
+                  Text
                     {
-                      starting_line = 1;
-                      context_snippet = None;
-                      visibility = Expanded;
-                      lines =
+                      hunks =
                         [
-                          Context "context";
-                          Diff ("removed-line", `removed, `included);
-                          Diff ("added-line", `added, `included);
-                          Context "context";
+                          {
+                            starting_line = 1;
+                            context_snippet = None;
+                            visibility = Expanded;
+                            lines =
+                              [
+                                Context "context";
+                                Diff ("removed-line", `removed, `included);
+                                Diff ("added-line", `added, `included);
+                                Context "context";
+                              ];
+                          };
                         ];
                     };
-                  ];
               };
             ]))
   in
@@ -115,32 +119,36 @@ let changed_file_multiple_hunks () =
                 path = Path "src/main";
                 visibility = Collapsed;
                 content =
-                  [
+                  Text
                     {
-                      starting_line = 1;
-                      context_snippet = None;
-                      visibility = Expanded;
-                      lines =
+                      hunks =
                         [
-                          Context "context";
-                          Diff ("removed-line", `removed, `included);
-                          Diff ("added-line", `added, `included);
-                          Context "context";
+                          {
+                            starting_line = 1;
+                            context_snippet = None;
+                            visibility = Expanded;
+                            lines =
+                              [
+                                Context "context";
+                                Diff ("removed-line", `removed, `included);
+                                Diff ("added-line", `added, `included);
+                                Context "context";
+                              ];
+                          };
+                          {
+                            starting_line = 15;
+                            context_snippet = Some "context";
+                            visibility = Expanded;
+                            lines =
+                              [
+                                Context "context";
+                                Diff ("removed-line", `removed, `included);
+                                Diff ("added-line", `added, `included);
+                                Context "context";
+                              ];
+                          };
                         ];
                     };
-                    {
-                      starting_line = 15;
-                      context_snippet = Some "context";
-                      visibility = Expanded;
-                      lines =
-                        [
-                          Context "context";
-                          Diff ("removed-line", `removed, `included);
-                          Diff ("added-line", `added, `included);
-                          Context "context";
-                        ];
-                    };
-                  ];
               };
             ]))
   in
@@ -179,20 +187,24 @@ let deleted_file () =
                 path = Path "src/main";
                 visibility = Collapsed;
                 content =
-                  [
+                  Text
                     {
-                      starting_line = 1;
-                      context_snippet = None;
-                      visibility = Expanded;
-                      lines =
+                      hunks =
                         [
-                          Diff ("removed-line-1", `removed, `included);
-                          Diff ("removed-line-2", `removed, `included);
-                          Diff ("removed-line-3", `removed, `included);
-                          Diff ("removed-line-4", `removed, `included);
+                          {
+                            starting_line = 1;
+                            context_snippet = None;
+                            visibility = Expanded;
+                            lines =
+                              [
+                                Diff ("removed-line-1", `removed, `included);
+                                Diff ("removed-line-2", `removed, `included);
+                                Diff ("removed-line-3", `removed, `included);
+                                Diff ("removed-line-4", `removed, `included);
+                              ];
+                          };
                         ];
                     };
-                  ];
               };
             ]))
   in
@@ -231,20 +243,24 @@ let created_file () =
                 path = Path "src/main";
                 visibility = Collapsed;
                 content =
-                  [
+                  Text
                     {
-                      starting_line = 1;
-                      context_snippet = None;
-                      visibility = Expanded;
-                      lines =
+                      hunks =
                         [
-                          Diff ("added-line-1", `added, `included);
-                          Diff ("added-line-2", `added, `included);
-                          Diff ("added-line-3", `added, `included);
-                          Diff ("added-line-4", `added, `included);
+                          {
+                            starting_line = 1;
+                            context_snippet = None;
+                            visibility = Expanded;
+                            lines =
+                              [
+                                Diff ("added-line-1", `added, `included);
+                                Diff ("added-line-2", `added, `included);
+                                Diff ("added-line-3", `added, `included);
+                                Diff ("added-line-4", `added, `included);
+                              ];
+                          };
                         ];
                     };
-                  ];
               };
             ]))
   in
@@ -275,7 +291,7 @@ let renamed_file_without_content_changes () =
               {
                 path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
                 visibility = Collapsed;
-                content = [];
+                content = Text { hunks = [] };
               };
             ]))
   in
@@ -322,20 +338,24 @@ let renamed_file_with_content_changes () =
                 path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
                 visibility = Collapsed;
                 content =
-                  [
+                  Text
                     {
-                      starting_line = 15;
-                      context_snippet = Some "context";
-                      visibility = Expanded;
-                      lines =
+                      hunks =
                         [
-                          Context "context";
-                          Diff ("removed-line", `removed, `included);
-                          Diff ("added-line", `added, `included);
-                          Context "context";
+                          {
+                            starting_line = 15;
+                            context_snippet = Some "context";
+                            visibility = Expanded;
+                            lines =
+                              [
+                                Context "context";
+                                Diff ("removed-line", `removed, `included);
+                                Diff ("added-line", `added, `included);
+                                Context "context";
+                              ];
+                          };
                         ];
                     };
-                  ];
               };
             ]))
   in
@@ -402,39 +422,47 @@ let multiple_files () =
                 path = Path "src/main";
                 visibility = Collapsed;
                 content =
-                  [
+                  Text
                     {
-                      starting_line = 1;
-                      context_snippet = None;
-                      visibility = Expanded;
-                      lines =
+                      hunks =
                         [
-                          Context "context";
-                          Diff ("removed-line", `removed, `included);
-                          Diff ("added-line", `added, `included);
-                          Context "context";
+                          {
+                            starting_line = 1;
+                            context_snippet = None;
+                            visibility = Expanded;
+                            lines =
+                              [
+                                Context "context";
+                                Diff ("removed-line", `removed, `included);
+                                Diff ("added-line", `added, `included);
+                                Context "context";
+                              ];
+                          };
                         ];
                     };
-                  ];
               };
               {
                 path = Path "src/other";
                 visibility = Collapsed;
                 content =
-                  [
+                  Text
                     {
-                      starting_line = 15;
-                      context_snippet = Some "context";
-                      visibility = Expanded;
-                      lines =
+                      hunks =
                         [
-                          Context "context";
-                          Diff ("removed-line", `removed, `included);
-                          Diff ("added-line", `added, `included);
-                          Context "context";
+                          {
+                            starting_line = 15;
+                            context_snippet = Some "context";
+                            visibility = Expanded;
+                            lines =
+                              [
+                                Context "context";
+                                Diff ("removed-line", `removed, `included);
+                                Diff ("added-line", `added, `included);
+                                Context "context";
+                              ];
+                          };
                         ];
                     };
-                  ];
               };
             ]))
   in
