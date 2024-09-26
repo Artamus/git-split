@@ -84,7 +84,8 @@ let render_file (file : file) is_cursor hunk_lines : image list =
         | AllLines -> "x"
         | SomeLines -> "~"
         | NoLines -> " ")
-    | Binary _ -> "?"
+    | Binary (_, `included) -> "x"
+    | _ -> " "
   in
   let file_line =
     match file.path with

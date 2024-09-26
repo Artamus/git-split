@@ -95,4 +95,5 @@ let model : model =
                    ];
                };
          };
+         { path = Path "src/some.bin"; content = Binary ("dummy binary content", `included) };
        ])
