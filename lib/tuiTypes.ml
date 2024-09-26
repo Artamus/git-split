@@ -17,5 +17,7 @@ type path = Path of string | ChangedPath of { old_path : string; new_path : stri
 [@@deriving show, eq]
 
 (* Eventually this will have an alternative variant for binary content. *)
-type content = Text of { visibility : visibility; hunks : hunk list } [@@deriving show, eq]
+type content = Text of { visibility : visibility; hunks : hunk list } | Binary of string
+[@@deriving show, eq]
+
 type file = { path : path; content : content } [@@deriving show, eq]

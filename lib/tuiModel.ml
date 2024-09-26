@@ -9,7 +9,9 @@ type model =
 let is_expanded = function
   | File file_z -> (
       let current_file = Zipper.cursor file_z in
-      match current_file.content with Text { visibility; _ } -> visibility = Expanded)
+      match current_file.content with
+      | Text { visibility; _ } -> visibility = Expanded
+      | Binary _ -> false)
   | Hunk (_, hunk_z) ->
       let current_hunk = Zipper.cursor hunk_z in
       current_hunk.visibility = Expanded
@@ -20,7 +22,7 @@ let prev = function
       let prev_file_z = Zipper.prev_wrap file_z in
       let file = Zipper.cursor prev_file_z in
       match file.content with
-      | Text { visibility = Collapsed; _ } -> File prev_file_z
+      | Binary _ | Text { visibility = Collapsed; _ } -> File prev_file_z
       | Text { visibility = Expanded; hunks } ->
           Zipper.from_list_rev hunks
           |> Option.map (fun (hunk_z : hunk Zipper.zipper) ->
@@ -38,6 +40,7 @@ let prev = function
         let content =
           match file.content with
           | Text { visibility; _ } -> Text { hunks = Zipper.to_list hunk_z; visibility }
+          | c -> c
         in
         let file_z = Zipper.replace { file with content } file_z in
         File file_z
@@ -61,7 +64,7 @@ let next = function
   | File file_z -> (
       let file = Zipper.cursor file_z in
       match file.content with
-      | Text { visibility = Collapsed; _ } -> File (Zipper.next_wrap file_z)
+      | Binary _ | Text { visibility = Collapsed; _ } -> File (Zipper.next_wrap file_z)
       | Text { visibility = Expanded; hunks } ->
           Zipper.from_list hunks
           |> Option.map (fun hunk_z -> Hunk (file_z, hunk_z))
@@ -75,6 +78,7 @@ let next = function
             let content =
               match file.content with
               | Text { visibility; _ } -> Text { hunks = Zipper.to_list hunk_z; visibility }
+              | c -> c
             in
             let file_z = Zipper.replace { file with content } file_z in
             File (Zipper.next_wrap file_z)
@@ -92,6 +96,7 @@ let next = function
           let content =
             match file.content with
             | Text { visibility; _ } -> Text { hunks = Zipper.to_list hunk_z; visibility }
+            | c -> c
           in
           let file_z = Zipper.replace { file with content } file_z in
           File (Zipper.next_wrap file_z)
@@ -108,6 +113,7 @@ let up = function
       let content =
         match file.content with
         | Text { visibility; _ } -> Text { hunks = Zipper.to_list hunk_z; visibility }
+        | c -> c
       in
       let file_z = Zipper.replace { file with content } file_z in
       File file_z
@@ -117,7 +123,9 @@ let collapse = function
   | File file_z ->
       let file = Zipper.cursor file_z in
       let content =
-        match file.content with Text { hunks; _ } -> Text { hunks; visibility = Collapsed }
+        match file.content with
+        | Text { hunks; _ } -> Text { hunks; visibility = Collapsed }
+        | c -> c
       in
       let file_z = Zipper.replace { file with content } file_z in
       File file_z
@@ -130,6 +138,7 @@ let collapse = function
       let content =
         match file.content with
         | Text { visibility; _ } -> Text { visibility; hunks = Zipper.to_list hunk_z }
+        | c -> c
       in
       let file = { file with content } in
       let file_z = Zipper.replace file file_z in
@@ -146,6 +155,7 @@ let expand = function
               hunks |> List.map (fun hunk : hunk -> { hunk with visibility = Expanded })
             in
             Text { hunks; visibility = Expanded }
+        | c -> c
       in
       let file_z = Zipper.replace { file with content } file_z in
       File file_z
@@ -158,6 +168,7 @@ let expand = function
       let content =
         match file.content with
         | Text { visibility; _ } -> Text { hunks = Zipper.to_list hunk_z; visibility }
+        | c -> c
       in
       let file_z = Zipper.replace { file with content } file_z in
       Hunk (file_z, hunk_z)
@@ -220,6 +231,7 @@ let toggle_inclusion = function
                      { hunk with lines })
             in
             Text { hunks; visibility }
+        | Binary content -> Binary content
       in
       let file = { file with content } in
       let file_z = Zipper.replace file file_z in
@@ -240,6 +252,7 @@ let toggle_inclusion = function
       let content =
         match file.content with
         | Text { visibility; _ } -> Text { hunks = Zipper.to_list hunk_z; visibility }
+        | c -> c
       in
       let file_z = Zipper.replace { file with content } file_z in
       Hunk (file_z, hunk_z)
@@ -257,6 +270,7 @@ let toggle_inclusion = function
       let content =
         match file.content with
         | Text { visibility; _ } -> Text { hunks = Zipper.to_list hunk_z; visibility }
+        | c -> c
       in
       let file_z = Zipper.replace { file with content } file_z in
       Line (file_z, hunk_z, line_z)

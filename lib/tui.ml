@@ -71,7 +71,8 @@ let render_file (file : file) is_cursor hunk_lines : image list =
         | Text { visibility = Expanded; hunks } ->
             hunks
             |> List.mapi (fun hunk_idx hunk -> render_hunk hunk hunk_idx false None)
-            |> List.flatten)
+            |> List.flatten
+        | Binary _ -> [])
   in
 
   let style = if is_cursor then A.st A.reverse else A.empty in
@@ -83,6 +84,7 @@ let render_file (file : file) is_cursor hunk_lines : image list =
         | AllLines -> "x"
         | SomeLines -> "~"
         | NoLines -> " ")
+    | Binary _ -> "?"
   in
   let file_line =
     match file.path with
@@ -166,6 +168,7 @@ let count_hunk_visible_lines (hunk : hunk) =
 
 let count_file_visible_lines file =
   match file.content with
+  | Binary _ -> 0
   | Text { visibility = Collapsed; _ } -> 0
   | Text { visibility = Expanded; hunks } ->
       List.fold_left (fun acc hunk -> acc + count_hunk_visible_lines hunk) 1 hunks
@@ -225,6 +228,7 @@ let any_lines_selected file_z =
   Zipper.to_list file_z
   |> List.exists (fun file ->
          match file.content with
+         | Binary _ -> false
          | Text { hunks; _ } -> (
              match TuiModel.file_lines_included hunks with
              | AllLines | SomeLines -> true
@@ -351,80 +355,86 @@ let diff_of_model model =
     model_files model
     |> List.filter (fun file ->
            match file.content with
-           | Text { hunks; _ } -> TuiModel.file_lines_included hunks <> NoLines)
+           | Text { hunks; _ } -> TuiModel.file_lines_included hunks <> NoLines
+           | Binary _ -> true)
     |> List.map (fun file ->
-           let hunks = match file.content with Text { hunks; _ } -> hunks in
-           let is_created_file =
-             List.length hunks = 1
-             &&
-             let hunk = List.hd hunks in
-             hunk.starting_line = 1
-             &&
-             let hunk = List.hd hunks in
-             hunk.lines
-             |> List.for_all (fun line ->
-                    match line with Diff (_, `added, _) -> true | _ -> false)
-           in
-           let is_deleted_file =
-             List.length hunks = 1
-             &&
-             let hunk = List.hd hunks in
-             hunk.starting_line = 1
-             &&
-             let hunk = List.hd hunks in
-             hunk.lines
-             |> List.for_all (fun line ->
-                    match line with Diff (_, `removed, `included) -> true | _ -> false)
-           in
-           let new_hunks =
-             hunks
-             |> List.filter (fun hunk -> TuiModel.hunk_lines_included hunk <> NoLines)
-             |> List.map (fun (hunk : hunk) : Diff.hunk ->
-                    let lines = hunk.lines |> List.filter_map diff_line_of_model_line in
-                    {
-                      starting_line = hunk.starting_line;
-                      context_snippet = hunk.context_snippet;
-                      lines;
-                    })
-           in
-           if is_created_file then
-             let hunk = List.hd hunks in
-             let lines =
-               hunk.lines
-               |> List.filter_map diff_line_of_model_line
-               |> List.filter_map (fun line ->
-                      match line with `AddedLine content -> Some (`AddedLine content) | _ -> None)
-             in
-             let path =
-               match file.path with
-               | Path path -> path
-               | _ -> failwith "created file cannot have changed path"
-             in
-             Diff.CreatedFile { path; mode = 100644; content = `Text lines }
-           else if is_deleted_file then
-             let hunk = List.hd hunks in
-             let lines =
-               hunk.lines
-               |> List.filter_map diff_line_of_model_line
-               |> List.filter_map (fun line ->
-                      match line with
-                      | `RemovedLine content -> Some (`RemovedLine content)
-                      | _ -> None)
-             in
-             let path =
-               match file.path with
-               | Path path -> path
-               | _ -> failwith "deleted file cannot have changed path"
-             in
-             Diff.DeletedFile { path; mode = 100644; content = `Text lines }
-           else
-             let path =
-               match file.path with
-               | Path path -> Diff.Path path
-               | ChangedPath changed_path ->
-                   Diff.ChangedPath
-                     { old_path = changed_path.old_path; new_path = changed_path.new_path }
-             in
-             Diff.ChangedFile { path; mode_change = None; content = `Text new_hunks })
+           match file.content with
+           | Binary content ->
+               Diff.ChangedFile { path = Path ""; mode_change = None; content = `Binary content }
+           | Text { hunks; _ } ->
+               let is_created_file =
+                 List.length hunks = 1
+                 &&
+                 let hunk = List.hd hunks in
+                 hunk.starting_line = 1
+                 &&
+                 let hunk = List.hd hunks in
+                 hunk.lines
+                 |> List.for_all (fun line ->
+                        match line with Diff (_, `added, _) -> true | _ -> false)
+               in
+               let is_deleted_file =
+                 List.length hunks = 1
+                 &&
+                 let hunk = List.hd hunks in
+                 hunk.starting_line = 1
+                 &&
+                 let hunk = List.hd hunks in
+                 hunk.lines
+                 |> List.for_all (fun line ->
+                        match line with Diff (_, `removed, `included) -> true | _ -> false)
+               in
+               let new_hunks =
+                 hunks
+                 |> List.filter (fun hunk -> TuiModel.hunk_lines_included hunk <> NoLines)
+                 |> List.map (fun (hunk : hunk) : Diff.hunk ->
+                        let lines = hunk.lines |> List.filter_map diff_line_of_model_line in
+                        {
+                          starting_line = hunk.starting_line;
+                          context_snippet = hunk.context_snippet;
+                          lines;
+                        })
+               in
+               if is_created_file then
+                 let hunk = List.hd hunks in
+                 let lines =
+                   hunk.lines
+                   |> List.filter_map diff_line_of_model_line
+                   |> List.filter_map (fun line ->
+                          match line with
+                          | `AddedLine content -> Some (`AddedLine content)
+                          | _ -> None)
+                 in
+                 let path =
+                   match file.path with
+                   | Path path -> path
+                   | _ -> failwith "created file cannot have changed path"
+                 in
+                 Diff.CreatedFile { path; mode = 100644; content = `Text lines }
+               else if is_deleted_file then
+                 let hunk = List.hd hunks in
+                 let lines =
+                   hunk.lines
+                   |> List.filter_map diff_line_of_model_line
+                   |> List.filter_map (fun line ->
+                          match line with
+                          | `RemovedLine content -> Some (`RemovedLine content)
+                          | _ -> None)
+                 in
+                 let path =
+                   match file.path with
+                   | Path path -> path
+                   | _ -> failwith "deleted file cannot have changed path"
+                 in
+                 Diff.DeletedFile { path; mode = 100644; content = `Text lines }
+               else
+                 let path =
+                   match file.path with
+                   | Path path -> Diff.Path path
+                   | ChangedPath changed_path ->
+                       Diff.ChangedPath
+                         { old_path = changed_path.old_path; new_path = changed_path.new_path }
+                 in
+                 Diff.ChangedFile { path; mode_change = None; content = `Text new_hunks })
   in
   Diff.{ files }
