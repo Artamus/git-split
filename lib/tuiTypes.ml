@@ -16,8 +16,9 @@ type hunk = {
 type path = Path of string | ChangedPath of { old_path : string; new_path : string }
 [@@deriving show, eq]
 
-(* Eventually this will have an alternative variant for binary content. *)
-type content = Text of { visibility : visibility; hunks : hunk list } | Binary of string
+type content =
+  | Text of { visibility : visibility; hunks : hunk list }
+  | Binary of (string * [ `included | `notincluded ])
 [@@deriving show, eq]
 
 type file = { path : path; content : content } [@@deriving show, eq]

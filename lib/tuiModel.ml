@@ -203,7 +203,7 @@ let file_lines_included hunks =
   in
   if all_lines_included then AllLines else if any_line_included then SomeLines else NoLines
 
-let toggle_line include_status =
+let toggle_item include_status =
   match include_status with `included -> `notincluded | `notincluded -> `included
 
 let toggle_lines = function
@@ -231,7 +231,7 @@ let toggle_inclusion = function
                      { hunk with lines })
             in
             Text { hunks; visibility }
-        | Binary content -> Binary content
+        | Binary (content, included) -> Binary (content, toggle_item included)
       in
       let file = { file with content } in
       let file_z = Zipper.replace file file_z in
@@ -260,7 +260,7 @@ let toggle_inclusion = function
       let line = LineZipper.cursor line_z in
       let line =
         match line with
-        | Diff (content, kind, included) -> Diff (content, kind, toggle_line included)
+        | Diff (content, kind, included) -> Diff (content, kind, toggle_item included)
         | l -> l
       in
       let line_z = LineZipper.replace line line_z in

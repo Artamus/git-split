@@ -356,11 +356,19 @@ let diff_of_model model =
     |> List.filter (fun file ->
            match file.content with
            | Text { hunks; _ } -> TuiModel.file_lines_included hunks <> NoLines
-           | Binary _ -> true)
+           | Binary (_, `included) -> true
+           | _ -> false)
     |> List.map (fun file ->
            match file.content with
-           | Binary content ->
-               Diff.ChangedFile { path = Path ""; mode_change = None; content = `Binary content }
+           | Binary (content, _) ->
+               let path =
+                 match file.path with
+                 | Path path -> Diff.Path path
+                 | ChangedPath changed_path ->
+                     Diff.ChangedPath
+                       { old_path = changed_path.old_path; new_path = changed_path.new_path }
+               in
+               Diff.ChangedFile { path; mode_change = None; content = `Binary content }
            | Text { hunks; _ } ->
                let is_created_file =
                  List.length hunks = 1
