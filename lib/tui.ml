@@ -270,7 +270,8 @@ let model_of_diff (diff : Diff.diff) =
            match file with
            | DeletedFile deleted_file -> (
                match deleted_file.content with
-               | `Binary _ -> None
+               | `Binary content ->
+                   Some { path = Path deleted_file.path; content = Binary (content, `included) }
                | `Text removed_lines ->
                    let lines = removed_lines |> List.map tui_line_of_diff_line in
                    Some
@@ -293,7 +294,8 @@ let model_of_diff (diff : Diff.diff) =
                      })
            | CreatedFile created_file -> (
                match created_file.content with
-               | `Binary _ -> None
+               | `Binary content ->
+                   Some { path = Path created_file.path; content = Binary (content, `included) }
                | `Text added_lines ->
                    let lines = added_lines |> List.map tui_line_of_diff_line in
                    Some
@@ -315,8 +317,15 @@ let model_of_diff (diff : Diff.diff) =
                            };
                      })
            | ChangedFile changed_file -> (
+               let path =
+                 match changed_file.path with
+                 | Path path -> Path path
+                 | ChangedPath { old_path; new_path } -> ChangedPath { old_path; new_path }
+               in
                match changed_file.content with
-               | `Binary _ -> None
+               | `Binary content ->
+                   let content = Binary (content, `included) in
+                   Some { path; content }
                | `Text changed_hunks ->
                    let hunks =
                      changed_hunks
@@ -328,11 +337,6 @@ let model_of_diff (diff : Diff.diff) =
                               visibility = Expanded;
                               lines;
                             })
-                   in
-                   let path =
-                     match changed_file.path with
-                     | Path path -> Path path
-                     | ChangedPath { old_path; new_path } -> ChangedPath { old_path; new_path }
                    in
                    Some { path; content = Text { visibility = Collapsed; hunks } }))
   in
