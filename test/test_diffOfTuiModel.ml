@@ -11,10 +11,10 @@ let changed_file_single_hunk () =
          [
            {
              path = Path "src/main";
-             visibility = Collapsed;
              content =
                Text
                  {
+                   visibility = Collapsed;
                    hunks =
                      [
                        {
@@ -73,10 +73,10 @@ let changed_file_multiple_hunks () =
          [
            {
              path = Path "src/main";
-             visibility = Collapsed;
              content =
                Text
                  {
+                   visibility = Collapsed;
                    hunks =
                      [
                        {
@@ -158,10 +158,10 @@ let deleted_file () =
          [
            {
              path = Path "src/deleted";
-             visibility = Collapsed;
              content =
                Text
                  {
+                   visibility = Collapsed;
                    hunks =
                      [
                        {
@@ -213,10 +213,10 @@ let created_file () =
          [
            {
              path = Path "src/created";
-             visibility = Collapsed;
              content =
                Text
                  {
+                   visibility = Collapsed;
                    hunks =
                      [
                        {
@@ -268,8 +268,7 @@ let renamed_file_without_content_changes () =
          [
            {
              path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
-             visibility = Collapsed;
-             content = Text { hunks = [] };
+             content = Text { visibility = Collapsed; hunks = [] };
            };
          ])
   in
@@ -298,10 +297,10 @@ let renamed_file_with_content_changes () =
          [
            {
              path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
-             visibility = Collapsed;
              content =
                Text
                  {
+                   visibility = Collapsed;
                    hunks =
                      [
                        {
@@ -360,10 +359,10 @@ let multiple_changed_files () =
          [
            {
              path = Path "src/main";
-             visibility = Collapsed;
              content =
                Text
                  {
+                   visibility = Collapsed;
                    hunks =
                      [
                        {
@@ -383,10 +382,10 @@ let multiple_changed_files () =
            };
            {
              path = Path "src/other";
-             visibility = Collapsed;
              content =
                Text
                  {
+                   visibility = Collapsed;
                    hunks =
                      [
                        {
@@ -465,10 +464,10 @@ let unselected_removed_become_context () =
          [
            {
              path = Path "src/main";
-             visibility = Collapsed;
              content =
                Text
                  {
+                   visibility = Collapsed;
                    hunks =
                      [
                        {
@@ -529,10 +528,10 @@ let unselected_added_are_excluded () =
          [
            {
              path = Path "src/main";
-             visibility = Collapsed;
              content =
                Text
                  {
+                   visibility = Collapsed;
                    hunks =
                      [
                        {
@@ -590,10 +589,10 @@ let created_with_unselected_is_created () =
          [
            {
              path = Path "src/created";
-             visibility = Collapsed;
              content =
                Text
                  {
+                   visibility = Collapsed;
                    hunks =
                      [
                        {
@@ -638,10 +637,10 @@ let deleted_with_unselected_is_changed () =
          [
            {
              path = Path "src/deleted";
-             visibility = Collapsed;
              content =
                Text
                  {
+                   visibility = Collapsed;
                    hunks =
                      [
                        {

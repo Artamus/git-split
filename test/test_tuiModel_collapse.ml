@@ -10,10 +10,10 @@ let test_file () =
   let file : TuiTypes.file =
     {
       path = Path "src/main";
-      visibility = Expanded;
       content =
         Text
           {
+            visibility = Expanded;
             hunks =
               [
                 {
@@ -30,7 +30,25 @@ let test_file () =
 
   let collapse_model = TuiModel.collapse model in
 
-  let expected_file = { file with visibility = Collapsed } in
+  let expected_file =
+    {
+      file with
+      content =
+        Text
+          {
+            visibility = Collapsed;
+            hunks =
+              [
+                {
+                  starting_line = 1;
+                  context_snippet = None;
+                  visibility = Expanded;
+                  lines = [ Diff ("code", `added, `included) ];
+                };
+              ];
+          };
+    }
+  in
   let expected = TuiModel.File (Zipper.Zip ([], expected_file, [])) in
   check tui_model_testable "same TUI models" expected collapse_model
 
@@ -43,7 +61,7 @@ let test_hunk () =
     TuiModel.Hunk
       ( Zipper.Zip
           ( [],
-            { path = Path "src/main"; visibility = Expanded; content = Text { hunks = [ hunk ] } },
+            { path = Path "src/main"; content = Text { visibility = Expanded; hunks = [ hunk ] } },
             [] ),
         Zipper.Zip ([], hunk, []) )
   in
@@ -57,8 +75,7 @@ let test_hunk () =
           ( [],
             {
               path = Path "src/main";
-              visibility = Expanded;
-              content = Text { hunks = [ expected_hunk ] };
+              content = Text { visibility = Expanded; hunks = [ expected_hunk ] };
             },
             [] ),
         Zipper.Zip ([], expected_hunk, []) )
@@ -74,7 +91,7 @@ let test_line_noop () =
     TuiModel.Line
       ( Zipper.Zip
           ( [],
-            { path = Path "src/main"; visibility = Expanded; content = Text { hunks = [ hunk ] } },
+            { path = Path "src/main"; content = Text { visibility = Expanded; hunks = [ hunk ] } },
             [] ),
         Zipper.Zip ([], hunk, []),
         LineZipper.Zip ([], line, []) )

@@ -7,10 +7,10 @@ let model : model =
        [
          {
            path = Path "src/TestMain";
-           visibility = Collapsed;
            content =
              Text
                {
+                 visibility = Collapsed;
                  hunks =
                    [
                      {
@@ -44,10 +44,10 @@ let model : model =
          };
          {
            path = Path "src/YetAnotherFile";
-           visibility = Collapsed;
            content =
              Text
                {
+                 visibility = Collapsed;
                  hunks =
                    [
                      {
@@ -74,10 +74,10 @@ let model : model =
          };
          {
            path = ChangedPath { old_path = "lib/nottui_tui.ml"; new_path = "lib/nottuiTui.ml" };
-           visibility = Collapsed;
            content =
              Text
                {
+                 visibility = Collapsed;
                  hunks =
                    [
                      {

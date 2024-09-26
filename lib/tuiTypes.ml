@@ -17,6 +17,5 @@ type path = Path of string | ChangedPath of { old_path : string; new_path : stri
 [@@deriving show, eq]
 
 (* Eventually this will have an alternative variant for binary content. *)
-(* TODO: Move visibility into this struct. *)
-type content = Text of { hunks : hunk list } [@@deriving show, eq]
-type file = { path : path; visibility : visibility; content : content } [@@deriving show, eq]
+type content = Text of { visibility : visibility; hunks : hunk list } [@@deriving show, eq]
+type file = { path : path; content : content } [@@deriving show, eq]

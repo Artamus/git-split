@@ -43,10 +43,10 @@ let changed_file_single_hunk () =
             [
               {
                 path = Path "src/main";
-                visibility = Collapsed;
                 content =
                   Text
                     {
+                      visibility = Collapsed;
                       hunks =
                         [
                           {
@@ -117,10 +117,10 @@ let changed_file_multiple_hunks () =
             [
               {
                 path = Path "src/main";
-                visibility = Collapsed;
                 content =
                   Text
                     {
+                      visibility = Collapsed;
                       hunks =
                         [
                           {
@@ -185,10 +185,10 @@ let deleted_file () =
             [
               {
                 path = Path "src/main";
-                visibility = Collapsed;
                 content =
                   Text
                     {
+                      visibility = Collapsed;
                       hunks =
                         [
                           {
@@ -241,10 +241,10 @@ let created_file () =
             [
               {
                 path = Path "src/main";
-                visibility = Collapsed;
                 content =
                   Text
                     {
+                      visibility = Collapsed;
                       hunks =
                         [
                           {
@@ -290,8 +290,7 @@ let renamed_file_without_content_changes () =
             [
               {
                 path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
-                visibility = Collapsed;
-                content = Text { hunks = [] };
+                content = Text { visibility = Collapsed; hunks = [] };
               };
             ]))
   in
@@ -336,10 +335,10 @@ let renamed_file_with_content_changes () =
             [
               {
                 path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
-                visibility = Collapsed;
                 content =
                   Text
                     {
+                      visibility = Collapsed;
                       hunks =
                         [
                           {
@@ -420,10 +419,10 @@ let multiple_files () =
             [
               {
                 path = Path "src/main";
-                visibility = Collapsed;
                 content =
                   Text
                     {
+                      visibility = Collapsed;
                       hunks =
                         [
                           {
@@ -443,10 +442,10 @@ let multiple_files () =
               };
               {
                 path = Path "src/other";
-                visibility = Collapsed;
                 content =
                   Text
                     {
+                      visibility = Collapsed;
                       hunks =
                         [
                           {

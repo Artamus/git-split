@@ -7,10 +7,10 @@ let test_file_noop () =
   let file : TuiTypes.file =
     {
       path = Path "src/main";
-      visibility = Collapsed;
       content =
         Text
           {
+            visibility = Collapsed;
             hunks =
               [
                 {
@@ -49,8 +49,7 @@ let test_hunk_to_file () =
   let file : TuiTypes.file =
     {
       path = Path "src/main";
-      visibility = Collapsed;
-      content = Text { hunks = [ first_hunk; second_hunk ] };
+      content = Text { visibility = Collapsed; hunks = [ first_hunk; second_hunk ] };
     }
   in
   let model : TuiModel.model =
@@ -74,7 +73,7 @@ let test_line_to_hunk () =
     }
   in
   let file : TuiTypes.file =
-    { path = Path "src/main"; visibility = Collapsed; content = Text { hunks = [ hunk ] } }
+    { path = Path "src/main"; content = Text { visibility = Collapsed; hunks = [ hunk ] } }
   in
   let model : TuiModel.model =
     TuiModel.Line

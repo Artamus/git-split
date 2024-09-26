@@ -66,21 +66,19 @@ let render_file (file : file) is_cursor hunk_lines : image list =
   let hunk_lines =
     Option.value hunk_lines
       ~default:
-        (match file.visibility with
-        | Collapsed -> []
-        | Expanded -> (
-            match file.content with
-            | Text { hunks } ->
-                hunks
-                |> List.mapi (fun hunk_idx hunk -> render_hunk hunk hunk_idx false None)
-                |> List.flatten))
+        (match file.content with
+        | Text { visibility = Collapsed; _ } -> []
+        | Text { visibility = Expanded; hunks } ->
+            hunks
+            |> List.mapi (fun hunk_idx hunk -> render_hunk hunk hunk_idx false None)
+            |> List.flatten)
   in
 
   let style = if is_cursor then A.st A.reverse else A.empty in
   (* TODO: This is bugged. *)
   let file_included_marker =
     match file.content with
-    | Text { hunks } -> (
+    | Text { hunks; _ } -> (
         match TuiModel.file_lines_included hunks with
         | AllLines -> "x"
         | SomeLines -> "~"
@@ -167,12 +165,10 @@ let count_hunk_visible_lines (hunk : hunk) =
   num_visible_lines + 1
 
 let count_file_visible_lines file =
-  match file.visibility with
-  | Collapsed -> 0
-  | Expanded -> (
-      match file.content with
-      | Text { hunks } ->
-          List.fold_left (fun acc hunk -> acc + count_hunk_visible_lines hunk) 1 hunks)
+  match file.content with
+  | Text { visibility = Collapsed; _ } -> 0
+  | Text { visibility = Expanded; hunks } ->
+      List.fold_left (fun acc hunk -> acc + count_hunk_visible_lines hunk) 1 hunks
 
 let cursor_index = function
   | TuiModel.File (Zip (ls, _, _)) ->
@@ -229,7 +225,7 @@ let any_lines_selected file_z =
   Zipper.to_list file_z
   |> List.exists (fun file ->
          match file.content with
-         | Text { hunks } -> (
+         | Text { hunks; _ } -> (
              match TuiModel.file_lines_included hunks with
              | AllLines | SomeLines -> true
              | _ -> false))
@@ -275,10 +271,10 @@ let model_of_diff (diff : Diff.diff) =
                    Some
                      {
                        path = Path deleted_file.path;
-                       visibility = Collapsed;
                        content =
                          Text
                            {
+                             visibility = Collapsed;
                              hunks =
                                [
                                  {
@@ -298,10 +294,10 @@ let model_of_diff (diff : Diff.diff) =
                    Some
                      {
                        path = Path created_file.path;
-                       visibility = Collapsed;
                        content =
                          Text
                            {
+                             visibility = Collapsed;
                              hunks =
                                [
                                  {
@@ -333,7 +329,7 @@ let model_of_diff (diff : Diff.diff) =
                      | Path path -> Path path
                      | ChangedPath { old_path; new_path } -> ChangedPath { old_path; new_path }
                    in
-                   Some { path; visibility = Collapsed; content = Text { hunks } }))
+                   Some { path; content = Text { visibility = Collapsed; hunks } }))
   in
   Zipper.from_list files |> Option.map (fun file_z -> TuiModel.File file_z)
 
@@ -354,9 +350,10 @@ let diff_of_model model =
   let files =
     model_files model
     |> List.filter (fun file ->
-           match file.content with Text { hunks } -> TuiModel.file_lines_included hunks <> NoLines)
+           match file.content with
+           | Text { hunks; _ } -> TuiModel.file_lines_included hunks <> NoLines)
     |> List.map (fun file ->
-           let hunks = match file.content with Text { hunks } -> hunks in
+           let hunks = match file.content with Text { hunks; _ } -> hunks in
            let is_created_file =
              List.length hunks = 1
              &&
