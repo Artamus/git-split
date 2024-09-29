@@ -221,6 +221,180 @@ let test_changed_file_renamed_with_text_content () =
   in
   check optional_tui_model_testable "same TUI model" (Some expected) tui_model
 
+let test_file_mode_change () =
+  let diff : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = Path "script";
+              mode_change = Some { old_mode = 100644; new_mode = 100755 };
+              content = `Text [];
+            };
+        ];
+    }
+  in
+
+  let tui_model = Tui.model_of_diff diff in
+
+  let expected : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = Path "script";
+             mode = Some (ChangedMode { old_mode = 100644; new_mode = 100755 });
+             content = Text { visibility = Collapsed; hunks = [] };
+           };
+         ])
+  in
+  check optional_tui_model_testable "same TUI model" (Some expected) tui_model
+
+let test_file_mode_change_with_text_content () =
+  let diff : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = Path "script";
+              mode_change = Some { old_mode = 100755; new_mode = 100644 };
+              content =
+                `Text
+                  [
+                    {
+                      starting_line = 1;
+                      context_snippet = None;
+                      lines =
+                        [ `ContextLine "hello"; `AddedLine ""; `AddedLine "asd"; `AddedLine "asd" ];
+                    };
+                  ];
+            };
+        ];
+    }
+  in
+
+  let tui_model = Tui.model_of_diff diff in
+
+  let expected : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = Path "script";
+             mode = Some (ChangedMode { old_mode = 100755; new_mode = 100644 });
+             content =
+               Text
+                 {
+                   visibility = Collapsed;
+                   hunks =
+                     [
+                       {
+                         starting_line = 1;
+                         context_snippet = None;
+                         visibility = Expanded;
+                         lines =
+                           [
+                             Context "hello";
+                             Diff ("", `added, `included);
+                             Diff ("asd", `added, `included);
+                             Diff ("asd", `added, `included);
+                           ];
+                       };
+                     ];
+                 };
+           };
+         ])
+  in
+  check optional_tui_model_testable "same TUI model" (Some expected) tui_model
+
+let test_file_mode_change_with_binary_content () =
+  let diff : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = Path "test2.bin";
+              mode_change = Some { old_mode = 100755; new_mode = 100644 };
+              content = `Binary "delta 6";
+            };
+        ];
+    }
+  in
+
+  let tui_model = Tui.model_of_diff diff in
+
+  let expected : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = Path "test2.bin";
+             mode = Some (ChangedMode { old_mode = 100755; new_mode = 100644 });
+             content = Binary ("delta 6", `included);
+           };
+         ])
+  in
+  check optional_tui_model_testable "same TUI model" (Some expected) tui_model
+
+let test_changed_file_renamed_with_mode_change () =
+  let diff : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = ChangedPath { old_path = "script"; new_path = "scriptt" };
+              mode_change = Some { old_mode = 100644; new_mode = 100755 };
+              content =
+                `Text
+                  [
+                    {
+                      starting_line = 1;
+                      context_snippet = None;
+                      lines = [ `ContextLine "hello"; `RemovedLine ""; `AddedLine "e" ];
+                    };
+                  ];
+            };
+        ];
+    }
+  in
+
+  let tui_model = Tui.model_of_diff diff in
+
+  let expected : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = ChangedPath { old_path = "script"; new_path = "scriptt" };
+             mode = Some (ChangedMode { old_mode = 100644; new_mode = 100755 });
+             content =
+               Text
+                 {
+                   visibility = Collapsed;
+                   hunks =
+                     [
+                       {
+                         starting_line = 1;
+                         context_snippet = None;
+                         visibility = Expanded;
+                         lines =
+                           [
+                             Context "hello";
+                             Diff ("", `removed, `included);
+                             Diff ("e", `added, `included);
+                           ];
+                       };
+                     ];
+                 };
+           };
+         ])
+  in
+  check optional_tui_model_testable "same TUI model" (Some expected) tui_model
+
 (* TODO: Empty created file should not have any hunks. *)
 let test_empty_created_file () =
   let diff : Diff.diff =
@@ -565,6 +739,14 @@ let tui_model_of_diff_suite =
     ("of renamed file", `Quick, test_changed_file_renamed);
     ("of renamed file with text content", `Quick, test_changed_file_renamed_with_text_content);
     (* It is not possible to have a renamed file with changed binary content. *)
+    ("of changed file with mode change", `Quick, test_file_mode_change);
+    ( "of changed file with mode change and text content",
+      `Quick,
+      test_file_mode_change_with_text_content );
+    ( "of changed file with mode change and binary content",
+      `Quick,
+      test_file_mode_change_with_binary_content );
+    ("of renamed file with mode change", `Quick, test_changed_file_renamed_with_mode_change);
     ("of empty created file", `Quick, test_empty_created_file);
     ("of created file with text content", `Quick, test_created_file_text_content);
     ("of created file with binary content", `Quick, test_created_file_binary_content);
