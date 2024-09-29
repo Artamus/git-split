@@ -10,6 +10,7 @@ let test_file () =
   let file : TuiTypes.file =
     {
       path = Path "src/main";
+      mode = None;
       content =
         Text
           {
@@ -61,7 +62,11 @@ let test_hunk () =
     TuiModel.Hunk
       ( Zipper.Zip
           ( [],
-            { path = Path "src/main"; content = Text { visibility = Expanded; hunks = [ hunk ] } },
+            {
+              path = Path "src/main";
+              mode = None;
+              content = Text { visibility = Expanded; hunks = [ hunk ] };
+            },
             [] ),
         Zipper.Zip ([], hunk, []) )
   in
@@ -75,6 +80,7 @@ let test_hunk () =
           ( [],
             {
               path = Path "src/main";
+              mode = None;
               content = Text { visibility = Expanded; hunks = [ expected_hunk ] };
             },
             [] ),
@@ -91,7 +97,11 @@ let test_line_noop () =
     TuiModel.Line
       ( Zipper.Zip
           ( [],
-            { path = Path "src/main"; content = Text { visibility = Expanded; hunks = [ hunk ] } },
+            {
+              path = Path "src/main";
+              mode = None;
+              content = Text { visibility = Expanded; hunks = [ hunk ] };
+            },
             [] ),
         Zipper.Zip ([], hunk, []),
         LineZipper.Zip ([], line, []) )

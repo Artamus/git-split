@@ -53,6 +53,7 @@ let test_changed_file_text_content () =
          [
            {
              path = Path "src/test";
+             mode = None;
              content =
                Text
                  {
@@ -116,6 +117,7 @@ let test_changed_file_binary_content () =
          [
            {
              path = Path "test-font.ttf";
+             mode = None;
              content =
                Binary
                  ( "literal 94372\n\
@@ -149,6 +151,7 @@ let test_changed_file_renamed () =
          [
            {
              path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
+             mode = None;
              content = Text { visibility = Collapsed; hunks = [] };
            };
          ])
@@ -192,6 +195,7 @@ let test_changed_file_renamed_with_text_content () =
          [
            {
              path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
+             mode = None;
              content =
                Text
                  {
@@ -231,6 +235,7 @@ let test_empty_created_file () =
          [
            {
              path = Path "empty-new-file.md";
+             mode = Some (Mode 100644);
              content =
                Text
                  {
@@ -281,6 +286,7 @@ let test_created_file_text_content () =
          [
            {
              path = Path "src/main";
+             mode = Some (Mode 100644);
              content =
                Text
                  {
@@ -317,7 +323,13 @@ let test_created_file_binary_content () =
   let expected : TuiModel.model =
     File
       (Zipper.from_list_exn
-         [ { path = Path "foo.bin"; content = Binary ("literal 18", `included) } ])
+         [
+           {
+             path = Path "foo.bin";
+             mode = Some (Mode 100755);
+             content = Binary ("literal 18", `included);
+           };
+         ])
   in
   check optional_tui_model_testable "same TUI model" (Some expected) tui_model
 
@@ -335,6 +347,7 @@ let test_empty_deleted_file () =
          [
            {
              path = Path "empty-new-file.md";
+             mode = Some (Mode 100644);
              content =
                Text
                  {
@@ -385,6 +398,7 @@ let test_deleted_file_text_content () =
          [
            {
              path = Path "src/main";
+             mode = Some (Mode 100644);
              content =
                Text
                  {
@@ -427,7 +441,13 @@ let test_deleted_file_binary_content () =
   let expected : TuiModel.model =
     File
       (Zipper.from_list_exn
-         [ { path = Path "foo.bin"; content = Binary ("literal 0\nHcmV?d00001", `included) } ])
+         [
+           {
+             path = Path "foo.bin";
+             mode = Some (Mode 100755);
+             content = Binary ("literal 0\nHcmV?d00001", `included);
+           };
+         ])
   in
   check optional_tui_model_testable "same TUI model" (Some expected) tui_model
 
@@ -488,6 +508,7 @@ let test_diff_with_multiple_files () =
          [
            {
              path = Path "src/first";
+             mode = None;
              content =
                Text
                  {
@@ -511,6 +532,7 @@ let test_diff_with_multiple_files () =
            };
            {
              path = Path "src/second";
+             mode = None;
              content =
                Text
                  {

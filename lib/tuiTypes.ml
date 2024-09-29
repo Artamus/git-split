@@ -16,9 +16,11 @@ type hunk = {
 type path = Path of string | ChangedPath of { old_path : string; new_path : string }
 [@@deriving show, eq]
 
+type mode = Mode of int | ChangedMode of { old_mode : int; new_mode : int } [@@deriving show, eq]
+
 type content =
   | Text of { visibility : visibility; hunks : hunk list }
   | Binary of (string * [ `included | `notincluded ])
 [@@deriving show, eq]
 
-type file = { path : path; content : content } [@@deriving show, eq]
+type file = { path : path; mode : mode option; content : content } [@@deriving show, eq]

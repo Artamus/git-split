@@ -11,6 +11,7 @@ let changed_file_single_hunk () =
          [
            {
              path = Path "src/main";
+             mode = None;
              content =
                Text
                  {
@@ -73,6 +74,7 @@ let changed_file_multiple_hunks () =
          [
            {
              path = Path "src/main";
+             mode = None;
              content =
                Text
                  {
@@ -158,6 +160,7 @@ let deleted_file () =
          [
            {
              path = Path "src/deleted";
+             mode = Some (Mode 100644);
              content =
                Text
                  {
@@ -213,6 +216,7 @@ let created_file () =
          [
            {
              path = Path "src/created";
+             mode = Some (Mode 100644);
              content =
                Text
                  {
@@ -268,6 +272,7 @@ let renamed_file_without_content_changes () =
          [
            {
              path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
+             mode = None;
              content = Text { visibility = Collapsed; hunks = [] };
            };
          ])
@@ -297,6 +302,7 @@ let renamed_file_with_content_changes () =
          [
            {
              path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
+             mode = None;
              content =
                Text
                  {
@@ -359,6 +365,7 @@ let multiple_changed_files () =
          [
            {
              path = Path "src/main";
+             mode = None;
              content =
                Text
                  {
@@ -382,6 +389,7 @@ let multiple_changed_files () =
            };
            {
              path = Path "src/other";
+             mode = None;
              content =
                Text
                  {
@@ -464,6 +472,7 @@ let unselected_removed_become_context () =
          [
            {
              path = Path "src/main";
+             mode = None;
              content =
                Text
                  {
@@ -528,6 +537,7 @@ let unselected_added_are_excluded () =
          [
            {
              path = Path "src/main";
+             mode = None;
              content =
                Text
                  {
@@ -589,6 +599,7 @@ let created_with_unselected_is_created () =
          [
            {
              path = Path "src/created";
+             mode = None;
              content =
                Text
                  {
@@ -637,6 +648,7 @@ let deleted_with_unselected_is_changed () =
          [
            {
              path = Path "src/deleted";
+             mode = Some (Mode 100644);
              content =
                Text
                  {

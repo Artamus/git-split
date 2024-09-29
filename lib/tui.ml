@@ -269,14 +269,17 @@ let model_of_diff (diff : Diff.diff) =
     |> List.filter_map (fun (file : Diff.file) : file option ->
            match file with
            | DeletedFile deleted_file -> (
+               let mode = Some (Mode deleted_file.mode) in
                match deleted_file.content with
                | `Binary content ->
-                   Some { path = Path deleted_file.path; content = Binary (content, `included) }
+                   Some
+                     { path = Path deleted_file.path; mode; content = Binary (content, `included) }
                | `Text removed_lines ->
                    let lines = removed_lines |> List.map tui_line_of_diff_line in
                    Some
                      {
                        path = Path deleted_file.path;
+                       mode;
                        content =
                          Text
                            {
@@ -293,14 +296,17 @@ let model_of_diff (diff : Diff.diff) =
                            };
                      })
            | CreatedFile created_file -> (
+               let mode = Some (Mode created_file.mode) in
                match created_file.content with
                | `Binary content ->
-                   Some { path = Path created_file.path; content = Binary (content, `included) }
+                   Some
+                     { path = Path created_file.path; mode; content = Binary (content, `included) }
                | `Text added_lines ->
                    let lines = added_lines |> List.map tui_line_of_diff_line in
                    Some
                      {
                        path = Path created_file.path;
+                       mode;
                        content =
                          Text
                            {
@@ -317,6 +323,12 @@ let model_of_diff (diff : Diff.diff) =
                            };
                      })
            | ChangedFile changed_file -> (
+               let mode =
+                 changed_file.mode_change
+                 |> Option.map (fun (changed_mode : Diff.mode_change) ->
+                        ChangedMode
+                          { old_mode = changed_mode.old_mode; new_mode = changed_mode.new_mode })
+               in
                let path =
                  match changed_file.path with
                  | Path path -> Path path
@@ -325,7 +337,7 @@ let model_of_diff (diff : Diff.diff) =
                match changed_file.content with
                | `Binary content ->
                    let content = Binary (content, `included) in
-                   Some { path; content }
+                   Some { path; mode; content }
                | `Text changed_hunks ->
                    let hunks =
                      changed_hunks
@@ -338,7 +350,7 @@ let model_of_diff (diff : Diff.diff) =
                               lines;
                             })
                    in
-                   Some { path; content = Text { visibility = Collapsed; hunks } }))
+                   Some { path; mode; content = Text { visibility = Collapsed; hunks } }))
   in
   Zipper.from_list files |> Option.map (fun file_z -> TuiModel.File file_z)
 
