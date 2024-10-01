@@ -378,6 +378,14 @@ let diff_of_model model =
     |> List.map (fun file ->
            match file.content with
            | Binary (content, _) ->
+               let mode_change =
+                 file.mode
+                 |> Option.map (fun mode ->
+                        match mode with
+                        | Mode _ -> None
+                        | ChangedMode { old_mode; new_mode } -> Some Diff.{ old_mode; new_mode })
+                 |> Option.join
+               in
                let path =
                  match file.path with
                  | Path path -> Diff.Path path
@@ -385,7 +393,7 @@ let diff_of_model model =
                      Diff.ChangedPath
                        { old_path = changed_path.old_path; new_path = changed_path.new_path }
                in
-               Diff.ChangedFile { path; mode_change = None; content = `Binary content }
+               Diff.ChangedFile { path; mode_change; content = `Binary content }
            | Text { hunks; _ } ->
                let is_created_file =
                  List.length hunks = 1
@@ -453,6 +461,14 @@ let diff_of_model model =
                  in
                  Diff.DeletedFile { path; mode = 100644; content = `Text lines }
                else
+                 let mode_change =
+                   file.mode
+                   |> Option.map (fun mode ->
+                          match mode with
+                          | Mode _ -> None
+                          | ChangedMode { old_mode; new_mode } -> Some Diff.{ old_mode; new_mode })
+                   |> Option.join
+                 in
                  let path =
                    match file.path with
                    | Path path -> Diff.Path path
@@ -460,6 +476,6 @@ let diff_of_model model =
                        Diff.ChangedPath
                          { old_path = changed_path.old_path; new_path = changed_path.new_path }
                  in
-                 Diff.ChangedFile { path; mode_change = None; content = `Text new_hunks })
+                 Diff.ChangedFile { path; mode_change; content = `Text new_hunks })
   in
   Diff.{ files }

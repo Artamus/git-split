@@ -510,7 +510,7 @@ let test_created_file_binary_content () =
 (* TODO: Empty created file should not have any hunks. *)
 let test_empty_deleted_file () =
   let diff : Diff.diff =
-    { files = [ DeletedFile { path = "empty-new-file.md"; mode = 100644; content = `Text [] } ] }
+    { files = [ DeletedFile { path = "empty-deleted-file.md"; mode = 100644; content = `Text [] } ] }
   in
 
   let tui_model = Tui.model_of_diff diff in
@@ -520,7 +520,7 @@ let test_empty_deleted_file () =
       (Zipper.from_list_exn
          [
            {
-             path = Path "empty-new-file.md";
+             path = Path "empty-deleted-file.md";
              mode = Some (Mode 100644);
              content =
                Text

@@ -4,13 +4,13 @@ open Git_split.TuiTypes
 
 let diff_testable = testable Diff.pp_diff Diff.equal_diff
 
-let changed_file_single_hunk () =
+let test_changed_file_text_content () =
   let tui_model : TuiModel.model =
     File
       (Zipper.from_list_exn
          [
            {
-             path = Path "src/main";
+             path = Path "src/test";
              mode = None;
              content =
                Text
@@ -19,15 +19,27 @@ let changed_file_single_hunk () =
                    hunks =
                      [
                        {
-                         starting_line = 1;
+                         starting_line = 4;
+                         context_snippet = Some "fun main() {";
+                         visibility = Expanded;
+                         lines =
+                           [
+                             Context "  hunk-1-unchanged-line";
+                             Diff ("  hunk-1-removed-line", `removed, `included);
+                             Diff ("  hunk-1-removed-line", `removed, `included);
+                             Diff ("  hunk-1-added-line", `added, `included);
+                             Context "  hunk-1-unchanged-line";
+                           ];
+                       };
+                       {
+                         starting_line = 57;
                          context_snippet = None;
                          visibility = Expanded;
                          lines =
                            [
-                             Context "context";
-                             Diff ("removed-line", `removed, `included);
-                             Diff ("added-line", `added, `included);
-                             Context "context";
+                             Context "  hunk-2-unchanged-line";
+                             Diff ("  hunk-2-added-line", `added, `included);
+                             Context "  hunk-2-unchanged-line";
                            ];
                        };
                      ];
@@ -44,20 +56,31 @@ let changed_file_single_hunk () =
         [
           ChangedFile
             {
-              path = Path "src/main";
+              path = Path "src/test";
               mode_change = None;
               content =
                 `Text
                   [
                     {
-                      starting_line = 1;
+                      starting_line = 4;
+                      context_snippet = Some "fun main() {";
+                      lines =
+                        [
+                          `ContextLine "  hunk-1-unchanged-line";
+                          `RemovedLine "  hunk-1-removed-line";
+                          `RemovedLine "  hunk-1-removed-line";
+                          `AddedLine "  hunk-1-added-line";
+                          `ContextLine "  hunk-1-unchanged-line";
+                        ];
+                    };
+                    {
+                      starting_line = 57;
                       context_snippet = None;
                       lines =
                         [
-                          `ContextLine "context";
-                          `RemovedLine "removed-line";
-                          `AddedLine "added-line";
-                          `ContextLine "context";
+                          `ContextLine "  hunk-2-unchanged-line";
+                          `AddedLine "  hunk-2-added-line";
+                          `ContextLine "  hunk-2-unchanged-line";
                         ];
                     };
                   ];
@@ -67,46 +90,19 @@ let changed_file_single_hunk () =
   in
   check diff_testable "same diffs" expected diff
 
-let changed_file_multiple_hunks () =
+let test_changed_file_binary_content () =
   let tui_model : TuiModel.model =
     File
       (Zipper.from_list_exn
          [
            {
-             path = Path "src/main";
+             path = Path "test-font.ttf";
              mode = None;
              content =
-               Text
-                 {
-                   visibility = Collapsed;
-                   hunks =
-                     [
-                       {
-                         starting_line = 1;
-                         context_snippet = None;
-                         visibility = Expanded;
-                         lines =
-                           [
-                             Context "context";
-                             Diff ("removed-line", `removed, `included);
-                             Diff ("added-line", `added, `included);
-                             Context "context";
-                           ];
-                       };
-                       {
-                         starting_line = 15;
-                         context_snippet = Some "context";
-                         visibility = Expanded;
-                         lines =
-                           [
-                             Context "context";
-                             Diff ("removed-line", `removed, `included);
-                             Diff ("added-line", `added, `included);
-                             Context "context";
-                           ];
-                       };
-                     ];
-                 };
+               Binary
+                 ( "literal 94372\n\
+                    zcmcG$2Ur|O(g50F134|Qz%H=M!tTNnHZK{L3<7~bD4@g=B#;mwf+blwpa{yzN|r1+",
+                   `included );
            };
          ])
   in
@@ -119,153 +115,19 @@ let changed_file_multiple_hunks () =
         [
           ChangedFile
             {
-              path = Path "src/main";
+              path = Path "test-font.ttf";
               mode_change = None;
               content =
-                `Text
-                  [
-                    {
-                      starting_line = 1;
-                      context_snippet = None;
-                      lines =
-                        [
-                          `ContextLine "context";
-                          `RemovedLine "removed-line";
-                          `AddedLine "added-line";
-                          `ContextLine "context";
-                        ];
-                    };
-                    {
-                      starting_line = 15;
-                      context_snippet = Some "context";
-                      lines =
-                        [
-                          `ContextLine "context";
-                          `RemovedLine "removed-line";
-                          `AddedLine "added-line";
-                          `ContextLine "context";
-                        ];
-                    };
-                  ];
+                `Binary
+                  "literal 94372\n\
+                   zcmcG$2Ur|O(g50F134|Qz%H=M!tTNnHZK{L3<7~bD4@g=B#;mwf+blwpa{yzN|r1+";
             };
         ];
     }
   in
   check diff_testable "same diffs" expected diff
 
-let deleted_file () =
-  let tui_model : TuiModel.model =
-    File
-      (Zipper.from_list_exn
-         [
-           {
-             path = Path "src/deleted";
-             mode = Some (Mode 100644);
-             content =
-               Text
-                 {
-                   visibility = Collapsed;
-                   hunks =
-                     [
-                       {
-                         starting_line = 1;
-                         context_snippet = None;
-                         visibility = Expanded;
-                         lines =
-                           [
-                             Diff ("removed-line-1", `removed, `included);
-                             Diff ("removed-line-2", `removed, `included);
-                             Diff ("removed-line-3", `removed, `included);
-                             Diff ("removed-line-4", `removed, `included);
-                           ];
-                       };
-                     ];
-                 };
-           };
-         ])
-  in
-
-  let diff = Tui.diff_of_model tui_model in
-
-  let expected : Diff.diff =
-    {
-      files =
-        [
-          DeletedFile
-            {
-              path = "src/deleted";
-              mode = 100644;
-              content =
-                `Text
-                  [
-                    `RemovedLine "removed-line-1";
-                    `RemovedLine "removed-line-2";
-                    `RemovedLine "removed-line-3";
-                    `RemovedLine "removed-line-4";
-                  ];
-            };
-        ];
-    }
-  in
-  check diff_testable "same diffs" expected diff
-
-let created_file () =
-  let tui_model : TuiModel.model =
-    File
-      (Zipper.from_list_exn
-         [
-           {
-             path = Path "src/created";
-             mode = Some (Mode 100644);
-             content =
-               Text
-                 {
-                   visibility = Collapsed;
-                   hunks =
-                     [
-                       {
-                         starting_line = 1;
-                         context_snippet = None;
-                         visibility = Expanded;
-                         lines =
-                           [
-                             Diff ("added-line-1", `added, `included);
-                             Diff ("added-line-2", `added, `included);
-                             Diff ("added-line-3", `added, `included);
-                             Diff ("added-line-4", `added, `included);
-                           ];
-                       };
-                     ];
-                 };
-           };
-         ])
-  in
-
-  let diff = Tui.diff_of_model tui_model in
-
-  let expected : Diff.diff =
-    {
-      files =
-        [
-          CreatedFile
-            {
-              path = "src/created";
-              mode = 100644;
-              content =
-                `Text
-                  [
-                    `AddedLine "added-line-1";
-                    `AddedLine "added-line-2";
-                    `AddedLine "added-line-3";
-                    `AddedLine "added-line-4";
-                  ];
-            };
-        ];
-    }
-  in
-  check diff_testable "same diffs" expected diff
-
-let renamed_file_without_content_changes () =
+let test_changed_file_renamed () =
   let tui_model : TuiModel.model =
     File
       (Zipper.from_list_exn
@@ -295,7 +157,7 @@ let renamed_file_without_content_changes () =
   in
   check diff_testable "same diffs" expected diff
 
-let renamed_file_with_content_changes () =
+let test_changed_file_renamed_with_text_content () =
   let tui_model : TuiModel.model =
     File
       (Zipper.from_list_exn
@@ -310,8 +172,8 @@ let renamed_file_with_content_changes () =
                    hunks =
                      [
                        {
-                         starting_line = 15;
-                         context_snippet = Some "context";
+                         starting_line = 1;
+                         context_snippet = None;
                          visibility = Expanded;
                          lines =
                            [
@@ -341,8 +203,8 @@ let renamed_file_with_content_changes () =
                 `Text
                   [
                     {
-                      starting_line = 15;
-                      context_snippet = Some "context";
+                      starting_line = 1;
+                      context_snippet = None;
                       lines =
                         [
                           `ContextLine "context";
@@ -358,13 +220,417 @@ let renamed_file_with_content_changes () =
   in
   check diff_testable "same diffs" expected diff
 
-let multiple_changed_files () =
+let test_file_mode_change () =
+  let tui_model : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = Path "script";
+             mode = Some (ChangedMode { old_mode = 100644; new_mode = 100755 });
+             content = Text { visibility = Collapsed; hunks = [] };
+           };
+         ])
+  in
+
+  let diff = Tui.diff_of_model tui_model in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = Path "script";
+              mode_change = Some { old_mode = 100644; new_mode = 100755 };
+              content = `Text [];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
+let test_file_mode_change_with_text_content () =
+  let tui_model : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = Path "script";
+             mode = Some (ChangedMode { old_mode = 100755; new_mode = 100644 });
+             content =
+               Text
+                 {
+                   visibility = Collapsed;
+                   hunks =
+                     [
+                       {
+                         starting_line = 1;
+                         context_snippet = None;
+                         visibility = Expanded;
+                         lines =
+                           [
+                             Context "hello";
+                             Diff ("", `added, `included);
+                             Diff ("asd", `added, `included);
+                             Diff ("asd", `added, `included);
+                           ];
+                       };
+                     ];
+                 };
+           };
+         ])
+  in
+
+  let diff = Tui.diff_of_model tui_model in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = Path "script";
+              mode_change = Some { old_mode = 100755; new_mode = 100644 };
+              content =
+                `Text
+                  [
+                    {
+                      starting_line = 1;
+                      context_snippet = None;
+                      lines =
+                        [ `ContextLine "hello"; `AddedLine ""; `AddedLine "asd"; `AddedLine "asd" ];
+                    };
+                  ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
+let test_file_mode_change_with_binary_content () =
+  let tui_model : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = Path "test2.bin";
+             mode = Some (ChangedMode { old_mode = 100755; new_mode = 100644 });
+             content = Binary ("delta 6", `included);
+           };
+         ])
+  in
+
+  let diff = Tui.diff_of_model tui_model in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = Path "test2.bin";
+              mode_change = Some { old_mode = 100755; new_mode = 100644 };
+              content = `Binary "delta 6";
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
+let test_changed_file_renamed_with_mode_change () =
+  let tui_model : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = ChangedPath { old_path = "script"; new_path = "scriptt" };
+             mode = Some (ChangedMode { old_mode = 100644; new_mode = 100755 });
+             content =
+               Text
+                 {
+                   visibility = Collapsed;
+                   hunks =
+                     [
+                       {
+                         starting_line = 1;
+                         context_snippet = None;
+                         visibility = Expanded;
+                         lines =
+                           [
+                             Context "hello";
+                             Diff ("", `removed, `included);
+                             Diff ("e", `added, `included);
+                           ];
+                       };
+                     ];
+                 };
+           };
+         ])
+  in
+
+  let diff = Tui.diff_of_model tui_model in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          ChangedFile
+            {
+              path = ChangedPath { old_path = "script"; new_path = "scriptt" };
+              mode_change = Some { old_mode = 100644; new_mode = 100755 };
+              content =
+                `Text
+                  [
+                    {
+                      starting_line = 1;
+                      context_snippet = None;
+                      lines = [ `ContextLine "hello"; `RemovedLine ""; `AddedLine "e" ];
+                    };
+                  ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
+let test_empty_created_file () =
+  let tui_model : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = Path "empty-new-file.md";
+             mode = Some (Mode 100644);
+             content =
+               Text
+                 {
+                   visibility = Collapsed;
+                   hunks =
+                     [
+                       {
+                         starting_line = 1;
+                         context_snippet = None;
+                         visibility = Expanded;
+                         lines = [];
+                       };
+                     ];
+                 };
+           };
+         ])
+  in
+
+  let diff = Tui.diff_of_model tui_model in
+
+  let expected : Diff.diff =
+    { files = [ CreatedFile { path = "empty-new-file.md"; mode = 100644; content = `Text [] } ] }
+  in
+  check diff_testable "same diffs" expected diff
+
+let test_created_file_text_content () =
   let tui_model : TuiModel.model =
     File
       (Zipper.from_list_exn
          [
            {
              path = Path "src/main";
+             mode = Some (Mode 100644);
+             content =
+               Text
+                 {
+                   visibility = Collapsed;
+                   hunks =
+                     [
+                       {
+                         starting_line = 1;
+                         context_snippet = None;
+                         visibility = Expanded;
+                         lines =
+                           [
+                             Diff ("added-line-1", `added, `included);
+                             Diff ("added-line-2", `added, `included);
+                             Diff ("added-line-3", `added, `included);
+                             Diff ("added-line-4", `added, `included);
+                             Diff ("added-line-5", `added, `included);
+                           ];
+                       };
+                     ];
+                 };
+           };
+         ])
+  in
+
+  let diff = Tui.diff_of_model tui_model in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          CreatedFile
+            {
+              path = "src/main";
+              mode = 100644;
+              content =
+                `Text
+                  [
+                    `AddedLine "added-line-1";
+                    `AddedLine "added-line-2";
+                    `AddedLine "added-line-3";
+                    `AddedLine "added-line-4";
+                    `AddedLine "added-line-5";
+                  ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
+let test_created_file_binary_content () =
+  let tui_model : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = Path "foo.bin";
+             mode = Some (Mode 100755);
+             content = Binary ("literal 18", `included);
+           };
+         ])
+  in
+
+  let diff = Tui.diff_of_model tui_model in
+
+  let expected : Diff.diff =
+    { files = [ CreatedFile { path = "foo.bin"; mode = 100755; content = `Binary "literal 18" } ] }
+  in
+  check diff_testable "same diffs" expected diff
+
+let test_empty_deleted_file () =
+  let tui_model : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = Path "empty-deleted-file.md";
+             mode = Some (Mode 100644);
+             content =
+               Text
+                 {
+                   visibility = Collapsed;
+                   hunks =
+                     [
+                       {
+                         starting_line = 1;
+                         context_snippet = None;
+                         visibility = Expanded;
+                         lines = [];
+                       };
+                     ];
+                 };
+           };
+         ])
+  in
+
+  let diff = Tui.diff_of_model tui_model in
+
+  let expected : Diff.diff =
+    {
+      files = [ DeletedFile { path = "empty-deleted-file.md"; mode = 100644; content = `Text [] } ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
+let test_deleted_file_text_content () =
+  let tui_model : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = Path "src/main";
+             mode = Some (Mode 100644);
+             content =
+               Text
+                 {
+                   visibility = Collapsed;
+                   hunks =
+                     [
+                       {
+                         starting_line = 1;
+                         context_snippet = None;
+                         visibility = Expanded;
+                         lines =
+                           [
+                             Diff ("removed-line-1", `removed, `included);
+                             Diff ("removed-line-2", `removed, `included);
+                             Diff ("removed-line-3", `removed, `included);
+                             Diff ("removed-line-4", `removed, `included);
+                             Diff ("removed-line-5", `removed, `included);
+                           ];
+                       };
+                     ];
+                 };
+           };
+         ])
+  in
+
+  let diff = Tui.diff_of_model tui_model in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          DeletedFile
+            {
+              path = "src/main";
+              mode = 100644;
+              content =
+                `Text
+                  [
+                    `RemovedLine "removed-line-1";
+                    `RemovedLine "removed-line-2";
+                    `RemovedLine "removed-line-3";
+                    `RemovedLine "removed-line-4";
+                    `RemovedLine "removed-line-5";
+                  ];
+            };
+        ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
+let test_deleted_file_binary_content () =
+  let tui_model : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = Path "foo.bin";
+             mode = Some (Mode 100755);
+             content = Binary ("literal 0\nHcmV?d00001", `included);
+           };
+         ])
+  in
+
+  let diff = Tui.diff_of_model tui_model in
+
+  let expected : Diff.diff =
+    {
+      files =
+        [
+          DeletedFile
+            { path = "foo.bin"; mode = 100755; content = `Binary "literal 0\nHcmV?d00001" };
+        ];
+    }
+  in
+  check diff_testable "same diffs" expected diff
+
+let test_diff_with_multiple_files () =
+  let tui_model : TuiModel.model =
+    File
+      (Zipper.from_list_exn
+         [
+           {
+             path = Path "src/first";
              mode = None;
              content =
                Text
@@ -388,7 +654,7 @@ let multiple_changed_files () =
                  };
            };
            {
-             path = Path "src/other";
+             path = Path "src/second";
              mode = None;
              content =
                Text
@@ -397,8 +663,8 @@ let multiple_changed_files () =
                    hunks =
                      [
                        {
-                         starting_line = 15;
-                         context_snippet = Some "context";
+                         starting_line = 1;
+                         context_snippet = None;
                          visibility = Expanded;
                          lines =
                            [
@@ -422,7 +688,7 @@ let multiple_changed_files () =
         [
           ChangedFile
             {
-              path = Path "src/main";
+              path = Path "src/first";
               mode_change = None;
               content =
                 `Text
@@ -442,14 +708,14 @@ let multiple_changed_files () =
             };
           ChangedFile
             {
-              path = Path "src/other";
+              path = Path "src/second";
               mode_change = None;
               content =
                 `Text
                   [
                     {
-                      starting_line = 15;
-                      context_snippet = Some "context";
+                      starting_line = 1;
+                      context_snippet = None;
                       lines =
                         [
                           `ContextLine "context";
@@ -706,13 +972,27 @@ let deleted_with_unselected_is_changed () =
 
 let diff_of_tui_model_suite =
   [
-    ("with a single changed hunk", `Quick, changed_file_single_hunk);
-    ("with multiple changed hunks", `Quick, changed_file_multiple_hunks);
-    ("with a deleted file", `Quick, deleted_file);
-    ("with a created file", `Quick, created_file);
-    ("with a renamed file without content", `Quick, renamed_file_without_content_changes);
-    ("with a renamed file with content changes", `Quick, renamed_file_with_content_changes);
-    ("with multiple changed files", `Quick, multiple_changed_files);
+    (* Tests converting diffs as-is. *)
+    ("of changed file with text content", `Quick, test_changed_file_text_content);
+    ("of changed file with binary content", `Quick, test_changed_file_binary_content);
+    ("of renamed file", `Quick, test_changed_file_renamed);
+    ("of renamed file with text content", `Quick, test_changed_file_renamed_with_text_content);
+    ("of changed file with mode change", `Quick, test_file_mode_change);
+    ( "of changed file with mode change and text content",
+      `Quick,
+      test_file_mode_change_with_text_content );
+    ( "of changed file with mode change and binary content",
+      `Quick,
+      test_file_mode_change_with_binary_content );
+    ("of renamed file with mode change", `Quick, test_changed_file_renamed_with_mode_change);
+    ("of empty created file", `Quick, test_empty_created_file);
+    ("of created file with text content", `Quick, test_created_file_text_content);
+    (* ("of created file with binary content", `Quick, test_created_file_binary_content); *)
+    (* ("of empty deleted file", `Quick, test_empty_deleted_file); *)
+    ("of deleted file with text content", `Quick, test_deleted_file_text_content);
+    (* ("of deleted file with binary content", `Quick, test_deleted_file_binary_content); *)
+    ("of multiple files", `Quick, test_diff_with_multiple_files);
+    (* Tests documenting interesting behaviour. *)
     ( "unselected removed lines become context lines in the diff",
       `Quick,
       unselected_removed_become_context );
