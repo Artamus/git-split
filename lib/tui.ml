@@ -14,6 +14,8 @@ let update event model =
   | _ -> model
 
 let help_style = A.fg (A.rgb_888 ~r:98 ~g:98 ~b:98)
+let binary_file_color = A.rgb_888 ~r:51 ~g:153 ~b:255
+let hunk_style = A.fg (A.rgb_888 ~r:204 ~g:153 ~b:0)
 
 let render_line line is_cursor =
   let style = if is_cursor then A.st A.reverse else A.empty in
@@ -59,7 +61,9 @@ let render_hunk (hunk : hunk) (hunk_idx : int) is_cursor lines : image list =
     | SomeLines -> "~"
     | NoLines -> " "
   in
-  let hunk_header = I.strf ~attr:style "[%s] Hunk %d" hunk_included_marker (hunk_idx + 1) in
+  let hunk_header =
+    I.strf ~attr:A.(hunk_style ++ style) "[%s] Hunk %d" hunk_included_marker (hunk_idx + 1)
+  in
 
   let hunk_collapsible_marker = match hunk.visibility with Expanded -> "-" | Collapsed -> "+" in
   let collapsible_indicator = I.strf ~attr:help_style "(%s)" hunk_collapsible_marker in
@@ -81,24 +85,16 @@ let render_file (file : file) is_cursor hunk_lines : image list =
   in
 
   let style = if is_cursor then A.st A.reverse else A.empty in
-  (* TODO: This is bugged. *)
+
   let file_included_marker =
     match file.content with
     | Text { hunks; _ } -> (
         match TuiModel.file_lines_included hunks with
-        | AllLines -> "x"
-        | SomeLines -> "~"
-        | NoLines -> " ")
-    | Binary (_, `included) -> "x"
-    | _ -> " "
-  in
-  let file_header =
-    match file.path with
-    | Path path -> I.strf ~attr:style "[%s] %s" file_included_marker path
-    | ChangedPath changed_path ->
-        I.strf
-          ~attr:A.(fg yellow ++ style)
-          "[%s] %s -> %s" file_included_marker changed_path.old_path changed_path.new_path
+        | AllLines -> "[x]"
+        | SomeLines -> "[~]"
+        | NoLines -> "[ ]")
+    | Binary (_, `included) -> "[x]"
+    | _ -> "[ ]"
   in
 
   let file_collapsible_marker =
@@ -108,6 +104,26 @@ let render_file (file : file) is_cursor hunk_lines : image list =
     | Text { visibility = Collapsed; _ } -> "(+)"
   in
   let collapsible_indicator = I.strf ~attr:help_style "%s" file_collapsible_marker in
+
+  let file_path =
+    match file.path with
+    | Path path -> " " ^ path
+    | ChangedPath changed_path ->
+        Printf.sprintf " %s -> %s" changed_path.old_path changed_path.new_path
+  in
+
+  let binary_marker = match file.content with Binary _ -> " (binary file)" | Text _ -> "" in
+
+  let mode_change =
+    match file.mode with
+    | Some (ChangedMode changed_mode) ->
+        Printf.sprintf " (mode %d -> %d)" changed_mode.old_mode changed_mode.new_mode
+    | _ -> ""
+  in
+
+  let file_header =
+    I.strf ~attr:style "%s%s%s%s" file_included_marker file_path binary_marker mode_change
+  in
 
   let file_line = I.( <|> ) collapsible_indicator file_header in
   file_line :: hunk_lines
