@@ -13,6 +13,8 @@ let update event model =
   | `Key (`ASCII ' ', _) | `Key (`Enter, _) -> TuiModel.toggle_inclusion model
   | _ -> model
 
+let help_style = A.fg (A.rgb_888 ~r:98 ~g:98 ~b:98)
+
 let render_line line is_cursor =
   let style = if is_cursor then A.st A.reverse else A.empty in
 
@@ -39,7 +41,7 @@ let render_line line is_cursor =
   in
 
   I.strf ~attr:A.(fg colour ++ style) "%s %s %s" included_prefix line_kind_prefix line_content
-  |> I.hpad 4 0
+  |> I.hpad 7 0
 
 let render_hunk (hunk : hunk) (hunk_idx : int) is_cursor lines : image list =
   let lines =
@@ -57,9 +59,12 @@ let render_hunk (hunk : hunk) (hunk_idx : int) is_cursor lines : image list =
     | SomeLines -> "~"
     | NoLines -> " "
   in
-  let hunk_line =
-    I.strf ~attr:style "[%s] Hunk %d" hunk_included_marker (hunk_idx + 1) |> I.hpad 2 0
-  in
+  let hunk_header = I.strf ~attr:style "[%s] Hunk %d" hunk_included_marker (hunk_idx + 1) in
+
+  let hunk_collapsible_marker = match hunk.visibility with Expanded -> "-" | Collapsed -> "+" in
+  let collapsible_indicator = I.strf ~attr:help_style "(%s)" hunk_collapsible_marker in
+
+  let hunk_line = I.( <|> ) collapsible_indicator hunk_header |> I.hpad 2 0 in
   hunk_line :: lines
 
 let render_file (file : file) is_cursor hunk_lines : image list =
@@ -87,7 +92,7 @@ let render_file (file : file) is_cursor hunk_lines : image list =
     | Binary (_, `included) -> "x"
     | _ -> " "
   in
-  let file_line =
+  let file_header =
     match file.path with
     | Path path -> I.strf ~attr:style "[%s] %s" file_included_marker path
     | ChangedPath changed_path ->
@@ -95,6 +100,16 @@ let render_file (file : file) is_cursor hunk_lines : image list =
           ~attr:A.(fg yellow ++ style)
           "[%s] %s -> %s" file_included_marker changed_path.old_path changed_path.new_path
   in
+
+  let file_collapsible_marker =
+    match file.content with
+    | Binary _ -> "   "
+    | Text { visibility = Expanded; _ } -> "(-)"
+    | Text { visibility = Collapsed; _ } -> "(+)"
+  in
+  let collapsible_indicator = I.strf ~attr:help_style "%s" file_collapsible_marker in
+
+  let file_line = I.( <|> ) collapsible_indicator file_header in
   file_line :: hunk_lines
 
 let render_model = function
@@ -196,7 +211,6 @@ let cursor_index = function
       pre_files_line_count + pre_hunks_line_count + pre_lines_count + 1
 
 let view model viewport_height =
-  let help_style = A.fg (A.rgb_888 ~r:98 ~g:98 ~b:98) in
   let help_line =
     I.string help_style "↑/k:up ↓/j:down ←/h:collapse →/l:expand ↵/space:toggle c:confirm q:quit"
   in
