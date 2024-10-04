@@ -1,6 +1,6 @@
-- Handle binary file diffs.
 - Seed the commit message with the commit message from the commit that is being split.
 - Add expand/collapse indicators to the TUI.
+- Clean up exceptions.
 - Maybe invert what toggling a partially selected file does?
 - Replace the current parsing with some sort of combinator parser library?
 - Maybe add context snippets if they exist into the TUI.
