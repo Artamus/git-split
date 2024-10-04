@@ -53,6 +53,7 @@ let test_changed_file_text_content () =
          [
            {
              path = Path "src/test";
+             kind = ChangedFile;
              mode = None;
              content =
                Text
@@ -117,6 +118,7 @@ let test_changed_file_binary_content () =
          [
            {
              path = Path "test-font.ttf";
+             kind = ChangedFile;
              mode = None;
              content =
                Binary
@@ -151,6 +153,7 @@ let test_changed_file_renamed () =
          [
            {
              path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
+             kind = ChangedFile;
              mode = None;
              content = Text { visibility = Collapsed; hunks = [] };
            };
@@ -195,6 +198,7 @@ let test_changed_file_renamed_with_text_content () =
          [
            {
              path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
+             kind = ChangedFile;
              mode = None;
              content =
                Text
@@ -244,6 +248,7 @@ let test_file_mode_change () =
          [
            {
              path = Path "script";
+             kind = ChangedFile;
              mode = Some (ChangedMode { old_mode = 100644; new_mode = 100755 });
              content = Text { visibility = Collapsed; hunks = [] };
            };
@@ -283,6 +288,7 @@ let test_file_mode_change_with_text_content () =
          [
            {
              path = Path "script";
+             kind = ChangedFile;
              mode = Some (ChangedMode { old_mode = 100755; new_mode = 100644 });
              content =
                Text
@@ -332,6 +338,7 @@ let test_file_mode_change_with_binary_content () =
          [
            {
              path = Path "test2.bin";
+             kind = ChangedFile;
              mode = Some (ChangedMode { old_mode = 100755; new_mode = 100644 });
              content = Binary ("delta 6", `included);
            };
@@ -370,6 +377,7 @@ let test_changed_file_renamed_with_mode_change () =
          [
            {
              path = ChangedPath { old_path = "script"; new_path = "scriptt" };
+             kind = ChangedFile;
              mode = Some (ChangedMode { old_mode = 100644; new_mode = 100755 });
              content =
                Text
@@ -409,6 +417,7 @@ let test_empty_created_file () =
          [
            {
              path = Path "empty-new-file.md";
+             kind = CreatedFile;
              mode = Some (Mode 100644);
              content =
                Text
@@ -460,6 +469,7 @@ let test_created_file_text_content () =
          [
            {
              path = Path "src/main";
+             kind = CreatedFile;
              mode = Some (Mode 100644);
              content =
                Text
@@ -500,6 +510,7 @@ let test_created_file_binary_content () =
          [
            {
              path = Path "foo.bin";
+             kind = CreatedFile;
              mode = Some (Mode 100755);
              content = Binary ("literal 18", `included);
            };
@@ -510,7 +521,9 @@ let test_created_file_binary_content () =
 (* TODO: Empty created file should not have any hunks. *)
 let test_empty_deleted_file () =
   let diff : Diff.diff =
-    { files = [ DeletedFile { path = "empty-deleted-file.md"; mode = 100644; content = `Text [] } ] }
+    {
+      files = [ DeletedFile { path = "empty-deleted-file.md"; mode = 100644; content = `Text [] } ];
+    }
   in
 
   let tui_model = Tui.model_of_diff diff in
@@ -521,6 +534,7 @@ let test_empty_deleted_file () =
          [
            {
              path = Path "empty-deleted-file.md";
+             kind = DeletedFile;
              mode = Some (Mode 100644);
              content =
                Text
@@ -572,6 +586,7 @@ let test_deleted_file_text_content () =
          [
            {
              path = Path "src/main";
+             kind = DeletedFile;
              mode = Some (Mode 100644);
              content =
                Text
@@ -618,6 +633,7 @@ let test_deleted_file_binary_content () =
          [
            {
              path = Path "foo.bin";
+             kind = DeletedFile;
              mode = Some (Mode 100755);
              content = Binary ("literal 0\nHcmV?d00001", `included);
            };
@@ -682,6 +698,7 @@ let test_diff_with_multiple_files () =
          [
            {
              path = Path "src/first";
+             kind = ChangedFile;
              mode = None;
              content =
                Text
@@ -706,6 +723,7 @@ let test_diff_with_multiple_files () =
            };
            {
              path = Path "src/second";
+             kind = ChangedFile;
              mode = None;
              content =
                Text

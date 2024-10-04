@@ -273,12 +273,18 @@ let model_of_diff (diff : Diff.diff) =
                match deleted_file.content with
                | `Binary content ->
                    Some
-                     { path = Path deleted_file.path; mode; content = Binary (content, `included) }
+                     {
+                       path = Path deleted_file.path;
+                       kind = DeletedFile;
+                       mode;
+                       content = Binary (content, `included);
+                     }
                | `Text removed_lines ->
                    let lines = removed_lines |> List.map tui_line_of_diff_line in
                    Some
                      {
                        path = Path deleted_file.path;
+                       kind = DeletedFile;
                        mode;
                        content =
                          Text
@@ -300,12 +306,18 @@ let model_of_diff (diff : Diff.diff) =
                match created_file.content with
                | `Binary content ->
                    Some
-                     { path = Path created_file.path; mode; content = Binary (content, `included) }
+                     {
+                       path = Path created_file.path;
+                       kind = CreatedFile;
+                       mode;
+                       content = Binary (content, `included);
+                     }
                | `Text added_lines ->
                    let lines = added_lines |> List.map tui_line_of_diff_line in
                    Some
                      {
                        path = Path created_file.path;
+                       kind = CreatedFile;
                        mode;
                        content =
                          Text
@@ -337,7 +349,7 @@ let model_of_diff (diff : Diff.diff) =
                match changed_file.content with
                | `Binary content ->
                    let content = Binary (content, `included) in
-                   Some { path; mode; content }
+                   Some { path; kind = ChangedFile; mode; content }
                | `Text changed_hunks ->
                    let hunks =
                      changed_hunks
@@ -350,7 +362,13 @@ let model_of_diff (diff : Diff.diff) =
                               lines;
                             })
                    in
-                   Some { path; mode; content = Text { visibility = Collapsed; hunks } }))
+                   Some
+                     {
+                       path;
+                       kind = ChangedFile;
+                       mode;
+                       content = Text { visibility = Collapsed; hunks };
+                     }))
   in
   Zipper.from_list files |> Option.map (fun file_z -> TuiModel.File file_z)
 
@@ -367,17 +385,43 @@ let diff_line_of_model_line = function
   | Diff (content, `removed, `included) -> Some (`RemovedLine content)
   | Diff (content, `removed, `notincluded) -> Some (`ContextLine content)
 
+let non_empty_file file =
+  match file.content with
+  | Text { hunks; _ } -> TuiModel.file_lines_included hunks <> NoLines
+  | Binary (_, `included) -> true
+  | _ -> false
+
 let diff_of_model model =
   let files =
-    model_files model
-    |> List.filter (fun file ->
-           match file.content with
-           | Text { hunks; _ } -> TuiModel.file_lines_included hunks <> NoLines
-           | Binary (_, `included) -> true
-           | _ -> false)
+    model_files model |> List.filter non_empty_file
     |> List.map (fun file ->
-           match file.content with
-           | Binary (content, _) ->
+           let content =
+             match file.content with
+             | Binary (content, _) -> `Binary content
+             | Text { hunks; _ } ->
+                 let new_hunks =
+                   hunks
+                   |> List.filter (fun hunk -> TuiModel.hunk_lines_included hunk <> NoLines)
+                   |> List.map (fun (hunk : hunk) : Diff.hunk ->
+                          let lines = hunk.lines |> List.filter_map diff_line_of_model_line in
+                          {
+                            starting_line = hunk.starting_line;
+                            context_snippet = hunk.context_snippet;
+                            lines;
+                          })
+                 in
+                 `Text new_hunks
+           in
+
+           match file.kind with
+           | ChangedFile ->
+               let path =
+                 match file.path with
+                 | Path path -> Diff.Path path
+                 | ChangedPath changed_path ->
+                     Diff.ChangedPath
+                       { old_path = changed_path.old_path; new_path = changed_path.new_path }
+               in
                let mode_change =
                  file.mode
                  |> Option.map (fun mode ->
@@ -386,96 +430,89 @@ let diff_of_model model =
                         | ChangedMode { old_mode; new_mode } -> Some Diff.{ old_mode; new_mode })
                  |> Option.join
                in
+               Diff.ChangedFile { path; mode_change; content }
+           | CreatedFile ->
                let path =
                  match file.path with
-                 | Path path -> Diff.Path path
-                 | ChangedPath changed_path ->
-                     Diff.ChangedPath
-                       { old_path = changed_path.old_path; new_path = changed_path.new_path }
+                 | Path path -> path
+                 | _ -> failwith "created file cannot have changed path"
                in
-               Diff.ChangedFile { path; mode_change; content = `Binary content }
-           | Text { hunks; _ } ->
-               let is_created_file =
-                 List.length hunks = 1
-                 &&
-                 let hunk = List.hd hunks in
-                 hunk.starting_line = 1
-                 &&
-                 let hunk = List.hd hunks in
-                 hunk.lines
-                 |> List.for_all (fun line ->
-                        match line with Diff (_, `added, _) -> true | _ -> false)
+               let mode =
+                 file.mode
+                 |> Option.map (fun mode ->
+                        match mode with Mode mode -> Some mode | ChangedMode _ -> None)
+                 |> Option.join
                in
+               let mode =
+                 match mode with
+                 | Some mode -> mode
+                 | None -> failwith "created file cannot have changed mode"
+               in
+               let content =
+                 match content with
+                 | `Text hunks ->
+                     let hunk = List.hd hunks in
+                     let lines =
+                       hunk.lines
+                       |> List.filter_map (fun line ->
+                              match line with
+                              | `AddedLine added_line -> Some (`AddedLine added_line)
+                              | _ -> None)
+                     in
+                     `Text lines
+                 | `Binary bin -> `Binary bin
+               in
+               Diff.CreatedFile { path; mode; content }
+           | DeletedFile ->
+               let mode =
+                 file.mode
+                 |> Option.map (fun mode ->
+                        match mode with Mode mode -> Some mode | ChangedMode _ -> None)
+                 |> Option.join
+               in
+               let mode =
+                 match mode with
+                 | Some mode -> mode
+                 | None -> failwith "deleted file cannot have changed mode"
+               in
+
                let is_deleted_file =
-                 List.length hunks = 1
-                 &&
-                 let hunk = List.hd hunks in
-                 hunk.starting_line = 1
-                 &&
-                 let hunk = List.hd hunks in
-                 hunk.lines
-                 |> List.for_all (fun line ->
-                        match line with Diff (_, `removed, `included) -> true | _ -> false)
+                 match content with
+                 | `Binary _ -> true
+                 | `Text hunks ->
+                     let hunk = List.hd hunks in
+                     hunk.lines
+                     |> List.for_all (fun line ->
+                            match line with `RemovedLine _ -> true | _ -> false)
                in
-               let new_hunks =
-                 hunks
-                 |> List.filter (fun hunk -> TuiModel.hunk_lines_included hunk <> NoLines)
-                 |> List.map (fun (hunk : hunk) : Diff.hunk ->
-                        let lines = hunk.lines |> List.filter_map diff_line_of_model_line in
-                        {
-                          starting_line = hunk.starting_line;
-                          context_snippet = hunk.context_snippet;
-                          lines;
-                        })
-               in
-               if is_created_file then
-                 let hunk = List.hd hunks in
-                 let lines =
-                   hunk.lines
-                   |> List.filter_map diff_line_of_model_line
-                   |> List.filter_map (fun line ->
-                          match line with
-                          | `AddedLine content -> Some (`AddedLine content)
-                          | _ -> None)
-                 in
-                 let path =
-                   match file.path with
-                   | Path path -> path
-                   | _ -> failwith "created file cannot have changed path"
-                 in
-                 Diff.CreatedFile { path; mode = 100644; content = `Text lines }
-               else if is_deleted_file then
-                 let hunk = List.hd hunks in
-                 let lines =
-                   hunk.lines
-                   |> List.filter_map diff_line_of_model_line
-                   |> List.filter_map (fun line ->
-                          match line with
-                          | `RemovedLine content -> Some (`RemovedLine content)
-                          | _ -> None)
-                 in
+
+               if is_deleted_file then
                  let path =
                    match file.path with
                    | Path path -> path
                    | _ -> failwith "deleted file cannot have changed path"
                  in
-                 Diff.DeletedFile { path; mode = 100644; content = `Text lines }
-               else
-                 let mode_change =
-                   file.mode
-                   |> Option.map (fun mode ->
-                          match mode with
-                          | Mode _ -> None
-                          | ChangedMode { old_mode; new_mode } -> Some Diff.{ old_mode; new_mode })
-                   |> Option.join
+                 let content =
+                   match content with
+                   | `Text hunks ->
+                       let hunk = List.hd hunks in
+                       let lines =
+                         hunk.lines
+                         |> List.filter_map (fun line ->
+                                match line with
+                                | `RemovedLine removed_line -> Some (`RemovedLine removed_line)
+                                | _ -> None)
+                       in
+                       `Text lines
+                   | `Binary bin -> `Binary bin
                  in
+                 Diff.DeletedFile { path; mode; content }
+               else
                  let path =
                    match file.path with
                    | Path path -> Diff.Path path
-                   | ChangedPath changed_path ->
-                       Diff.ChangedPath
-                         { old_path = changed_path.old_path; new_path = changed_path.new_path }
+                   | _ -> failwith "deleted file cannot have changed path"
                  in
-                 Diff.ChangedFile { path; mode_change; content = `Text new_hunks })
+                 Diff.ChangedFile { path; mode_change = None; content })
   in
   Diff.{ files }

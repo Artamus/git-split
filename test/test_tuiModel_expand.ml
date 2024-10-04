@@ -13,6 +13,7 @@ let test_file () =
          ( [],
            {
              path = Path "src/main";
+             kind = ChangedFile;
              mode = None;
              content =
                Text
@@ -40,6 +41,7 @@ let test_file () =
          ( [],
            {
              path = Path "src/main";
+             kind = ChangedFile;
              mode = None;
              content =
                Text
@@ -75,6 +77,7 @@ let test_hunk () =
           ( [],
             {
               path = Path "src/main";
+              kind = ChangedFile;
               mode = None;
               content = Text { visibility = Expanded; hunks = [ hunk ] };
             },
@@ -91,6 +94,7 @@ let test_hunk () =
           ( [],
             {
               path = Path "src/main";
+              kind = ChangedFile;
               mode = None;
               content = Text { visibility = Expanded; hunks = [ expected_hunk ] };
             },
@@ -110,6 +114,7 @@ let test_line_noop () =
           ( [],
             {
               path = Path "src/main";
+              kind = ChangedFile;
               mode = None;
               content = Text { visibility = Expanded; hunks = [ hunk ] };
             },

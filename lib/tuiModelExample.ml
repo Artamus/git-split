@@ -7,6 +7,7 @@ let model : model =
        [
          {
            path = Path "src/TestMain";
+           kind = ChangedFile;
            mode = None;
            content =
              Text
@@ -45,6 +46,7 @@ let model : model =
          };
          {
            path = Path "src/YetAnotherFile";
+           kind = CreatedFile;
            mode = Some (Mode 100);
            content =
              Text
@@ -76,6 +78,7 @@ let model : model =
          };
          {
            path = ChangedPath { old_path = "lib/nottui_tui.ml"; new_path = "lib/nottuiTui.ml" };
+           kind = ChangedFile;
            mode = None;
            content =
              Text
@@ -100,6 +103,7 @@ let model : model =
          };
          {
            path = Path "src/some.bin";
+           kind = ChangedFile;
            mode = Some (ChangedMode { old_mode = 100; new_mode = 200 });
            content = Binary ("dummy binary content", `included);
          };

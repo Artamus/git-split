@@ -11,6 +11,7 @@ let test_changed_file_text_content () =
          [
            {
              path = Path "src/test";
+             kind = ChangedFile;
              mode = None;
              content =
                Text
@@ -97,6 +98,7 @@ let test_changed_file_binary_content () =
          [
            {
              path = Path "test-font.ttf";
+             kind = ChangedFile;
              mode = None;
              content =
                Binary
@@ -134,6 +136,7 @@ let test_changed_file_renamed () =
          [
            {
              path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
+             kind = ChangedFile;
              mode = None;
              content = Text { visibility = Collapsed; hunks = [] };
            };
@@ -164,6 +167,7 @@ let test_changed_file_renamed_with_text_content () =
          [
            {
              path = ChangedPath { old_path = "src/old"; new_path = "src/new" };
+             kind = ChangedFile;
              mode = None;
              content =
                Text
@@ -227,6 +231,7 @@ let test_file_mode_change () =
          [
            {
              path = Path "script";
+             kind = ChangedFile;
              mode = Some (ChangedMode { old_mode = 100644; new_mode = 100755 });
              content = Text { visibility = Collapsed; hunks = [] };
            };
@@ -257,6 +262,7 @@ let test_file_mode_change_with_text_content () =
          [
            {
              path = Path "script";
+             kind = ChangedFile;
              mode = Some (ChangedMode { old_mode = 100755; new_mode = 100644 });
              content =
                Text
@@ -315,6 +321,7 @@ let test_file_mode_change_with_binary_content () =
          [
            {
              path = Path "test2.bin";
+             kind = ChangedFile;
              mode = Some (ChangedMode { old_mode = 100755; new_mode = 100644 });
              content = Binary ("delta 6", `included);
            };
@@ -345,6 +352,7 @@ let test_changed_file_renamed_with_mode_change () =
          [
            {
              path = ChangedPath { old_path = "script"; new_path = "scriptt" };
+             kind = ChangedFile;
              mode = Some (ChangedMode { old_mode = 100644; new_mode = 100755 });
              content =
                Text
@@ -401,6 +409,7 @@ let test_empty_created_file () =
          [
            {
              path = Path "empty-new-file.md";
+             kind = CreatedFile;
              mode = Some (Mode 100644);
              content =
                Text
@@ -434,6 +443,7 @@ let test_created_file_text_content () =
          [
            {
              path = Path "src/main";
+             kind = CreatedFile;
              mode = Some (Mode 100644);
              content =
                Text
@@ -492,6 +502,7 @@ let test_created_file_binary_content () =
          [
            {
              path = Path "foo.bin";
+             kind = CreatedFile;
              mode = Some (Mode 100755);
              content = Binary ("literal 18", `included);
            };
@@ -512,6 +523,7 @@ let test_empty_deleted_file () =
          [
            {
              path = Path "empty-deleted-file.md";
+             kind = DeletedFile;
              mode = Some (Mode 100644);
              content =
                Text
@@ -547,6 +559,7 @@ let test_deleted_file_text_content () =
          [
            {
              path = Path "src/main";
+             kind = DeletedFile;
              mode = Some (Mode 100644);
              content =
                Text
@@ -605,6 +618,7 @@ let test_deleted_file_binary_content () =
          [
            {
              path = Path "foo.bin";
+             kind = DeletedFile;
              mode = Some (Mode 100755);
              content = Binary ("literal 0\nHcmV?d00001", `included);
            };
@@ -631,6 +645,7 @@ let test_diff_with_multiple_files () =
          [
            {
              path = Path "src/first";
+             kind = ChangedFile;
              mode = None;
              content =
                Text
@@ -655,6 +670,7 @@ let test_diff_with_multiple_files () =
            };
            {
              path = Path "src/second";
+             kind = ChangedFile;
              mode = None;
              content =
                Text
@@ -731,71 +747,6 @@ let test_diff_with_multiple_files () =
   in
   check diff_testable "same diffs" expected diff
 
-let unselected_removed_become_context () =
-  let tui_model : TuiModel.model =
-    File
-      (Zipper.from_list_exn
-         [
-           {
-             path = Path "src/main";
-             mode = None;
-             content =
-               Text
-                 {
-                   visibility = Collapsed;
-                   hunks =
-                     [
-                       {
-                         starting_line = 1;
-                         context_snippet = None;
-                         visibility = Expanded;
-                         lines =
-                           [
-                             Context "context";
-                             Diff ("removed-line", `removed, `included);
-                             Diff ("added-line", `added, `included);
-                             Diff ("unselected-removed-line", `removed, `notincluded);
-                             Context "context";
-                           ];
-                       };
-                     ];
-                 };
-           };
-         ])
-  in
-
-  let diff = Tui.diff_of_model tui_model in
-
-  let expected : Diff.diff =
-    {
-      files =
-        [
-          ChangedFile
-            {
-              path = Path "src/main";
-              mode_change = None;
-              content =
-                `Text
-                  [
-                    {
-                      starting_line = 1;
-                      context_snippet = None;
-                      lines =
-                        [
-                          `ContextLine "context";
-                          `RemovedLine "removed-line";
-                          `AddedLine "added-line";
-                          `ContextLine "unselected-removed-line";
-                          `ContextLine "context";
-                        ];
-                    };
-                  ];
-            };
-        ];
-    }
-  in
-  check diff_testable "same diffs" expected diff
-
 let unselected_added_are_excluded () =
   let tui_model : TuiModel.model =
     File
@@ -803,6 +754,7 @@ let unselected_added_are_excluded () =
          [
            {
              path = Path "src/main";
+             kind = ChangedFile;
              mode = None;
              content =
                Text
@@ -858,55 +810,6 @@ let unselected_added_are_excluded () =
   in
   check diff_testable "same diffs" expected diff
 
-let created_with_unselected_is_created () =
-  let tui_model : TuiModel.model =
-    File
-      (Zipper.from_list_exn
-         [
-           {
-             path = Path "src/created";
-             mode = None;
-             content =
-               Text
-                 {
-                   visibility = Collapsed;
-                   hunks =
-                     [
-                       {
-                         starting_line = 1;
-                         context_snippet = None;
-                         visibility = Expanded;
-                         lines =
-                           [
-                             Diff ("added-line-1", `added, `included);
-                             Diff ("added-line-2", `added, `included);
-                             Diff ("added-line-3", `added, `notincluded);
-                             Diff ("added-line-4", `added, `notincluded);
-                           ];
-                       };
-                     ];
-                 };
-           };
-         ])
-  in
-
-  let diff = Tui.diff_of_model tui_model in
-
-  let expected : Diff.diff =
-    {
-      files =
-        [
-          CreatedFile
-            {
-              path = "src/created";
-              mode = 100644;
-              content = `Text [ `AddedLine "added-line-1"; `AddedLine "added-line-2" ];
-            };
-        ];
-    }
-  in
-  check diff_testable "same diffs" expected diff
-
 let deleted_with_unselected_is_changed () =
   let tui_model : TuiModel.model =
     File
@@ -914,6 +817,7 @@ let deleted_with_unselected_is_changed () =
          [
            {
              path = Path "src/deleted";
+             kind = DeletedFile;
              mode = Some (Mode 100644);
              content =
                Text
@@ -987,20 +891,14 @@ let diff_of_tui_model_suite =
     ("of renamed file with mode change", `Quick, test_changed_file_renamed_with_mode_change);
     ("of empty created file", `Quick, test_empty_created_file);
     ("of created file with text content", `Quick, test_created_file_text_content);
-    (* ("of created file with binary content", `Quick, test_created_file_binary_content); *)
-    (* ("of empty deleted file", `Quick, test_empty_deleted_file); *)
+    ("of created file with binary content", `Quick, test_created_file_binary_content);
+    ("of empty deleted file", `Quick, test_empty_deleted_file);
     ("of deleted file with text content", `Quick, test_deleted_file_text_content);
-    (* ("of deleted file with binary content", `Quick, test_deleted_file_binary_content); *)
+    ("of deleted file with binary content", `Quick, test_deleted_file_binary_content);
     ("of multiple files", `Quick, test_diff_with_multiple_files);
     (* Tests documenting interesting behaviour. *)
-    ( "unselected removed lines become context lines in the diff",
-      `Quick,
-      unselected_removed_become_context );
-    ("excludes unselected added lines from the diff", `Quick, unselected_added_are_excluded);
-    ( "keeps a created file with some unselected lines a created file",
-      `Quick,
-      created_with_unselected_is_created );
-    ( "changes a deleted file with some unselected lines to a changed file",
+    ("excludes unselected added lines from a created file", `Quick, unselected_added_are_excluded);
+    ( "converts a deleted file with some unselected lines to a changed file",
       `Quick,
       deleted_with_unselected_is_changed );
   ]

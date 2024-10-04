@@ -10,6 +10,7 @@ let test_file_to_prev_file () =
   let first_file : TuiTypes.file =
     {
       path = Path "src/main";
+      kind = ChangedFile;
       mode = None;
       content =
         Text
@@ -30,6 +31,7 @@ let test_file_to_prev_file () =
   let second_file : TuiTypes.file =
     {
       path = Path "src/test";
+      kind = ChangedFile;
       mode = None;
       content =
         Text
@@ -61,6 +63,7 @@ let test_file_to_prev_hunk () =
   let first_file : TuiTypes.file =
     {
       path = Path "src/main";
+      kind = ChangedFile;
       mode = None;
       content = Text { visibility = Expanded; hunks = [ first_file_hunk ] };
     }
@@ -68,6 +71,7 @@ let test_file_to_prev_hunk () =
   let second_file : TuiTypes.file =
     {
       path = Path "src/test";
+      kind = ChangedFile;
       mode = None;
       content =
         Text
@@ -108,6 +112,7 @@ let test_file_to_prev_line () =
   let first_file : TuiTypes.file =
     {
       path = Path "src/main";
+      kind = ChangedFile;
       mode = None;
       content = Text { visibility = Expanded; hunks = [ first_file_hunk ] };
     }
@@ -115,6 +120,7 @@ let test_file_to_prev_line () =
   let second_file : TuiTypes.file =
     {
       path = Path "src/test";
+      kind = ChangedFile;
       mode = None;
       content =
         Text
@@ -156,6 +162,7 @@ let test_hunk_to_file () =
   let file : TuiTypes.file =
     {
       path = Path "src/main";
+      kind = ChangedFile;
       mode = None;
       content = Text { visibility = Collapsed; hunks = [ hunk ] };
     }
@@ -189,6 +196,7 @@ let test_hunk_to_prev_hunk () =
   let file : TuiTypes.file =
     {
       path = Path "src/main";
+      kind = ChangedFile;
       mode = None;
       content = Text { visibility = Expanded; hunks = [ first_hunk; second_hunk ] };
     }
@@ -225,6 +233,7 @@ let test_hunk_to_prev_line () =
   let file : TuiTypes.file =
     {
       path = Path "src/main";
+      kind = ChangedFile;
       mode = None;
       content = Text { visibility = Expanded; hunks = [ first_hunk; second_hunk ] };
     }
@@ -251,6 +260,7 @@ let test_line_to_hunk () =
   let file : TuiTypes.file =
     {
       path = Path "src/main";
+      kind = ChangedFile;
       mode = None;
       content = Text { visibility = Expanded; hunks = [ hunk ] };
     }
@@ -279,6 +289,7 @@ let test_line_to_prev_line () =
   let file : TuiTypes.file =
     {
       path = Path "src/main";
+      kind = ChangedFile;
       mode = None;
       content = Text { visibility = Expanded; hunks = [ hunk ] };
     }
@@ -304,6 +315,7 @@ let test_first_file_to_last_file () =
   let first_file : TuiTypes.file =
     {
       path = Path "src/main";
+      kind = ChangedFile;
       mode = None;
       content =
         Text
@@ -324,6 +336,7 @@ let test_first_file_to_last_file () =
   let second_file : TuiTypes.file =
     {
       path = Path "src/test";
+      kind = ChangedFile;
       mode = None;
       content =
         Text
@@ -352,6 +365,7 @@ let test_first_file_to_last_file_last_hunk () =
   let first_file : TuiTypes.file =
     {
       path = Path "src/main";
+      kind = ChangedFile;
       mode = None;
       content =
         Text
@@ -380,6 +394,7 @@ let test_first_file_to_last_file_last_hunk () =
   let second_file : TuiTypes.file =
     {
       path = Path "src/test";
+      kind = ChangedFile;
       mode = None;
       content = Text { visibility = Expanded; hunks = [ second_file_hunk ] };
     }
@@ -398,6 +413,7 @@ let test_first_file_to_last_file_last_hunk_last_line () =
   let first_file : TuiTypes.file =
     {
       path = Path "src/main";
+      kind = ChangedFile;
       mode = None;
       content =
         Text
@@ -427,6 +443,7 @@ let test_first_file_to_last_file_last_hunk_last_line () =
   let second_file : TuiTypes.file =
     {
       path = Path "src/test";
+      kind = ChangedFile;
       mode = None;
       content = Text { visibility = Expanded; hunks = [ second_file_hunk ] };
     }

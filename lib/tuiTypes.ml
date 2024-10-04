@@ -16,6 +16,7 @@ type hunk = {
 type path = Path of string | ChangedPath of { old_path : string; new_path : string }
 [@@deriving show, eq]
 
+type file_kind = ChangedFile | CreatedFile | DeletedFile [@@deriving show, eq]
 type mode = Mode of int | ChangedMode of { old_mode : int; new_mode : int } [@@deriving show, eq]
 
 type content =
@@ -23,4 +24,5 @@ type content =
   | Binary of (string * [ `included | `notincluded ])
 [@@deriving show, eq]
 
-type file = { path : path; mode : mode option; content : content } [@@deriving show, eq]
+type file = { path : path; kind : file_kind; mode : mode option; content : content }
+[@@deriving show, eq]
