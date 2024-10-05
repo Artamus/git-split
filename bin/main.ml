@@ -41,7 +41,9 @@ let cleanup intermediary_commit =
   process "git" [ "branch"; "-f"; intermediary_commit.branch; head_commit_id ] |> run
 
 let rec select_changes reference_commit target_commit =
-  let head_diff = process "git" [ "diff"; reference_commit; target_commit ] |> collect stdout in
+  let head_diff =
+    process "git" [ "diff"; "--binary"; reference_commit; target_commit ] |> collect stdout
+  in
   if String.length head_diff = 0 then Result.ok ()
   else
     let* diff = DiffParser.parse head_diff in
@@ -76,7 +78,9 @@ let () =
     let _result = Tui.run TuiModelExample.model in
     ()
   else if !view_only then
-    let head_diff = process "git" [ "diff"; "HEAD~"; "HEAD" ] |> collect stdout in
+    let head_diff =
+      process "git" [ "diff"; "--binary"; !commit_id ^ "~1"; !commit_id ] |> collect stdout
+    in
     let diff =
       DiffParser.parse head_diff
       |> Result.map_error (fun err -> Printf.sprintf "Failed to parse diff, %s" err)
