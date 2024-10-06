@@ -100,6 +100,7 @@ let render_file (file : file) is_cursor hunk_lines : image list =
   let file_collapsible_marker =
     match file.content with
     | Binary _ -> "   "
+    | Text { hunks; _ } when List.is_empty hunks -> "   "
     | Text { visibility = Expanded; _ } -> "(-)"
     | Text { visibility = Collapsed; _ } -> "(+)"
   in
