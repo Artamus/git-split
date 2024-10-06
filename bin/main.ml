@@ -1,6 +1,4 @@
 open Git_split
-open Feather
-open Feather.Infix
 
 let ( let* ) = Result.bind
 let usage_msg = "git-split [commit-id]"
@@ -16,6 +14,18 @@ let speclist =
     ("--view-only", Arg.Set view_only, "Run TUI in selection mode, but do not make any changes.");
   ]
 
+let process cmd args = Unix.open_process_args_full cmd (Array.concat [ [| cmd |]; args ]) [||]
+
+let collect (in_channel, out_channel, err_channel) =
+  let content = In_channel.input_all in_channel in
+  let err_content = In_channel.input_all err_channel in
+  let status = Unix.close_process_full (in_channel, out_channel, err_channel) in
+  (status, content, err_content)
+
+let run (in_channel, out_channel, err_channel) =
+  let _ = Unix.close_process_full (in_channel, out_channel, err_channel) in
+  ()
+
 type head_commit = { reference_commit : string; target_commit : string }
 
 type intermediary_commit = {
@@ -29,20 +39,21 @@ type split_commit = HeadCommit of head_commit | IntermediaryCommit of intermedia
 
 let cleanup intermediary_commit =
   process "git"
-    [
+    [|
       "rebase";
       "--onto";
       intermediary_commit.reference_commit;
       intermediary_commit.target_commit ^ "~1";
       intermediary_commit.original_head;
-    ]
+    |]
   |> run;
-  let head_commit_id = process "git" [ "rev-parse"; "--short"; "HEAD" ] |> collect stdout in
-  process "git" [ "branch"; "-f"; intermediary_commit.branch; head_commit_id ] |> run
+  let _, head_commit_id, _ = process "git" [| "rev-parse"; "--short"; "HEAD" |] |> collect in
+  process "git" [| "branch"; "-f"; intermediary_commit.branch; head_commit_id |] |> run;
+  ()
 
 let rec select_changes reference_commit target_commit =
-  let head_diff =
-    process "git" [ "diff"; "--binary"; reference_commit; target_commit ] |> collect stdout
+  let _, head_diff, _ =
+    process "git" [| "diff"; "--binary"; reference_commit; target_commit |] |> collect
   in
   if String.length head_diff = 0 then Result.ok ()
   else
@@ -57,17 +68,15 @@ let rec select_changes reference_commit target_commit =
     let selected_diff = Tui.diff_of_model final_model in
     let serialized_diff = DiffSerializer.serialize selected_diff in
     let tmp_filename = Printf.sprintf "/tmp/%s.diff" reference_commit in
-    echo serialized_diff > tmp_filename |> run;
-    let apply_error, apply_status =
-      process "git" [ "apply"; tmp_filename ] |> collect stderr_and_status
-    in
-    if apply_status <> 0 then
+    process "echo" [| serialized_diff; ">"; tmp_filename |] |> run;
+    let apply_status, _, apply_error = process "git" [| "apply"; tmp_filename |] |> collect in
+    if apply_status <> Unix.WEXITED 0 then
       Error ("Failed to apply selected diff with error \"" ^ apply_error ^ "\"")
     else (
-      process "git" [ "add"; "." ] |> run;
-      process "git" [ "commit" ] |> run;
-      let current_diff_commit =
-        process "git" [ "rev-parse"; "--short"; "HEAD" ] |> collect stdout
+      process "git" [| "add"; "." |] |> run;
+      process "git" [| "commit" |] |> run;
+      let _, current_diff_commit, _ =
+        process "git" [| "rev-parse"; "--short"; "HEAD" |] |> collect
       in
       select_changes current_diff_commit target_commit)
 
@@ -78,11 +87,11 @@ let () =
     let _result = Tui.run TuiModelExample.model in
     ()
   else if !view_only then
-    let head_diff =
-      process "git" [ "diff"; "--binary"; !commit_id ^ "~1"; !commit_id ] |> collect stdout
+    let _, raw_diff, _ =
+      process "git" [| "diff"; !commit_id ^ "~"; !commit_id; "--binary" |] |> collect
     in
     let diff =
-      DiffParser.parse head_diff
+      DiffParser.parse raw_diff
       |> Result.map_error (fun err -> Printf.sprintf "Failed to parse diff, %s" err)
     in
     let model =
@@ -96,16 +105,16 @@ let () =
            ())
          ~error:(fun err -> print_endline err)
   else
-    let starting_reference_commit_id =
-      process "git" [ "rev-parse"; "--short"; !commit_id ^ "~1" ] |> collect stdout
+    let _, starting_reference_commit_id, _ =
+      process "git" [| "rev-parse"; "--short"; !commit_id ^ "~1" |] |> collect
     in
-    let head_commit_id = process "git" [ "rev-parse"; "--short"; "HEAD" ] |> collect stdout in
+    let _, head_commit_id, _ = process "git" [| "rev-parse"; "--short"; "HEAD" |] |> collect in
     let split_commit =
       if !commit_id = "HEAD" then
         HeadCommit
           { reference_commit = starting_reference_commit_id; target_commit = head_commit_id }
       else
-        let branch = process "git" [ "rev-parse"; "--abbrev-ref"; "HEAD" ] |> collect stdout in
+        let _, branch, _ = process "git" [| "rev-parse"; "--abbrev-ref"; "HEAD" |] |> collect in
         IntermediaryCommit
           {
             reference_commit = starting_reference_commit_id;
@@ -116,7 +125,7 @@ let () =
     in
 
     print_endline @@ "Resetting to commit " ^ starting_reference_commit_id;
-    process "git" [ "reset"; "--hard"; starting_reference_commit_id ] |> run;
+    process "git" [| "reset"; "--hard"; starting_reference_commit_id |] |> run;
 
     let split_res =
       match split_commit with
@@ -136,6 +145,6 @@ let () =
       ~error:(fun err ->
         print_endline err;
         print_endline "Resetting HEAD";
-        process "git" [ "reset"; "--hard"; head_commit_id ] |> run;
+        process "git" [| "reset"; "--hard"; head_commit_id |] |> run;
         ())
       split_res
