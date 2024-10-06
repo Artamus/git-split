@@ -20,6 +20,12 @@ let collect (in_channel, out_channel, err_channel) =
   let content = In_channel.input_all in_channel in
   let err_content = In_channel.input_all err_channel in
   let status = Unix.close_process_full (in_channel, out_channel, err_channel) in
+
+  let content_length = String.length content in
+  let content =
+    if content.[content_length - 1] = '\n' then String.sub content 0 (content_length - 2)
+    else content
+  in
   (status, content, err_content)
 
 let run (in_channel, out_channel, err_channel) =
