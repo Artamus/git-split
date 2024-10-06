@@ -23,7 +23,8 @@ let collect (in_channel, out_channel, err_channel) =
 
   let content_length = String.length content in
   let content =
-    if content.[content_length - 1] = '\n' then String.sub content 0 (content_length - 2)
+    if content_length > 0 && content.[content_length - 1] = '\n' then
+      String.sub content 0 (content_length - 1)
     else content
   in
   (status, content, err_content)
@@ -31,6 +32,11 @@ let collect (in_channel, out_channel, err_channel) =
 let run (in_channel, out_channel, err_channel) =
   let _ = Unix.close_process_full (in_channel, out_channel, err_channel) in
   ()
+
+let write_file file_name message =
+  let oc = open_out file_name in
+  Printf.fprintf oc "%s\n" message;
+  close_out oc
 
 type head_commit = { reference_commit : string; target_commit : string }
 
@@ -74,13 +80,16 @@ let rec select_changes reference_commit target_commit =
     let selected_diff = Tui.diff_of_model final_model in
     let serialized_diff = DiffSerializer.serialize selected_diff in
     let tmp_filename = Printf.sprintf "/tmp/%s.diff" reference_commit in
-    process "echo" [| serialized_diff; ">"; tmp_filename |] |> run;
+
+    write_file tmp_filename serialized_diff;
+
     let apply_status, _, apply_error = process "git" [| "apply"; tmp_filename |] |> collect in
     if apply_status <> Unix.WEXITED 0 then
       Error ("Failed to apply selected diff with error \"" ^ apply_error ^ "\"")
     else (
       process "git" [| "add"; "." |] |> run;
       process "git" [| "commit" |] |> run;
+      let _ = Unix.system "git commit" in
       let _, current_diff_commit, _ =
         process "git" [| "rev-parse"; "--short"; "HEAD" |] |> collect
       in
