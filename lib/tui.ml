@@ -2,6 +2,8 @@ open Notty
 open Notty_unix
 open TuiTypes
 
+let ( let* ) = Result.bind
+
 let update event model =
   match event with
   | `Key (`Arrow `Up, _) | `Key (`ASCII 'k', _) -> TuiModel.prev model
@@ -423,7 +425,7 @@ let non_empty_file file =
   | _ -> false
 
 let diff_of_model model =
-  let files =
+  let files_results =
     model_files model |> List.filter non_empty_file
     |> List.map (fun file ->
            let content =
@@ -461,12 +463,12 @@ let diff_of_model model =
                         | ChangedMode { old_mode; new_mode } -> Some Diff.{ old_mode; new_mode })
                  |> Option.join
                in
-               Diff.ChangedFile { path; mode_change; content }
+               Ok (Diff.ChangedFile { path; mode_change; content })
            | CreatedFile ->
-               let path =
+               let* path =
                  match file.path with
-                 | Path path -> path
-                 | _ -> failwith "created file cannot have changed path"
+                 | Path path -> Ok path
+                 | _ -> Error "created file cannot have changed path"
                in
                let mode =
                  file.mode
@@ -474,10 +476,10 @@ let diff_of_model model =
                         match mode with Mode mode -> Some mode | ChangedMode _ -> None)
                  |> Option.join
                in
-               let mode =
+               let* mode =
                  match mode with
-                 | Some mode -> mode
-                 | None -> failwith "created file cannot have changed mode"
+                 | Some mode -> Ok mode
+                 | None -> Error "created file cannot have changed mode"
                in
                let content =
                  match content with
@@ -493,7 +495,7 @@ let diff_of_model model =
                      `Text lines
                  | `Binary bin -> `Binary bin
                in
-               Diff.CreatedFile { path; mode; content }
+               Ok (Diff.CreatedFile { path; mode; content })
            | DeletedFile ->
                let mode =
                  file.mode
@@ -501,10 +503,10 @@ let diff_of_model model =
                         match mode with Mode mode -> Some mode | ChangedMode _ -> None)
                  |> Option.join
                in
-               let mode =
+               let* mode =
                  match mode with
-                 | Some mode -> mode
-                 | None -> failwith "deleted file cannot have changed mode"
+                 | Some mode -> Ok mode
+                 | None -> Error "deleted file cannot have changed mode"
                in
 
                let is_deleted_file =
@@ -518,10 +520,10 @@ let diff_of_model model =
                in
 
                if is_deleted_file then
-                 let path =
+                 let* path =
                    match file.path with
-                   | Path path -> path
-                   | _ -> failwith "deleted file cannot have changed path"
+                   | Path path -> Ok path
+                   | _ -> Error "deleted file cannot have changed path"
                  in
                  let content =
                    match content with
@@ -537,13 +539,14 @@ let diff_of_model model =
                        `Text lines
                    | `Binary bin -> `Binary bin
                  in
-                 Diff.DeletedFile { path; mode; content }
+                 Ok (Diff.DeletedFile { path; mode; content })
                else
-                 let path =
+                 let* path =
                    match file.path with
-                   | Path path -> Diff.Path path
-                   | _ -> failwith "deleted file cannot have changed path"
+                   | Path path -> Ok (Diff.Path path)
+                   | _ -> Error "deleted file cannot have changed path"
                  in
-                 Diff.ChangedFile { path; mode_change = None; content })
+                 Ok (Diff.ChangedFile { path; mode_change = None; content }))
   in
-  Diff.{ files }
+  let* files = Ok (List.filter_map Result.to_option files_results) in
+  Ok Diff.{ files }

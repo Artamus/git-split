@@ -77,7 +77,7 @@ let rec select_changes reference_commit target_commit =
              (Printf.sprintf "unable to parse diff between %s and %s" reference_commit target_commit)
     in
     let* final_model = Tui.run tui_model |> Option.to_result ~none:"aborted by user" in
-    let selected_diff = Tui.diff_of_model final_model in
+    let* selected_diff = Tui.diff_of_model final_model in
     let serialized_diff = DiffSerializer.serialize selected_diff in
     let tmp_filename = Printf.sprintf "/tmp/%s.diff" reference_commit in
 

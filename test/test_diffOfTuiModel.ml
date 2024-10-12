@@ -3,6 +3,7 @@ open Git_split
 open Git_split.TuiTypes
 
 let diff_testable = testable Diff.pp_diff Diff.equal_diff
+let result_diff_testable = Alcotest.result diff_testable Alcotest.string
 
 let test_changed_file_text_content () =
   let tui_model : TuiModel.model =
@@ -89,7 +90,7 @@ let test_changed_file_text_content () =
         ];
     }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let test_changed_file_binary_content () =
   let tui_model : TuiModel.model =
@@ -127,7 +128,7 @@ let test_changed_file_binary_content () =
         ];
     }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let test_changed_file_renamed () =
   let tui_model : TuiModel.model =
@@ -158,7 +159,7 @@ let test_changed_file_renamed () =
         ];
     }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let test_changed_file_renamed_with_text_content () =
   let tui_model : TuiModel.model =
@@ -222,7 +223,7 @@ let test_changed_file_renamed_with_text_content () =
         ];
     }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let test_file_mode_change () =
   let tui_model : TuiModel.model =
@@ -253,7 +254,7 @@ let test_file_mode_change () =
         ];
     }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let test_file_mode_change_with_text_content () =
   let tui_model : TuiModel.model =
@@ -312,7 +313,7 @@ let test_file_mode_change_with_text_content () =
         ];
     }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let test_file_mode_change_with_binary_content () =
   let tui_model : TuiModel.model =
@@ -343,7 +344,7 @@ let test_file_mode_change_with_binary_content () =
         ];
     }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let test_changed_file_renamed_with_mode_change () =
   let tui_model : TuiModel.model =
@@ -400,7 +401,7 @@ let test_changed_file_renamed_with_mode_change () =
         ];
     }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let test_empty_created_file () =
   let tui_model : TuiModel.model =
@@ -434,7 +435,7 @@ let test_empty_created_file () =
   let expected : Diff.diff =
     { files = [ CreatedFile { path = "empty-new-file.md"; mode = 100644; content = `Text [] } ] }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let test_created_file_text_content () =
   let tui_model : TuiModel.model =
@@ -493,7 +494,7 @@ let test_created_file_text_content () =
         ];
     }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let test_created_file_binary_content () =
   let tui_model : TuiModel.model =
@@ -514,7 +515,7 @@ let test_created_file_binary_content () =
   let expected : Diff.diff =
     { files = [ CreatedFile { path = "foo.bin"; mode = 100755; content = `Binary "literal 18" } ] }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let test_empty_deleted_file () =
   let tui_model : TuiModel.model =
@@ -550,7 +551,7 @@ let test_empty_deleted_file () =
       files = [ DeletedFile { path = "empty-deleted-file.md"; mode = 100644; content = `Text [] } ];
     }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let test_deleted_file_text_content () =
   let tui_model : TuiModel.model =
@@ -609,7 +610,7 @@ let test_deleted_file_text_content () =
         ];
     }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let test_deleted_file_binary_content () =
   let tui_model : TuiModel.model =
@@ -636,7 +637,7 @@ let test_deleted_file_binary_content () =
         ];
     }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let test_diff_with_multiple_files () =
   let tui_model : TuiModel.model =
@@ -745,7 +746,7 @@ let test_diff_with_multiple_files () =
         ];
     }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let unselected_added_are_excluded () =
   let tui_model : TuiModel.model =
@@ -808,7 +809,7 @@ let unselected_added_are_excluded () =
         ];
     }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let deleted_with_unselected_is_changed () =
   let tui_model : TuiModel.model =
@@ -872,7 +873,7 @@ let deleted_with_unselected_is_changed () =
         ];
     }
   in
-  check diff_testable "same diffs" expected diff
+  check result_diff_testable "same diffs" (Ok expected) diff
 
 let diff_of_tui_model_suite =
   [
