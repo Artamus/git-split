@@ -208,7 +208,7 @@ let toggle_item include_status =
 
 let toggle_lines = function
   | NoLines -> `included
-  | SomeLines -> `included
+  | SomeLines -> `notincluded
   | AllLines -> `notincluded
 
 let toggle_inclusion = function

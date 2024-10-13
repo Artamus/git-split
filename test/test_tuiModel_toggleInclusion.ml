@@ -207,7 +207,10 @@ let test_toggle_partially_selected_hunk () =
   let toggle_model = TuiModel.toggle_inclusion model in
 
   let expected_hunk : TuiTypes.hunk =
-    { hunk with lines = [ Diff ("code", `added, `included); Diff ("code2", `added, `included) ] }
+    {
+      hunk with
+      lines = [ Diff ("code", `added, `notincluded); Diff ("code2", `added, `notincluded) ];
+    }
   in
   let expected =
     TuiModel.Hunk
@@ -404,13 +407,13 @@ let test_toggle_partially_selected_file () =
                          starting_line = 1;
                          context_snippet = None;
                          visibility = Expanded;
-                         lines = [ Diff ("code", `added, `included) ];
+                         lines = [ Diff ("code", `added, `notincluded) ];
                        };
                        {
                          starting_line = 15;
                          context_snippet = None;
                          visibility = Expanded;
-                         lines = [ Diff ("code2", `added, `included) ];
+                         lines = [ Diff ("code2", `added, `notincluded) ];
                        };
                      ];
                  };
