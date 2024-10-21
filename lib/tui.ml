@@ -36,6 +36,8 @@ let render_line line is_cursor =
   let line_content =
     match line with Context content -> content | Diff (content, _, _) -> content
   in
+  (* Notty cannot render '\t', so we replace it with two spaces. *)
+  let line_content = line_content |> String.split_on_char '\t' |> String.concat "  " in
 
   let colour =
     match line with
