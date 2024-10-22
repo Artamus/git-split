@@ -1,3 +1,4 @@
+- Improve parsing of binary files by taking into account the markers for the length of the binary content.
+- Ensure stacked branches do not break the tool.
 - Seed the commit message with the commit message from the commit that is being split.
-- Replace the current parsing with some sort of combinator parser library?
 - Maybe add context snippets if they exist into the TUI.

@@ -1,7 +1,9 @@
-open Diff
+open Angstrom
+open Buffered
+
+(** Various utility bits *)
 
 let ( let* ) = Result.bind
-let ( let+ ) = Option.bind
 
 module Result = struct
   include Result
@@ -12,155 +14,179 @@ module Result = struct
     | Error e :: _ -> Error e
 end
 
-let not_empty str = String.length str > 0
+let eol = char '\n'
+let is_eol = function '\n' -> true | _ -> false
+let is_digit = function '0' .. '9' -> true | _ -> false
+let integer = take_while is_digit >>| int_of_string
+let eol_eof = end_of_line <|> end_of_input
 
-let parse_line line : (line option, string) result =
-  (* TODO: Introduce a test case with this at the end. *)
-  if String.starts_with ~prefix:"\\ No newline at end of file" line then Ok None
-  else
-    let first_char = line.[0] in
-    let line_contents = String.sub line 1 (String.length line - 1) in
-    let parsed_line =
-      match first_char with
-      | ' ' -> Ok (`ContextLine line_contents)
-      | '-' -> Ok (`RemovedLine line_contents)
-      | '+' -> Ok (`AddedLine line_contents)
-      | c -> Error (Printf.sprintf "Found unexpected character: %c" c)
-    in
-    parsed_line |> Result.map (fun line -> Some line)
+(** Diff lines *)
 
-let get_lines lines_diff =
-  String.split_on_char '\n' lines_diff
-  |> List.filter not_empty |> List.map parse_line |> Result.all
-  |> Result.map (fun lines -> lines |> List.filter_map Fun.id)
+let added_line =
+  char '+' *> take_till is_eol <* eol_eof >>= fun content ->
+  return (`AddedLine content) <?> "added line"
 
-let parse_hunk hunk =
-  let hunk_regex =
-    Re.Perl.re ~opts:[ `Multiline ] {|^-(\d+),?\d* \+\d+,?\d* @@(.*)$([.\s\S]*)|} |> Re.compile
+let removed_line =
+  char '-' *> take_till is_eol <* eol_eof >>= fun content ->
+  return (`RemovedLine content) <?> "removed line"
+
+let context_line =
+  char ' ' *> take_till is_eol <* eol_eof >>= fun content ->
+  return (`ContextLine content) <?> "context line"
+
+let line = choice [ added_line; removed_line; context_line ] <?> "line"
+
+(** Hunk *)
+
+let hunk_header =
+  string "@@ -" *> integer
+  <* take_till (function '@' -> true | _ -> false) *> string "@@"
+  <?> "hunk header"
+
+let hunk_context = char ' ' *> take_till is_eol <?> "hunk context"
+let hunk_context_opt = option None (hunk_context >>| Option.some)
+
+let hunk =
+  lift4
+    (fun starting_line context_snippet _ lines -> Diff.{ starting_line; context_snippet; lines })
+    hunk_header hunk_context_opt eol (many1 line)
+
+(** Content *)
+
+let left_file = string "---" *> take_till is_eol <* eol <?> "left file"
+let right_file = string "+++" *> take_till is_eol <* eol <?> "right file"
+
+let text_content =
+  left_file *> right_file *> many1 hunk <?> "text content" >>| fun hunks -> `Text hunks
+
+let text_content_opt = option (`Text []) text_content
+let binary_header = string "GIT binary patch" <* eol
+let binary_count_prefix = string "literal " <|> string "delta "
+let binary_count = integer <* eol
+let binary_content_lines = many1 (take_till is_eol <* eol)
+
+let binary_content =
+  lift3
+    (fun binary_count_prefix binary_count binary_content_lines ->
+      let binary_count = binary_count_prefix ^ string_of_int binary_count in
+      `Binary (String.concat "\n" (binary_count :: binary_content_lines)))
+    (binary_header *> binary_count_prefix)
+    binary_count binary_content_lines
+
+let content = binary_content <|> text_content_opt <?> "content"
+
+(** Mode change *)
+
+let old_mode = string "old mode " *> integer <* eol
+let new_mode = string "new mode " *> integer <* eol_eof
+let mode_change = lift2 (fun old_mode new_mode -> Diff.{ old_mode; new_mode }) old_mode new_mode
+let mode_change_opt = option None (mode_change >>| Option.some)
+
+(** Rename *)
+
+let similarity = string "similarity index " *> integer <* char '%' <* eol
+let rename_from = string "rename from " *> take_till is_eol <* eol
+let rename_to = string "rename to " *> take_till is_eol <* eol_eof
+let rename = similarity <* rename_from <* rename_to
+let rename_opt = option None (rename >>| Option.some)
+
+(** New/deleted file *)
+
+let new_file_mode = string "new file mode " *> integer <* eol
+let deleted_file_mode = string "deleted file mode " *> integer <* eol
+
+(** File *)
+
+let index = string "index" *> take_till is_eol <* eol_eof <?> "index"
+let index_opt = option None (index >>| Option.some)
+
+let first_file_name =
+  many_till any_char (string " b/") >>| fun chars -> String.of_seq (List.to_seq chars)
+
+let second_file_name = take_till is_eol <* eol
+
+let file_header =
+  string "diff --git a/" *> first_file_name >>= fun old_path ->
+  second_file_name >>= fun new_path ->
+  return
+    (if old_path = new_path then Diff.Path old_path else Diff.ChangedPath { old_path; new_path })
+
+let changed_file =
+  file_header >>= fun path ->
+  mode_change_opt >>= fun mode_change ->
+  rename_opt >>= fun _ ->
+  index_opt >>= fun _ ->
+  content >>| fun content -> Ok (Diff.ChangedFile { path; mode_change; content })
+
+let created_file =
+  file_header >>= fun path ->
+  new_file_mode >>= fun mode ->
+  index_opt >>= fun _ ->
+  content >>| fun content ->
+  let* path =
+    match path with Path p -> Ok p | _ -> Error "created file cannot have changed path"
   in
-  let hunk_groups = Re.exec hunk_regex hunk in
-
-  let starting_line = int_of_string @@ Re.Group.get hunk_groups 1 in
-  let raw_context_snippet = Re.Group.get hunk_groups 2 in
-  let context_snippet =
-    if not_empty raw_context_snippet then
-      Some (String.sub raw_context_snippet 1 (String.length raw_context_snippet - 1))
-    else None
+  let content =
+    match content with
+    | `Text hunks ->
+        let all_lines =
+          hunks
+          |> List.map (fun (hunk : Diff.hunk) : Diff.line list -> hunk.lines)
+          |> List.flatten
+          |> List.filter_map (fun line ->
+                 match line with `AddedLine content -> Some (`AddedLine content) | _ -> None)
+        in
+        `Text all_lines
+    | `Binary binary -> `Binary binary
   in
+  Ok (Diff.CreatedFile { path; mode; content })
 
-  (* TODO: Propagate errors. *)
-  let lines = get_lines @@ Re.Group.get hunk_groups 3 in
-
-  { starting_line; context_snippet; lines = Result.get_ok lines }
-
-let parse_text_content (file_diff : string) =
-  let hunk_split_regex = Re.Perl.re ~opts:[ `Multiline ] "^@@ " |> Re.compile in
-  let raw_hunks = Re.split hunk_split_regex file_diff |> List.tl in
-  raw_hunks |> List.map parse_hunk
-
-let parse_binary_content file_diff =
-  let binary_content_regex =
-    Re.Perl.re ~opts:[ `Multiline ] {|^GIT binary patch\n([.\s\S]*)|} |> Re.Perl.compile
+let deleted_file =
+  file_header >>= fun path ->
+  deleted_file_mode >>= fun mode ->
+  index_opt >>= fun _ ->
+  content >>| fun content ->
+  let* path =
+    match path with Path p -> Ok p | _ -> Error "deleted file cannot have changed path"
   in
-  let+ binary_content_grp = Re.exec_opt binary_content_regex file_diff in
-  Re.Group.get_opt binary_content_grp 1
-
-let parse_content file_diff =
-  let incomplete_binary_regex =
-    Re.Perl.re ~opts:[ `Multiline ] "^Binary files(.*) differ$" |> Re.Perl.compile
+  let content =
+    match content with
+    | `Text hunks ->
+        let all_lines =
+          hunks
+          |> List.map (fun (hunk : Diff.hunk) : Diff.line list -> hunk.lines)
+          |> List.flatten
+          |> List.filter_map (fun line ->
+                 match line with `RemovedLine content -> Some (`RemovedLine content) | _ -> None)
+        in
+        `Text all_lines
+    | `Binary binary -> `Binary binary
   in
-  let is_incomplete_binary = Re.execp incomplete_binary_regex file_diff in
+  Ok (Diff.DeletedFile { path; mode; content })
 
-  if is_incomplete_binary then Error "cannot parse diff of binary file without its content"
-  else
-    let binary_content = parse_binary_content file_diff in
-    match binary_content with
-    | Some content -> Ok (`Binary content)
-    | None -> Ok (`Text (parse_text_content file_diff))
+(** Parser *)
+let parser =
+  many1 (created_file <|> deleted_file <|> changed_file) >>| fun files ->
+  let* files = Result.all files in
+  Ok Diff.{ files }
 
-let parse_path file_diff =
-  let paths_regex = Re.Perl.re ~opts:[ `Multiline ] "a/(.*) b/(.*)" |> Re.Perl.compile in
-  let+ paths_grp = Re.exec_opt paths_regex file_diff in
-  let+ src = Re.Group.get_opt paths_grp 1 in
-  let+ dst = Re.Group.get_opt paths_grp 2 in
-  Some (src, dst)
+let parse str = parse_string ~consume:All parser str |> Result.join
 
-let parse_mode_change file_diff =
-  let mode_change_regex =
-    Re.Perl.re ~opts:[ `Multiline ] {|^old mode (\d+)\nnew mode (\d+)$|} |> Re.Perl.compile
+(** A slightly more involved version of the parser that gives greater insight into failures. *)
+let _parse_debug str =
+  let state = Buffered.parse parser in
+  let state = feed state (`String str) in
+  let end_state = feed state `Eof in
+  let result = state_to_result end_state |> Result.join in
+  let unconsumed =
+    match state_to_unconsumed end_state with
+    | None -> None
+    | Some { buf; off; len } -> if len = 0 then None else Some (Bigstringaf.substring buf ~off ~len)
   in
-  let+ mode_change_groups = Re.exec_opt mode_change_regex file_diff in
-  let+ old_mode =
-    Re.Group.get_opt mode_change_groups 1 |> Option.map int_of_string_opt |> Option.join
+  let result =
+    match (result, unconsumed) with
+    | x, None -> x
+    | Ok _, Some u -> Error (Printf.sprintf "unconsumed: '%s'" u)
+    | Error msg, Some u -> Error (Printf.sprintf "%s / unconsumed: '%s'" msg u)
   in
-  let+ new_mode =
-    Re.Group.get_opt mode_change_groups 2 |> Option.map int_of_string_opt |> Option.join
-  in
-  Some { old_mode; new_mode }
-
-let filter_flatten_hunks_lines hunks filter =
-  hunks |> List.map (fun hunk -> hunk.lines) |> List.flatten |> List.filter_map filter
-
-let select_added_line = function `AddedLine line -> Some (`AddedLine line) | _ -> None
-let select_removed_line = function `RemovedLine line -> Some (`RemovedLine line) | _ -> None
-
-let parse_file_diff file_diff =
-  let* diff_paths =
-    parse_path file_diff |> Option.to_result ~none:"could not parse file diff paths"
-  in
-  let* diff_content = parse_content file_diff in
-
-  let created_file_regex =
-    Re.Perl.re ~opts:[ `Multiline ] {|^new file mode (\d+)$|} |> Re.Perl.compile
-  in
-  let file_created = Re.exec_opt created_file_regex file_diff in
-  let deleted_file_regex =
-    Re.Perl.re ~opts:[ `Multiline ] {|^deleted file mode (\d+)$|} |> Re.Perl.compile
-  in
-  let file_deleted = Re.exec_opt deleted_file_regex file_diff in
-
-  if Option.is_some file_created then
-    let created_file_group = Option.get file_created in
-    let path, _ = diff_paths in
-    let* created_mode =
-      Re.Group.get_opt created_file_group 1
-      |> Option.to_result ~none:"created file must specify mode"
-    in
-    let* content =
-      match diff_content with
-      | `Binary content -> Ok (`Binary content)
-      | `Text hunks ->
-          if List.length hunks > 1 then Error "created file cannot have multiple hunks"
-          else
-            let added_lines = filter_flatten_hunks_lines hunks select_added_line in
-            Ok (`Text added_lines)
-    in
-    Ok (CreatedFile { path; mode = int_of_string created_mode; content })
-  else if Option.is_some file_deleted then
-    let deleted_file_group = Option.get file_deleted in
-    let path, _ = diff_paths in
-    let* deleted_mode =
-      Re.Group.get_opt deleted_file_group 1
-      |> Option.to_result ~none:"deleted file must specify mode"
-    in
-    let* content =
-      match diff_content with
-      | `Binary content -> Ok (`Binary content)
-      | `Text hunks ->
-          if List.length hunks > 1 then Error "deleted file cannot have multiple hunks"
-          else
-            let removed_lines = filter_flatten_hunks_lines hunks select_removed_line in
-            Ok (`Text removed_lines)
-    in
-    Ok (DeletedFile { path; mode = int_of_string deleted_mode; content })
-  else
-    let old_path, new_path = diff_paths in
-    let path = if old_path = new_path then Path old_path else ChangedPath { old_path; new_path } in
-    let mode_change = parse_mode_change file_diff in
-    Ok (ChangedFile { path; mode_change; content = diff_content })
-
-let parse raw_diff =
-  let file_split_regex = Re.Perl.re ~opts:[ `Multiline ] "^diff --git " |> Re.Perl.compile in
-  let file_diffs = Re.split file_split_regex raw_diff in
-  let* files = file_diffs |> List.map parse_file_diff |> Result.all in
-  Ok { files }
+  result

@@ -22,8 +22,8 @@
   (ocaml
    (>= 4.14))
   dune
-  (re
-   (>= 1.10.3))
+  (angstrom
+   (>= 1.16.1))
   notty
   ppx_deriving
   (alcotest :with-test)))
