@@ -4,6 +4,12 @@ open TuiTypes
 
 let ( let* ) = Result.bind
 
+module List = struct
+  include List
+
+  let is_empty = function [] -> true | _ -> false
+end
+
 let update event model =
   match event with
   | `Key (`Arrow `Up, _) | `Key (`ASCII 'k', _) -> TuiModel.prev model
@@ -326,14 +332,16 @@ let model_of_diff (diff : Diff.diff) =
                            {
                              visibility = Collapsed;
                              hunks =
-                               [
-                                 {
-                                   starting_line = 1;
-                                   context_snippet = None;
-                                   visibility = Expanded;
-                                   lines;
-                                 };
-                               ];
+                               (if List.is_empty lines then []
+                                else
+                                  [
+                                    {
+                                      starting_line = 1;
+                                      context_snippet = None;
+                                      visibility = Expanded;
+                                      lines;
+                                    };
+                                  ]);
                            };
                      })
            | CreatedFile created_file -> (
@@ -359,14 +367,16 @@ let model_of_diff (diff : Diff.diff) =
                            {
                              visibility = Collapsed;
                              hunks =
-                               [
-                                 {
-                                   starting_line = 1;
-                                   context_snippet = None;
-                                   visibility = Expanded;
-                                   lines;
-                                 };
-                               ];
+                               (if List.is_empty lines then []
+                                else
+                                  [
+                                    {
+                                      starting_line = 1;
+                                      context_snippet = None;
+                                      visibility = Expanded;
+                                      lines;
+                                    };
+                                  ]);
                            };
                      })
            | ChangedFile changed_file -> (

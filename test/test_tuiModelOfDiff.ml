@@ -403,7 +403,6 @@ let test_changed_file_renamed_with_mode_change () =
   in
   check optional_tui_model_testable "same TUI model" (Some expected) tui_model
 
-(* TODO: Empty created file should not have any hunks. *)
 let test_empty_created_file () =
   let diff : Diff.diff =
     { files = [ CreatedFile { path = "empty-new-file.md"; mode = 100644; content = `Text [] } ] }
@@ -419,20 +418,7 @@ let test_empty_created_file () =
              path = Path "empty-new-file.md";
              kind = CreatedFile;
              mode = Some (Mode 100644);
-             content =
-               Text
-                 {
-                   visibility = Collapsed;
-                   hunks =
-                     [
-                       {
-                         starting_line = 1;
-                         context_snippet = None;
-                         visibility = Expanded;
-                         lines = [];
-                       };
-                     ];
-                 };
+             content = Text { visibility = Collapsed; hunks = [] };
            };
          ])
   in
@@ -518,7 +504,6 @@ let test_created_file_binary_content () =
   in
   check optional_tui_model_testable "same TUI model" (Some expected) tui_model
 
-(* TODO: Empty created file should not have any hunks. *)
 let test_empty_deleted_file () =
   let diff : Diff.diff =
     {
@@ -536,20 +521,7 @@ let test_empty_deleted_file () =
              path = Path "empty-deleted-file.md";
              kind = DeletedFile;
              mode = Some (Mode 100644);
-             content =
-               Text
-                 {
-                   visibility = Collapsed;
-                   hunks =
-                     [
-                       {
-                         starting_line = 1;
-                         context_snippet = None;
-                         visibility = Expanded;
-                         lines = [];
-                       };
-                     ];
-                 };
+             content = Text { visibility = Collapsed; hunks = [] };
            };
          ])
   in
