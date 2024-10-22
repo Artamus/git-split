@@ -526,9 +526,7 @@ let test_fails_incomplete_binary () =
 
   let diff = DiffParser.parse raw_diff in
 
-  (* TODO: Detect this situation explicitly. *)
-  (* let expected = Error "cannot parse diff of binary file without its content" in *)
-  let expected = Error ": end_of_input" in
+  let expected = Error "cannot parse diff of binary file without its content" in
   check result_diff_testable "same diffs" expected diff
 
 let diff_parser_suite =

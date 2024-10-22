@@ -59,7 +59,7 @@ let right_file = string "+++" *> take_till is_eol <* eol <?> "right file"
 let text_content =
   left_file *> right_file *> many1 hunk <?> "text content" >>| fun hunks -> `Text hunks
 
-let text_content_opt = option (`Text []) text_content
+let text_content_opt = option (Ok (`Text [])) (text_content >>| Result.ok)
 let binary_header = string "GIT binary patch" <* eol
 let binary_count_prefix = string "literal " <|> string "delta "
 let binary_count = integer <* eol
@@ -69,11 +69,15 @@ let binary_content =
   lift3
     (fun binary_count_prefix binary_count binary_content_lines ->
       let binary_count = binary_count_prefix ^ string_of_int binary_count in
-      `Binary (String.concat "\n" (binary_count :: binary_content_lines)))
+      Ok (`Binary (String.concat "\n" (binary_count :: binary_content_lines))))
     (binary_header *> binary_count_prefix)
     binary_count binary_content_lines
 
-let content = binary_content <|> text_content_opt <?> "content"
+let missing_binary_content =
+  string "Binary files a/" *> many_till any_char (string " differ") >>| fun _ ->
+  Error "cannot parse diff of binary file without its content"
+
+let content = missing_binary_content <|> binary_content <|> text_content_opt <?> "content"
 
 (** Mode change *)
 
@@ -116,7 +120,9 @@ let changed_file =
   mode_change_opt >>= fun mode_change ->
   rename_opt >>= fun _ ->
   index_opt >>= fun _ ->
-  content >>| fun content -> Ok (Diff.ChangedFile { path; mode_change; content })
+  content >>| fun content ->
+  let* content = content in
+  Ok (Diff.ChangedFile { path; mode_change; content })
 
 let created_file =
   file_header >>= fun path ->
@@ -126,6 +132,7 @@ let created_file =
   let* path =
     match path with Path p -> Ok p | _ -> Error "created file cannot have changed path"
   in
+  let* content = content in
   let content =
     match content with
     | `Text hunks ->
@@ -149,6 +156,7 @@ let deleted_file =
   let* path =
     match path with Path p -> Ok p | _ -> Error "deleted file cannot have changed path"
   in
+  let* content = content in
   let content =
     match content with
     | `Text hunks ->
