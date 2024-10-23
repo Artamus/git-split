@@ -19,7 +19,7 @@ let test_parses_changed_file_text_content () =
      @@ -57,2 +56,3 @@\n\
     \   hunk-2-unchanged-line\n\
      +  hunk-2-added-line\n\
-    \   hunk-2-unchanged-line"
+    \   hunk-2-unchanged-line\n"
   in
 
   let diff = DiffParser.parse raw_diff in
@@ -69,8 +69,10 @@ let test_parses_changed_file_binary_content () =
     "diff --git a/test-font.ttf b/test-font.ttf\n\
      index 6df2b253603094de7f39886aae03181c686e375b..61e5303325a1b4d196d3ba631ac4681b1fdfb7c9 100644\n\
      GIT binary patch\n\
-     literal 94372\n\
-     zcmcG$2Ur|O(g50F134|Qz%H=M!tTNnHZK{L3<7~bD4@g=B#;mwf+blwpa{yzN|r1+\n"
+     literal 12\n\
+     zcmcG$2Ur|O(g50F134|Qz%H=M!tTNnHZK{L3<7~bD4@g=B#;mwf+blwpa{yzN|r1+\n\n\
+     literal 14\n\
+     asd\n\n"
   in
 
   let diff = DiffParser.parse raw_diff in
@@ -85,8 +87,10 @@ let test_parses_changed_file_binary_content () =
               mode_change = None;
               content =
                 `Binary
-                  "literal 94372\n\
-                   zcmcG$2Ur|O(g50F134|Qz%H=M!tTNnHZK{L3<7~bD4@g=B#;mwf+blwpa{yzN|r1+";
+                  "literal 12\n\
+                   zcmcG$2Ur|O(g50F134|Qz%H=M!tTNnHZK{L3<7~bD4@g=B#;mwf+blwpa{yzN|r1+\n\n\
+                   literal 14\n\
+                   asd\n\n";
             };
         ];
     }
@@ -95,7 +99,10 @@ let test_parses_changed_file_binary_content () =
 
 let test_parses_changed_file_renamed () =
   let raw_diff =
-    "diff --git a/src/old b/src/new\nsimilarity index 100%\nrename from src/old\nrename to src/new"
+    "diff --git a/src/old b/src/new\n\
+     similarity index 100%\n\
+     rename from src/old\n\
+     rename to src/new\n"
   in
 
   let diff = DiffParser.parse raw_diff in
@@ -127,7 +134,7 @@ let test_parses_changed_file_renamed_with_text_content () =
     \ context\n\
      -removed-line\n\
      +added-line\n\
-    \ context"
+    \ context\n"
   in
 
   let diff = DiffParser.parse raw_diff in
@@ -162,7 +169,7 @@ let test_parses_changed_file_renamed_with_text_content () =
   check result_diff_testable "same diffs" (Ok expected) diff
 
 let test_parses_file_mode_change () =
-  let raw_diff = "diff --git a/script b/script\nold mode 100644\nnew mode 100755" in
+  let raw_diff = "diff --git a/script b/script\nold mode 100644\nnew mode 100755\n" in
 
   let diff = DiffParser.parse raw_diff in
 
@@ -193,7 +200,7 @@ let test_parses_file_mode_change_with_text_content () =
     \ hello\n\
      +\n\
      +asd\n\
-     +asd"
+     +asd\n"
   in
 
   let diff = DiffParser.parse raw_diff in
@@ -229,8 +236,10 @@ let test_parses_file_mode_change_with_binary_content () =
      new mode 100644\n\
      index 9c08d46d3abcb3153ff2787df59123bdfe2f741b..e0d0c9f63c81124656498c9a513aee5a6449ba61\n\
      GIT binary patch\n\
-     literal 94372\n\
-     delta 6\n"
+     literal 12\n\
+     asd\n\n\
+     literal 14\n\
+     bla\n\n"
   in
 
   let diff = DiffParser.parse raw_diff in
@@ -243,7 +252,7 @@ let test_parses_file_mode_change_with_binary_content () =
             {
               path = Path "test2.bin";
               mode_change = Some { old_mode = 100755; new_mode = 100644 };
-              content = `Binary "literal 94372\ndelta 6";
+              content = `Binary "literal 12\nasd\n\nliteral 14\nbla\n\n";
             };
         ];
     }
@@ -264,7 +273,7 @@ let test_parses_changed_file_renamed_with_mode_change () =
      @@ -1,2 +1,2 @@\n\
     \ hello\n\
      -\n\
-     +e"
+     +e\n"
   in
 
   let diff = DiffParser.parse raw_diff in
@@ -296,7 +305,7 @@ let test_parses_empty_created_file () =
   let raw_diff =
     "diff --git a/empty-new-file.md b/empty-new-file.md\n\
      new file mode 100644\n\
-     index 0000000..e69de29"
+     index 0000000..e69de29\n"
   in
 
   let diff = DiffParser.parse raw_diff in
@@ -317,7 +326,7 @@ let test_parses_created_file_text_content () =
      +added-line-2\n\
      +added-line-3\n\
      +added-line-4\n\
-     +added-line-5"
+     +added-line-5\n"
   in
 
   let diff = DiffParser.parse raw_diff in
@@ -352,7 +361,9 @@ let test_parses_created_file_binary_content () =
      index 0000000000000000000000000000000000000000..fd519fea17d3cf58a92acf18cd81042397aa8fbf\n\
      GIT binary patch\n\
      literal 18\n\
-     some content\n"
+     some content\n\n\
+     literal 19\n\
+     asd\n\n"
   in
 
   let diff = DiffParser.parse raw_diff in
@@ -362,7 +373,11 @@ let test_parses_created_file_binary_content () =
       files =
         [
           CreatedFile
-            { path = "foo.bin"; mode = 100755; content = `Binary "literal 18\nsome content" };
+            {
+              path = "foo.bin";
+              mode = 100755;
+              content = `Binary "literal 18\nsome content\n\nliteral 19\nasd\n\n";
+            };
         ];
     }
   in
@@ -372,7 +387,7 @@ let test_parses_empty_deleted_file () =
   let raw_diff =
     "diff --git a/empty-new-file.md b/empty-new-file.md\n\
      deleted file mode 100644\n\
-     index e69de29..0000000"
+     index e69de29..0000000\n"
   in
 
   let diff = DiffParser.parse raw_diff in
@@ -395,7 +410,7 @@ let test_parses_deleted_file_text_content () =
      -removed-line-2\n\
      -removed-line-3\n\
      -removed-line-4\n\
-     -removed-line-5"
+     -removed-line-5\n"
   in
 
   let diff = DiffParser.parse raw_diff in
@@ -430,7 +445,9 @@ let test_parses_deleted_file_binary_content () =
      index fd519fea17d3cf58a92acf18cd81042397aa8fbf..0000000000000000000000000000000000000000\n\
      GIT binary patch\n\
      literal 0\n\
-     HcmV?d00001\n"
+     HcmV?d00001\n\n\
+     literal 10\n\
+     foobarbaz\n\n"
   in
 
   let diff = DiffParser.parse raw_diff in
@@ -440,7 +457,11 @@ let test_parses_deleted_file_binary_content () =
       files =
         [
           DeletedFile
-            { path = "foo.bin"; mode = 100755; content = `Binary "literal 0\nHcmV?d00001" };
+            {
+              path = "foo.bin";
+              mode = 100755;
+              content = `Binary "literal 0\nHcmV?d00001\n\nliteral 10\nfoobarbaz\n\n";
+            };
         ];
     }
   in
@@ -463,7 +484,7 @@ let test_parses_diff_with_multiple_files () =
     \ context\n\
      -removed-line\n\
      +added-line\n\
-    \ context"
+    \ context\n"
   in
 
   let diff = DiffParser.parse raw_diff in
@@ -521,7 +542,7 @@ let test_fails_incomplete_binary () =
   let raw_diff =
     "diff --git a/test-font.ttf b/test-font.ttf\n\
      index 6df2b25..61e5303 100644\n\
-     Binary files a/test-font.ttf and b/test-font.ttf differ"
+     Binary files a/test-font.ttf and b/test-font.ttf differ\n"
   in
 
   let diff = DiffParser.parse raw_diff in

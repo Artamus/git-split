@@ -14,24 +14,24 @@ module Result = struct
     | Error e :: _ -> Error e
 end
 
-let eol = char '\n'
 let is_eol = function '\n' -> true | _ -> false
+let is_not_eol = function '\n' -> false | _ -> true
 let is_digit = function '0' .. '9' -> true | _ -> false
 let integer = take_while is_digit >>| int_of_string
-let eol_eof = end_of_line <|> end_of_input
+let eol = char '\n'
 
 (** Diff lines *)
 
 let added_line =
-  char '+' *> take_till is_eol <* eol_eof >>= fun content ->
+  char '+' *> take_till is_eol <* eol >>= fun content ->
   return (`AddedLine content) <?> "added line"
 
 let removed_line =
-  char '-' *> take_till is_eol <* eol_eof >>= fun content ->
+  char '-' *> take_till is_eol <* eol >>= fun content ->
   return (`RemovedLine content) <?> "removed line"
 
 let context_line =
-  char ' ' *> take_till is_eol <* eol_eof >>= fun content ->
+  char ' ' *> take_till is_eol <* eol >>= fun content ->
   return (`ContextLine content) <?> "context line"
 
 let line = choice [ added_line; removed_line; context_line ] <?> "line"
@@ -60,21 +60,26 @@ let text_content =
   left_file *> right_file *> many1 hunk <?> "text content" >>| fun hunks -> `Text hunks
 
 let text_content_opt = option (Ok (`Text [])) (text_content >>| Result.ok)
-let binary_header = string "GIT binary patch" <* eol
+let binary_header_line = string "GIT binary patch" <* eol
 let binary_count_prefix = string "literal " <|> string "delta "
 let binary_count = integer <* eol
-let binary_content_lines = many1 (take_till is_eol <* eol)
+
+let binary_chunk_meta_line =
+  lift2 (fun prefix count -> prefix ^ string_of_int count) binary_count_prefix binary_count
+
+let binary_chunk_lines = many1 (take_while1 is_not_eol <* eol) <* eol
 
 let binary_content =
-  lift3
-    (fun binary_count_prefix binary_count binary_content_lines ->
-      let binary_count = binary_count_prefix ^ string_of_int binary_count in
-      Ok (`Binary (String.concat "\n" (binary_count :: binary_content_lines))))
-    (binary_header *> binary_count_prefix)
-    binary_count binary_content_lines
+  lift4
+    (fun new_chunk_meta new_binary_lines old_chunk_meta old_binary_lines ->
+      let new_content = new_chunk_meta :: new_binary_lines |> String.concat "\n" in
+      let old_content = old_chunk_meta :: old_binary_lines |> String.concat "\n" in
+      Ok (`Binary (new_content ^ "\n\n" ^ old_content ^ "\n\n")))
+    (binary_header_line *> binary_chunk_meta_line)
+    binary_chunk_lines binary_chunk_meta_line binary_chunk_lines
 
 let missing_binary_content =
-  string "Binary files a/" *> many_till any_char (string " differ") >>| fun _ ->
+  string "Binary files a/" *> many_till any_char (string " differ") <* eol >>| fun _ ->
   Error "cannot parse diff of binary file without its content"
 
 let content = missing_binary_content <|> binary_content <|> text_content_opt <?> "content"
@@ -82,15 +87,15 @@ let content = missing_binary_content <|> binary_content <|> text_content_opt <?>
 (** Mode change *)
 
 let old_mode = string "old mode " *> integer <* eol
-let new_mode = string "new mode " *> integer <* eol_eof
+let new_mode = string "new mode " *> integer <* eol
 let mode_change = lift2 (fun old_mode new_mode -> Diff.{ old_mode; new_mode }) old_mode new_mode
 let mode_change_opt = option None (mode_change >>| Option.some)
 
 (** Rename *)
 
 let similarity = string "similarity index " *> integer <* char '%' <* eol
-let rename_from = string "rename from " *> take_till is_eol <* eol
-let rename_to = string "rename to " *> take_till is_eol <* eol_eof
+let rename_from = string "rename from " *> take_while1 is_not_eol <* eol
+let rename_to = string "rename to " *> take_while1 is_not_eol <* eol
 let rename = similarity <* rename_from <* rename_to
 let rename_opt = option None (rename >>| Option.some)
 
@@ -101,13 +106,13 @@ let deleted_file_mode = string "deleted file mode " *> integer <* eol
 
 (** File *)
 
-let index = string "index" *> take_till is_eol <* eol_eof <?> "index"
+let index = string "index" *> take_while1 is_not_eol <* eol <?> "index"
 let index_opt = option None (index >>| Option.some)
 
 let first_file_name =
   many_till any_char (string " b/") >>| fun chars -> String.of_seq (List.to_seq chars)
 
-let second_file_name = take_till is_eol <* eol
+let second_file_name = take_while1 is_not_eol <* eol
 
 let file_header =
   string "diff --git a/" *> first_file_name >>= fun old_path ->
