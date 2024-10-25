@@ -14,7 +14,8 @@ let speclist =
     ("--view-only", Arg.Set view_only, "Run TUI in selection mode, but do not make any changes.");
   ]
 
-let process cmd args = Unix.open_process_args_full cmd (Array.concat [ [| cmd |]; args ]) [||]
+let process cmd args =
+  Unix.open_process_args_full cmd (Array.concat [ [| cmd |]; args ]) (Unix.environment ())
 
 let collect (in_channel, out_channel, err_channel) =
   let content = In_channel.input_all in_channel in
