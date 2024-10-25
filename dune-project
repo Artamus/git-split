@@ -23,7 +23,7 @@
    (>= 4.14))
   dune
   (angstrom
-   (>= 1.16.1))
+   (>= 0.16.1))
   notty
   ppx_deriving
   (alcotest :with-test)))
