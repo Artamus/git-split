@@ -42,21 +42,31 @@ type intermediary_commit = {
 
 type split_commit = HeadCommit of head_commit | IntermediaryCommit of intermediary_commit
 
+(** Moves the commits that came after the one we are splitting on top of the one we ended up with with the split.
+ Then moves the branch target to this new end-of-branch commit and switches to the branch. *)
 let cleanup intermediary_commit =
+  let _, last_created_commit, _ = process "git" [| "rev-parse"; "--short"; "HEAD" |] |> collect in
+  let last_created_commit = String.trim last_created_commit in
+  print_endline
+  @@ Printf.sprintf "Moving commits between \"%s\" and \"%s\" on top of \"%s\""
+       intermediary_commit.target_commit intermediary_commit.original_head last_created_commit;
   process "git"
     [|
       "rebase";
       "--onto";
-      intermediary_commit.reference_commit;
-      intermediary_commit.target_commit ^ "~1";
+      last_created_commit;
+      intermediary_commit.target_commit;
       intermediary_commit.original_head;
     |]
   |> run;
-  let _, head_commit_id, _ = process "git" [| "rev-parse"; "--short"; "HEAD" |] |> collect in
-  process "git" [| "branch"; "-f"; intermediary_commit.branch; head_commit_id |] |> run;
+  let _, new_head, _ = process "git" [| "rev-parse"; "--short"; "HEAD" |] |> collect in
+  let new_head = String.trim new_head in
+  process "git" [| "branch"; "-f"; intermediary_commit.branch; new_head |] |> run;
+  process "git" [| "switch"; intermediary_commit.branch |] |> run;
   ()
 
 let rec select_changes reference_commit target_commit =
+  print_endline @@ "Getting diff between \"" ^ reference_commit ^ "\" and \"" ^ target_commit ^ "\"";
   let _, head_diff, _ =
     process "git" [| "diff"; "--binary"; reference_commit; target_commit |] |> collect
   in
@@ -86,6 +96,7 @@ let rec select_changes reference_commit target_commit =
       let _, current_diff_commit, _ =
         process "git" [| "rev-parse"; "--short"; "HEAD" |] |> collect
       in
+      let current_diff_commit = String.trim current_diff_commit in
       select_changes current_diff_commit target_commit)
 
 let () =
@@ -116,13 +127,16 @@ let () =
     let _, starting_reference_commit_id, _ =
       process "git" [| "rev-parse"; "--short"; !commit_id ^ "~1" |] |> collect
     in
+    let starting_reference_commit_id = String.trim starting_reference_commit_id in
     let _, head_commit_id, _ = process "git" [| "rev-parse"; "--short"; "HEAD" |] |> collect in
+    let head_commit_id = String.trim head_commit_id in
     let split_commit =
       if !commit_id = "HEAD" then
         HeadCommit
           { reference_commit = starting_reference_commit_id; target_commit = head_commit_id }
       else
         let _, branch, _ = process "git" [| "rev-parse"; "--abbrev-ref"; "HEAD" |] |> collect in
+        let branch = String.trim branch in
         IntermediaryCommit
           {
             reference_commit = starting_reference_commit_id;
@@ -132,7 +146,7 @@ let () =
           }
     in
 
-    print_endline @@ "Resetting to commit " ^ starting_reference_commit_id;
+    print_endline @@ "Moving branch to " ^ starting_reference_commit_id;
     process "git" [| "reset"; "--hard"; starting_reference_commit_id |] |> run;
 
     let split_res =
@@ -152,7 +166,7 @@ let () =
             ())
       ~error:(fun err ->
         print_endline err;
-        print_endline "Resetting HEAD";
+        print_endline @@ "Restoring HEAD to " ^ head_commit_id;
         process "git" [| "reset"; "--hard"; head_commit_id |] |> run;
         ())
       split_res
