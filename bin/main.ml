@@ -67,7 +67,6 @@ let cleanup intermediary_commit =
   ()
 
 let rec select_changes reference_commit target_commit =
-  print_endline @@ "Getting diff between \"" ^ reference_commit ^ "\" and \"" ^ target_commit ^ "\"";
   let _, head_diff, _ =
     process "git" [| "diff"; "--binary"; reference_commit; target_commit |] |> collect
   in
