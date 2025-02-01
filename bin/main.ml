@@ -91,7 +91,7 @@ let rec select_changes reference_commit target_commit =
       Error ("Failed to apply selected diff with error \"" ^ apply_error ^ "\"")
     else (
       process "git" [| "add"; "." |] |> run;
-      process "git" [| "commit" |] |> run;
+      process "git" [| "commit"; "--no-verify" |] |> run;
       let _ = Unix.system "git commit" in
       let _, current_diff_commit, _ =
         process "git" [| "rev-parse"; "--short"; "HEAD" |] |> collect
